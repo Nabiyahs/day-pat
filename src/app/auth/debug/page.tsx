@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSupabase, getRememberMe } from '@/lib/supabase/client'
+import { useSupabase } from '@/lib/supabase/client'
 import { RefreshCw, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
 import type { User, Session } from '@supabase/supabase-js'
 
@@ -33,8 +33,6 @@ export default function AuthDebugPage() {
   useEffect(() => {
     refresh()
   }, [])
-
-  const rememberMe = getRememberMe()
 
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 p-6">
@@ -98,10 +96,8 @@ export default function AuthDebugPage() {
           <h2 className="font-medium mb-3">Configuration</h2>
           <div className="space-y-2 text-sm font-mono">
             <div className="flex justify-between">
-              <span className="text-gray-400">Remember Me:</span>
-              <span className={rememberMe ? 'text-green-400' : 'text-yellow-400'}>
-                {rememberMe ? 'ON (localStorage)' : 'OFF (sessionStorage)'}
-              </span>
+              <span className="text-gray-400">Auth Method:</span>
+              <span className="text-green-400">Email Magic Link (Cookie-based)</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-400">Supabase URL:</span>
@@ -155,7 +151,7 @@ export default function AuthDebugPage() {
             </li>
             <li className="flex items-start gap-2">
               <span className="text-yellow-400">•</span>
-              <span>For Kakao: Redirect URI must be https://YOUR_PROJECT.supabase.co/auth/v1/callback</span>
+              <span>Redirect URL must match exactly: {typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : 'http://localhost:3000/auth/callback'}</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="text-yellow-400">•</span>
@@ -163,7 +159,7 @@ export default function AuthDebugPage() {
             </li>
             <li className="flex items-start gap-2">
               <span className="text-yellow-400">•</span>
-              <span>Clear browser cache/cookies if session seems stuck</span>
+              <span>Clear browser cookies if session seems stuck</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="text-yellow-400">•</span>

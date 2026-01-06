@@ -68,18 +68,21 @@ Or use the Supabase CLI:
 npx supabase db push
 ```
 
-### 5. Configure Kakao OAuth (Optional)
+### 5. Configure Email Auth
 
-To enable Kakao login:
+This app uses email magic link (OTP) authentication. Configure it in Supabase:
 
-1. Go to [Kakao Developers](https://developers.kakao.com)
-2. Create an application
-3. Enable Kakao Login and set the redirect URI:
+1. Go to **Authentication > Providers > Email** in your Supabase Dashboard
+2. Ensure Email provider is enabled
+3. Go to **Authentication > URL Configuration**
+4. Set **Site URL** to your app URL (e.g., `http://localhost:3000` for dev)
+5. Add **Redirect URLs**:
    ```
-   https://your-project.supabase.co/auth/v1/callback
+   http://localhost:3000/auth/callback
+   https://your-vercel-domain.vercel.app/auth/callback
    ```
-4. In Supabase Dashboard, go to **Authentication > Providers > Kakao**
-5. Enter your Kakao REST API Key and Client Secret
+
+See `docs/EMAIL_AUTH_SETUP.md` for detailed configuration instructions.
 
 ### 6. Run Development Server
 

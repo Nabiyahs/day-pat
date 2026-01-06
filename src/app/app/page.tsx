@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSupabase, resetSupabaseClient } from '@/lib/supabase/client'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Bug } from 'lucide-react'
 import type { User, AuthChangeEvent, Session } from '@supabase/supabase-js'
 import { Header, ViewTabs, SideDrawer, BottomNav, type ViewType } from '@/components/shell'
 import { MonthView } from '@/components/calendar/month-view'
@@ -17,8 +17,10 @@ export default function AppPage() {
   const [activeView, setActiveView] = useState<ViewType>('day') // Day is the main/default view
   const [selectedDate, setSelectedDate] = useState(formatDateString(new Date()))
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [showDebug, setShowDebug] = useState(false)
   const router = useRouter()
   const supabase = useSupabase()
+  const isDev = process.env.NODE_ENV === 'development'
 
   const checkUser = useCallback(async () => {
     try {
@@ -143,6 +145,36 @@ export default function AppPage() {
           setActiveView('day')
         }}
       />
+
+      {/* Debug Panel (Development only) */}
+      {isDev && (
+        <div className="fixed bottom-20 right-4 z-50">
+          <button
+            onClick={() => setShowDebug(!showDebug)}
+            className="w-10 h-10 bg-gray-800 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-gray-700"
+          >
+            <Bug className="w-5 h-5" />
+          </button>
+          {showDebug && (
+            <div className="absolute bottom-12 right-0 w-72 bg-white rounded-lg shadow-xl border border-gray-200 p-4 text-xs font-mono">
+              <h4 className="font-bold text-gray-800 mb-2">Session Debug</h4>
+              <div className="space-y-1 text-gray-600">
+                <p><span className="text-gray-400">Status:</span> {user ? '✅ Authenticated' : '❌ Not authenticated'}</p>
+                <p><span className="text-gray-400">Email:</span> {user?.email || 'N/A'}</p>
+                <p><span className="text-gray-400">User ID:</span> {user?.id?.slice(0, 8) || 'N/A'}...</p>
+                <p><span className="text-gray-400">Provider:</span> {user?.app_metadata?.provider || 'N/A'}</p>
+                <p><span className="text-gray-400">Created:</span> {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}</p>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="mt-3 w-full bg-red-500 text-white py-2 rounded text-xs hover:bg-red-600"
+              >
+                Sign Out
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

@@ -3,63 +3,18 @@
 import { createBrowserClient } from '@supabase/ssr'
 import { useMemo } from 'react'
 
-const REMEMBER_ME_KEY = 'praise_calendar_remember_me'
-
 /**
- * Get the "Remember Me" preference from localStorage
- */
-export function getRememberMe(): boolean {
-  if (typeof window === 'undefined') return true
-  return localStorage.getItem(REMEMBER_ME_KEY) !== 'false'
-}
-
-/**
- * Set the "Remember Me" preference
- * Must be called BEFORE signIn to take effect
- */
-export function setRememberMe(remember: boolean): void {
-  if (typeof window === 'undefined') return
-  localStorage.setItem(REMEMBER_ME_KEY, remember ? 'true' : 'false')
-}
-
-/**
- * Custom storage that uses localStorage or sessionStorage based on Remember Me setting
- */
-function createCustomStorage(useLocalStorage: boolean) {
-  const storage = useLocalStorage
-    ? (typeof window !== 'undefined' ? window.localStorage : undefined)
-    : (typeof window !== 'undefined' ? window.sessionStorage : undefined)
-
-  return {
-    getItem: (key: string): string | null => {
-      return storage?.getItem(key) ?? null
-    },
-    setItem: (key: string, value: string): void => {
-      storage?.setItem(key, value)
-    },
-    removeItem: (key: string): void => {
-      storage?.removeItem(key)
-    },
-  }
-}
-
-/**
- * Create a Supabase browser client with session persistence based on Remember Me
+ * Create a Supabase browser client using cookie-based storage.
+ * This is the proper way to use Supabase with Next.js App Router SSR.
+ *
+ * The @supabase/ssr package automatically handles cookie storage,
+ * which ensures PKCE verifiers and session tokens are properly synced
+ * between client and server.
  */
 export function createClient() {
-  const rememberMe = getRememberMe()
-
   return createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      auth: {
-        persistSession: true,
-        storage: createCustomStorage(rememberMe),
-        storageKey: 'praise-calendar-auth',
-        flowType: 'pkce',
-      },
-    }
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 }
 
@@ -70,7 +25,7 @@ let browserClient: ReturnType<typeof createBrowserClient> | null = null
 
 export function getSupabaseClient() {
   if (typeof window === 'undefined') {
-    // Server-side: create new instance
+    // Server-side: create new instance (though this shouldn't be used on server)
     return createClient()
   }
 
@@ -82,7 +37,7 @@ export function getSupabaseClient() {
 }
 
 /**
- * Reset the client (call when Remember Me changes)
+ * Reset the client (useful for testing or after logout)
  */
 export function resetSupabaseClient() {
   browserClient = null
