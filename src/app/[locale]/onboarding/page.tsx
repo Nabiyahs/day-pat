@@ -111,10 +111,11 @@ export default function OnboardingPage({ params }: Props) {
     addDebugLog('nav', 'Onboarding: Completing onboarding')
 
     try {
-      localStorage.setItem(ONBOARDING_KEY, 'true')
-      addDebugLog('info', 'Onboarding: localStorage set')
+      // Use sessionStorage so intro always shows on fresh visits (new browser session)
+      sessionStorage.setItem(ONBOARDING_KEY, 'true')
+      addDebugLog('info', 'Onboarding: sessionStorage set')
     } catch (e) {
-      addDebugLog('warn', 'Onboarding: localStorage failed', { error: String(e) })
+      addDebugLog('warn', 'Onboarding: sessionStorage failed', { error: String(e) })
     }
 
     try {

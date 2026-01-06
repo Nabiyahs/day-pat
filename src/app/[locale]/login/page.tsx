@@ -32,18 +32,19 @@ function LoginFormContent({ locale }: { locale: Locale }) {
   const searchParams = useSearchParams()
   const router = useRouter()
 
-  // Check if onboarding is completed - if not, redirect to onboarding
+  // Check if onboarding is completed this session - if not, redirect to onboarding
+  // Uses sessionStorage so intro always shows on fresh visits (new browser session)
   useEffect(() => {
     try {
-      const completed = localStorage.getItem(ONBOARDING_KEY) === 'true'
+      const completed = sessionStorage.getItem(ONBOARDING_KEY) === 'true'
       if (!completed) {
-        console.log('[Login] Onboarding not completed, redirecting to onboarding')
+        console.log('[Login] Onboarding not completed this session, redirecting to onboarding')
         router.replace(`/${locale}/onboarding`)
         return
       }
     } catch (e) {
-      // localStorage not available, redirect to onboarding to be safe
-      console.log('[Login] localStorage error, redirecting to onboarding')
+      // sessionStorage not available, redirect to onboarding to be safe
+      console.log('[Login] sessionStorage error, redirecting to onboarding')
       router.replace(`/${locale}/onboarding`)
       return
     }
