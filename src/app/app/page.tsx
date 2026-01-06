@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { useSupabase } from '@/lib/supabase/client'
 import { Calendar, CalendarDays, Sun, Loader2 } from 'lucide-react'
-import type { User } from '@supabase/supabase-js'
+import type { User, AuthChangeEvent, Session } from '@supabase/supabase-js'
 import { Tabs } from '@/components/ui/tabs'
 import { Modal } from '@/components/ui/modal'
 import { UserMenu } from '@/components/auth/user-menu'
@@ -28,33 +28,54 @@ export default function AppPage() {
   const [selectedDate, setSelectedDate] = useState(formatDateString(new Date()))
   const [showDayModal, setShowDayModal] = useState(false)
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useSupabase()
 
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/login')
+  const checkUser = useCallback(async () => {
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser()
+
+      if (error) {
+        console.error('[App] Auth error:', error)
+        router.replace('/login')
         return
       }
+
+      if (!user) {
+        console.log('[App] No user, redirecting to login')
+        router.replace('/login')
+        return
+      }
+
+      console.log('[App] User authenticated:', user.email)
       setUser(user)
+    } catch (err) {
+      console.error('[App] Unexpected error:', err)
+      router.replace('/login')
+    } finally {
       setLoading(false)
     }
+  }, [supabase, router])
 
-    getUser()
+  useEffect(() => {
+    checkUser()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      (event: AuthChangeEvent, session: Session | null) => {
+        console.log('[App] Auth state changed:', event)
+
         if (event === 'SIGNED_OUT') {
-          router.push('/login')
-        } else if (session?.user) {
+          setUser(null)
+          router.replace('/login')
+        } else if (event === 'SIGNED_IN' && session?.user) {
+          setUser(session.user)
+        } else if (event === 'TOKEN_REFRESHED' && session?.user) {
           setUser(session.user)
         }
       }
     )
 
     return () => subscription.unsubscribe()
-  }, [router, supabase])
+  }, [checkUser, supabase, router])
 
   const handleSelectDate = (date: string) => {
     setSelectedDate(date)
@@ -73,9 +94,16 @@ export default function AppPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-amber-500 mx-auto mb-4" />
+          <p className="text-gray-500 text-sm">Loading...</p>
+        </div>
       </div>
     )
+  }
+
+  if (!user) {
+    return null // Will redirect to login
   }
 
   return (
@@ -86,7 +114,7 @@ export default function AppPage() {
           <h1 className="text-lg font-bold text-gray-800">
             Praise Calendar
           </h1>
-          {user && <UserMenu user={user} />}
+          <UserMenu user={user} />
         </div>
       </header>
 
@@ -121,7 +149,7 @@ export default function AppPage() {
       <Modal
         isOpen={showDayModal}
         onClose={() => setShowDayModal(false)}
-        title={`Day View`}
+        title="Day View"
         className="md:max-w-lg"
       >
         <div className="bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50 min-h-[60vh]">

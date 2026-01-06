@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useSupabase, resetSupabaseClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { LogOut, User } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -13,13 +13,31 @@ interface UserMenuProps {
 
 export function UserMenu({ user }: UserMenuProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [loggingOut, setLoggingOut] = useState(false)
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useSupabase()
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/login')
-    router.refresh()
+    setLoggingOut(true)
+    try {
+      await supabase.auth.signOut()
+
+      // Clear all storage to ensure clean logout
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('praise-calendar-auth')
+        sessionStorage.removeItem('praise-calendar-auth')
+      }
+
+      // Reset the client
+      resetSupabaseClient()
+
+      // Redirect to login
+      router.replace('/login')
+      router.refresh()
+    } catch (err) {
+      console.error('[UserMenu] Logout error:', err)
+      setLoggingOut(false)
+    }
   }
 
   const initials = user.email?.charAt(0).toUpperCase() || 'U'
@@ -28,7 +46,8 @@ export function UserMenu({ user }: UserMenuProps) {
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-400 flex items-center justify-center text-white font-medium shadow-md hover:shadow-lg transition-shadow"
+        disabled={loggingOut}
+        className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-400 flex items-center justify-center text-white font-medium shadow-md hover:shadow-lg transition-shadow disabled:opacity-50"
       >
         {initials}
       </button>
@@ -62,10 +81,11 @@ export function UserMenu({ user }: UserMenuProps) {
               <div className="p-2">
                 <button
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  disabled={loggingOut}
+                  className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                 >
                   <LogOut className="w-4 h-4" />
-                  Sign Out
+                  {loggingOut ? 'Signing out...' : 'Sign Out'}
                 </button>
               </div>
             </motion.div>
