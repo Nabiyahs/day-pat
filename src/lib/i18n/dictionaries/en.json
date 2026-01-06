@@ -22,7 +22,7 @@
     "startJourney": "Pat My Day",
     "steps": {
       "praise": {
-        "title": "Made it to work today",
+        "title": "One line of praise for my day",
         "description": "It doesn't have to be grand.\nRecord what you did best today\nand stamp it."
       },
       "streak": {
