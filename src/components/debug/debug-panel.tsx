@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { X, ChevronDown, ChevronUp, Trash2 } from 'lucide-react'
+import { AppIcon } from '@/components/ui/app-icon'
 import {
   isDebugMode,
   getDebugLogs,
@@ -118,7 +118,7 @@ export function DebugPanel() {
             </span>
           )}
         </span>
-        {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+        {isExpanded ? <AppIcon name="chevron-down" className="w-4 h-4" /> : <AppIcon name="chevron-up" className="w-4 h-4" />}
       </button>
 
       {/* Expanded panel */}
@@ -201,7 +201,7 @@ export function DebugPanel() {
                 onClick={handleClearLogs}
                 className="text-gray-500 hover:text-gray-300 flex items-center gap-1"
               >
-                <Trash2 className="w-3 h-3" />
+                <AppIcon name="trash" className="w-3 h-3" />
                 Clear
               </button>
             </div>

@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense, use } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { Lock, Loader2, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react'
+import { AppIcon } from '@/components/ui/app-icon'
 import { getDictionarySync, type Locale, appTitles, isValidLocale, i18n } from '@/lib/i18n'
 
 type Props = {
@@ -123,7 +123,7 @@ function ResetPasswordFormContent({ locale }: { locale: Locale }) {
         <div className="w-full max-w-md">
           <div className="bg-white rounded-2xl shadow-xl p-8">
             <div className="text-center">
-              <Loader2 className="w-8 h-8 animate-spin text-[#F27430] mx-auto mb-4" />
+              <AppIcon name="spinner" className="w-8 h-8 animate-spin text-[#F27430] mx-auto mb-4" />
               <p className="text-gray-500">{labels.verifying}</p>
             </div>
           </div>
@@ -139,7 +139,7 @@ function ResetPasswordFormContent({ locale }: { locale: Locale }) {
         <div className="w-full max-w-md">
           <div className="bg-white rounded-2xl shadow-xl p-8">
             <div className="text-center">
-              <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+              <AppIcon name="alert-circle" className="w-12 h-12 text-red-500 mx-auto mb-4" />
               <h1 className="text-xl font-bold text-gray-800 mb-2">
                 {labels.invalidTitle}
               </h1>
@@ -166,7 +166,7 @@ function ResetPasswordFormContent({ locale }: { locale: Locale }) {
         <div className="w-full max-w-md">
           <div className="bg-white rounded-2xl shadow-xl p-8">
             <div className="text-center">
-              <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
+              <AppIcon name="check-circle" className="w-12 h-12 text-green-500 mx-auto mb-4" />
               <h1 className="text-xl font-bold text-gray-800 mb-2">
                 {labels.successTitle}
               </h1>
@@ -200,7 +200,7 @@ function ResetPasswordFormContent({ locale }: { locale: Locale }) {
           {/* Error Display */}
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+              <AppIcon name="alert-circle" className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
               <span className="text-red-600 text-sm">{error}</span>
             </div>
           )}
@@ -212,7 +212,7 @@ function ResetPasswordFormContent({ locale }: { locale: Locale }) {
                 {labels.newPassword}
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <AppIcon name="lock" className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
@@ -228,7 +228,7 @@ function ResetPasswordFormContent({ locale }: { locale: Locale }) {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showPassword ? <AppIcon name="eye-off" className="w-5 h-5" /> : <AppIcon name="eye" className="w-5 h-5" />}
                 </button>
               </div>
               <p className="text-xs text-gray-500 mt-1">{labels.minChars}</p>
@@ -239,7 +239,7 @@ function ResetPasswordFormContent({ locale }: { locale: Locale }) {
                 {labels.confirmNewPassword}
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <AppIcon name="lock" className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={confirmPassword}
@@ -260,7 +260,7 @@ function ResetPasswordFormContent({ locale }: { locale: Locale }) {
             >
               {loading ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <AppIcon name="spinner" className="w-5 h-5 animate-spin" />
                   {labels.updating}
                 </>
               ) : (
@@ -289,7 +289,7 @@ function ResetFallback({ locale }: { locale: Locale }) {
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center">
-            <Loader2 className="w-8 h-8 animate-spin text-[#F27430] mx-auto mb-4" />
+            <AppIcon name="spinner" className="w-8 h-8 animate-spin text-[#F27430] mx-auto mb-4" />
             <p className="text-gray-500">{appTitles[locale]}</p>
           </div>
         </div>

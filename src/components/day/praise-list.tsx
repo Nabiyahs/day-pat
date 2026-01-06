@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Trash2, Edit2, Check, X, Loader2 } from 'lucide-react'
+import { AppIcon } from '@/components/ui/app-icon'
 import { format } from 'date-fns'
 import type { Praise } from '@/types/database'
 import { cn } from '@/lib/utils'
@@ -80,9 +80,9 @@ export function PraiseList({
           )}
         >
           {adding ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
+            <AppIcon name="spinner" className="w-5 h-5 animate-spin" />
           ) : (
-            <Plus className="w-5 h-5" />
+            <AppIcon name="plus" className="w-5 h-5" />
           )}
         </button>
       </div>
@@ -91,7 +91,7 @@ export function PraiseList({
       <div className="space-y-2">
         {loading && praises.length === 0 ? (
           <div className="py-8 text-center text-gray-400">
-            <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
+            <AppIcon name="spinner" className="w-6 h-6 animate-spin mx-auto mb-2" />
             Loading...
           </div>
         ) : praises.length === 0 ? (
@@ -123,7 +123,7 @@ export function PraiseList({
                       onClick={() => handleEdit(praise.id)}
                       className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors"
                     >
-                      <Check className="w-4 h-4" />
+                      <AppIcon name="check" className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => {
@@ -132,7 +132,7 @@ export function PraiseList({
                       }}
                       className="p-2 bg-gray-100 text-gray-500 rounded-lg hover:bg-gray-200 transition-colors"
                     >
-                      <X className="w-4 h-4" />
+                      <AppIcon name="x" className="w-4 h-4" />
                     </button>
                   </div>
                 ) : (
@@ -150,13 +150,13 @@ export function PraiseList({
                         onClick={() => startEdit(praise)}
                         className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                       >
-                        <Edit2 className="w-3.5 h-3.5" />
+                        <AppIcon name="edit" className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => onDelete(praise.id)}
                         className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <AppIcon name="trash" className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>

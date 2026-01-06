@@ -2,7 +2,7 @@
 
 import { useState, ReactNode, use, useRef, TouchEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2 } from 'lucide-react'
+import { AppIcon } from '@/components/ui/app-icon'
 import { getDictionarySync, type Locale, i18n, isValidLocale } from '@/lib/i18n'
 import { createClient } from '@/lib/supabase/client'
 import { SlidePraise, SlideStreak, SlideExport } from '@/components/onboarding/slides'
@@ -59,31 +59,41 @@ export default function OnboardingPage({ params }: Props) {
   // Touch handling for swipe
   const touchStartX = useRef<number>(0)
   const touchEndX = useRef<number>(0)
+  const isSwiping = useRef<boolean>(false)
 
   const handleTouchStart = (e: TouchEvent) => {
     touchStartX.current = e.touches[0].clientX
+    touchEndX.current = e.touches[0].clientX
+    isSwiping.current = false
   }
 
   const handleTouchMove = (e: TouchEvent) => {
     touchEndX.current = e.touches[0].clientX
+    // Mark as swiping if moved more than 10px
+    if (Math.abs(touchStartX.current - touchEndX.current) > 10) {
+      isSwiping.current = true
+    }
   }
 
   const handleTouchEnd = () => {
+    // Only process swipe if user actually swiped (not just tapped)
+    if (!isSwiping.current) return
+
     const diff = touchStartX.current - touchEndX.current
     const threshold = 50
 
-    if (Math.abs(diff) > threshold) {
+    if (Math.abs(diff) > threshold && !isTransitioning) {
       if (diff > 0 && currentSlide < SLIDES.length - 1) {
         // Swipe left - next slide
-        goToSlide(currentSlide + 1)
+        navigateToSlide(currentSlide + 1)
       } else if (diff < 0 && currentSlide > 0) {
         // Swipe right - previous slide
-        goToSlide(currentSlide - 1)
+        navigateToSlide(currentSlide - 1)
       }
     }
   }
 
-  const goToSlide = (index: number) => {
+  const navigateToSlide = (index: number) => {
     // Validate index
     if (index < 0 || index >= SLIDES.length) return
     // Skip if already on this slide
@@ -91,16 +101,18 @@ export default function OnboardingPage({ params }: Props) {
     // Skip if already transitioning
     if (isTransitioning) return
 
-    console.log('[Onboarding] goToSlide:', { from: currentSlide, to: index })
+    console.log('[Onboarding] navigateToSlide:', { from: currentSlide, to: index })
 
-    // Update slide state immediately
-    setCurrentSlide(index)
     setIsTransitioning(true)
 
-    // Reset transitioning flag after animation completes
+    // Small delay before changing slide for smoother animation
     setTimeout(() => {
-      setIsTransitioning(false)
-    }, 300)
+      setCurrentSlide(index)
+      // Reset transitioning flag after animation completes
+      setTimeout(() => {
+        setIsTransitioning(false)
+      }, 300)
+    }, 50)
   }
 
   /**
@@ -140,15 +152,23 @@ export default function OnboardingPage({ params }: Props) {
   }
 
   const handleNext = () => {
+    if (isTransitioning || isCheckingAuth) return
+
     if (currentSlide < SLIDES.length - 1) {
-      goToSlide(currentSlide + 1)
+      navigateToSlide(currentSlide + 1)
     } else {
       completeOnboarding()
     }
   }
 
   const handleSkip = () => {
+    if (isCheckingAuth) return
     completeOnboarding()
+  }
+
+  const handleDotClick = (index: number) => {
+    if (isTransitioning) return
+    navigateToSlide(index)
   }
 
   const slide = SLIDES[currentSlide]
@@ -180,10 +200,10 @@ export default function OnboardingPage({ params }: Props) {
       </div>
 
       {/* Main content - optimized spacing for mobile */}
-      <div className="flex-1 flex flex-col items-center justify-center px-5 pt-12 pb-2">
+      <div className="flex-1 flex flex-col items-center justify-center px-5 pt-10 pb-2">
         {/* Visual area - tighter margin */}
         <div
-          className={`mb-6 transition-all duration-300 ${
+          className={`mb-5 transition-all duration-300 ${
             isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
           }`}
         >
@@ -216,7 +236,7 @@ export default function OnboardingPage({ params }: Props) {
           {SLIDES.map((_, index) => (
             <button
               key={index}
-              onClick={() => goToSlide(index)}
+              onClick={() => handleDotClick(index)}
               disabled={isTransitioning}
               className={`h-2 rounded-full transition-all duration-300 ${
                 index === currentSlide
@@ -242,7 +262,7 @@ export default function OnboardingPage({ params }: Props) {
           }`}
         >
           {isCheckingAuth ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
+            <AppIcon name="spinner" className="w-5 h-5 animate-spin" />
           ) : isLastSlide ? (
             dict.onboarding.startJourney
           ) : (

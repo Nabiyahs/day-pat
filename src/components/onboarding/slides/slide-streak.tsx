@@ -1,13 +1,16 @@
 'use client'
 
+import { AppIcon } from '@/components/ui/app-icon'
+
 /**
  * Slide 2: Streak Display
  * Design inspired by reference-intro-2.jpg
  * Visual: Yellow circle with flame icon + "7" badge, compact week view below
+ * Removed: "7일 연속" text per requirements
  * Optimized for mobile: fits on 6.3-inch screen without scrolling
  */
 export function SlideStreak() {
-  // Day colors from the reference image - gradient from orange to yellow/green
+  // Day colors - gradient from orange to yellow/green
   const dayColors = [
     'bg-[#F27430]', // 월 - orange
     'bg-[#F28D49]', // 화 - light orange
@@ -23,25 +26,19 @@ export function SlideStreak() {
   return (
     <div className="flex flex-col items-center justify-center w-full">
       {/* Upper visual: Yellow circle with flame and "7" badge */}
-      <div className="relative mb-4">
+      <div className="relative mb-6">
         {/* Main yellow circle */}
-        <div className="w-36 h-36 rounded-full bg-[#F2D949] flex items-center justify-center shadow-lg">
+        <div className="w-32 h-32 rounded-full bg-[#F2D949] flex items-center justify-center shadow-lg">
           {/* Fire icon */}
-          <span className="text-6xl" style={{ marginTop: '-8px' }}>🔥</span>
+          <span className="text-5xl" style={{ marginTop: '-4px' }}>🔥</span>
         </div>
 
         {/* "7" badge at bottom of circle */}
         <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
-          <div className="w-12 h-12 rounded-full bg-white shadow-md flex items-center justify-center">
-            <span className="text-2xl font-bold text-gray-800">7</span>
+          <div className="w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center">
+            <span className="text-xl font-bold text-gray-800">7</span>
           </div>
         </div>
-      </div>
-
-      {/* Streak text */}
-      <div className="text-center mb-4">
-        <p className="text-xl font-bold text-white">7일 연속</p>
-        <span className="text-2xl">🔥</span>
       </div>
 
       {/* Compact week view - styled like reference image */}
@@ -59,7 +56,7 @@ export function SlideStreak() {
                   index === days.length - 1 ? 'ring-2 ring-white ring-offset-1' : ''
                 }`}
               >
-                <span className="text-white text-sm font-bold">✓</span>
+                <AppIcon name="check" className="w-3 h-3 text-white" />
               </div>
             </div>
           ))}

@@ -3,7 +3,7 @@
 import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSupabase, resetSupabaseClient } from '@/lib/supabase/client'
-import { Loader2, Bug } from 'lucide-react'
+import { AppIcon } from '@/components/ui/app-icon'
 import type { User, AuthChangeEvent, Session } from '@supabase/supabase-js'
 import { Header, ViewTabs, SideDrawer, BottomNav, type ViewType } from '@/components/shell'
 import { MonthView } from '@/components/calendar/month-view'
@@ -84,7 +84,7 @@ export default function AppPage({ params }: Props) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-[#F2B949] mx-auto mb-4" />
+          <AppIcon name="spinner" className="w-8 h-8 animate-spin text-[#F2B949] mx-auto mb-4" />
           <p className="text-gray-500 text-sm">{dict.app.loading}</p>
         </div>
       </div>
@@ -150,7 +150,7 @@ export default function AppPage({ params }: Props) {
             onClick={() => setShowDebug(!showDebug)}
             className="w-10 h-10 bg-gray-800 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-gray-700"
           >
-            <Bug className="w-5 h-5" />
+            <AppIcon name="bug" className="w-5 h-5" />
           </button>
           {showDebug && (
             <div className="absolute bottom-12 right-0 w-72 bg-white rounded-lg shadow-xl border border-gray-200 p-4 text-xs font-mono">

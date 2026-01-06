@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { X, CalendarDays, Heart, TrendingUp, Settings, LogOut, Construction } from 'lucide-react'
+import { AppIcon } from '@/components/ui/app-icon'
 import { cn } from '@/lib/utils'
 import { getDictionarySync, type Locale } from '@/lib/i18n'
 
@@ -10,6 +10,13 @@ interface SideDrawerProps {
   isOpen: boolean
   onClose: () => void
   onLogout?: () => void
+}
+
+const ICON_MAP = {
+  calendar: 'calendar' as const,
+  favorites: 'heart' as const,
+  insights: 'trending-up' as const,
+  settings: 'settings' as const,
 }
 
 export function SideDrawer({ locale, isOpen, onClose, onLogout }: SideDrawerProps) {
@@ -36,10 +43,10 @@ export function SideDrawer({ locale, isOpen, onClose, onLogout }: SideDrawerProp
   }, [isOpen, onClose])
 
   const MENU_ITEMS = [
-    { id: 'calendar', label: dict.nav.calendar, icon: CalendarDays, active: true, available: true },
-    { id: 'favorites', label: dict.nav.favorites, icon: Heart, active: false, available: false },
-    { id: 'insights', label: dict.nav.insights, icon: TrendingUp, active: false, available: false },
-    { id: 'settings', label: dict.nav.settings, icon: Settings, active: false, available: false },
+    { id: 'calendar', label: dict.nav.calendar, icon: ICON_MAP.calendar, active: true, available: true },
+    { id: 'favorites', label: dict.nav.favorites, icon: ICON_MAP.favorites, active: false, available: false },
+    { id: 'insights', label: dict.nav.insights, icon: ICON_MAP.insights, active: false, available: false },
+    { id: 'settings', label: dict.nav.settings, icon: ICON_MAP.settings, active: false, available: false },
   ]
 
   const comingSoonText = locale === 'ko' ? '준비 중' : 'Coming soon'
@@ -70,13 +77,12 @@ export function SideDrawer({ locale, isOpen, onClose, onLogout }: SideDrawerProp
               className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
               aria-label={locale === 'ko' ? '메뉴 닫기' : 'Close menu'}
             >
-              <X className="w-5 h-5 text-gray-600" />
+              <AppIcon name="x" className="w-5 h-5 text-gray-600" />
             </button>
           </div>
 
           <nav className="space-y-2">
             {MENU_ITEMS.map((item) => {
-              const Icon = item.icon
               return (
                 <button
                   key={item.id}
@@ -96,11 +102,11 @@ export function SideDrawer({ locale, isOpen, onClose, onLogout }: SideDrawerProp
                       : 'text-gray-400 cursor-not-allowed'
                   )}
                 >
-                  <Icon className="w-5 h-5" />
+                  <AppIcon name={item.icon} className="w-5 h-5" />
                   <span className="font-semibold">{item.label}</span>
                   {!item.available && !item.active && (
                     <span className="ml-auto flex items-center gap-1 text-xs text-gray-400">
-                      <Construction className="w-3 h-3" />
+                      <AppIcon name="construction" className="w-3 h-3" />
                       {comingSoonText}
                     </span>
                   )}
@@ -115,7 +121,7 @@ export function SideDrawer({ locale, isOpen, onClose, onLogout }: SideDrawerProp
                 onClick={onLogout}
                 className="w-full flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-red-50 text-red-600 transition-colors"
               >
-                <LogOut className="w-5 h-5" />
+                <AppIcon name="logout" className="w-5 h-5" />
                 <span className="font-semibold">{dict.nav.signOut}</span>
               </button>
             </div>

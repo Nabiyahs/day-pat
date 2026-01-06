@@ -1,64 +1,42 @@
 'use client'
 
-import { FileText, Share2, Download } from 'lucide-react'
+import { AppIcon } from '@/components/ui/app-icon'
 
 /**
  * Slide 3: Export & Share
- * Design based on daily.html reference - stats and share options
- * Visual: Month stats card with export options
- * Removed: 최다기분 box, social icons (phone/chat/SNS)
+ * Design based on intro-3.txt reference
+ * Visual: Two circular icons (PDF and Share) with descriptive text below
  * Optimized for mobile: fits on 6.3-inch screen without scrolling
  */
 export function SlideExport() {
   return (
     <div className="flex flex-col items-center justify-center w-full">
-      {/* Stats Card - simplified, removed 최다기분 */}
-      <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4 w-full max-w-[260px] mb-5">
-        <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-          <span>📊</span> 1월 기록
-        </h3>
-        {/* Only 2 columns now - removed 최다기분 */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="text-center bg-white/60 rounded-xl p-3">
-            <p className="text-2xl font-bold text-[#F2B949]">12</p>
-            <p className="text-[10px] text-gray-600 mt-1">칭찬</p>
+      {/* Upper visual - inspired by intro-3.txt reference */}
+      <div className="bg-white rounded-3xl p-6 shadow-lg max-w-[280px] w-full">
+        {/* Two circular icons side by side */}
+        <div className="flex items-center justify-center gap-6 mb-6">
+          {/* PDF icon circle */}
+          <div className="w-20 h-20 rounded-full bg-[#F2B949] flex items-center justify-center shadow-lg">
+            <AppIcon name="file-pdf" className="w-8 h-8 text-white" />
           </div>
-          <div className="text-center bg-white/60 rounded-xl p-3">
-            <p className="text-2xl font-bold text-[#F27430]">8</p>
-            <p className="text-[10px] text-gray-600 mt-1">연속</p>
+          {/* Share icon circle */}
+          <div className="w-20 h-20 rounded-full bg-[#F2E829] flex items-center justify-center shadow-lg">
+            <AppIcon name="share" className="w-8 h-8 text-white" />
+          </div>
+        </div>
+
+        {/* Descriptive text - inspired by reference */}
+        <div className="space-y-3">
+          <div className="text-left">
+            <p className="text-sm font-semibold text-gray-800">PDF로 저장하고</p>
+            <p className="text-xs text-gray-500">한 달 기록을 문서로</p>
+          </div>
+          <div className="text-left">
+            <p className="text-sm font-semibold text-gray-800">소중한 순간을 공유해요</p>
+            <p className="text-xs text-gray-500">친구들과 함께 나눠요</p>
           </div>
         </div>
       </div>
-
-      {/* Export options - floating cards - compact */}
-      <div className="relative flex items-center justify-center gap-3">
-        {/* Glow effect */}
-        <div className="absolute inset-0 blur-3xl bg-white/20 rounded-full scale-150" />
-
-        {/* PDF Export */}
-        <div className="relative group">
-          <div className="w-20 h-20 bg-white rounded-xl shadow-lg flex flex-col items-center justify-center transform -rotate-6 transition-transform group-hover:rotate-0">
-            <FileText className="w-8 h-8 text-[#F27430]" strokeWidth={1.5} />
-            <span className="text-[10px] font-bold text-gray-600 mt-1">PDF</span>
-          </div>
-          <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-[#F27430] rounded-full flex items-center justify-center shadow">
-            <Download className="w-2.5 h-2.5 text-white" />
-          </div>
-        </div>
-
-        {/* Share */}
-        <div className="relative group">
-          <div className="w-20 h-20 bg-white rounded-xl shadow-lg flex flex-col items-center justify-center transform rotate-6 transition-transform group-hover:rotate-0">
-            <Share2 className="w-8 h-8 text-[#EDD377]" strokeWidth={1.5} />
-            <span className="text-[10px] font-bold text-gray-600 mt-1">공유</span>
-          </div>
-          <div className="absolute -top-1.5 -left-1.5 w-5 h-5 bg-[#EDD377] rounded-full flex items-center justify-center shadow">
-            <span className="text-[10px]">📤</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Social icons removed as per requirements */}
     </div>
   )
 }

@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { format, isSameMonth, isToday, startOfMonth, addMonths, subMonths } from 'date-fns'
 import { ko, enUS } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, BarChart3, Star, Heart } from 'lucide-react'
+import { AppIcon } from '@/components/ui/app-icon'
 import { useMonthData } from '@/hooks/use-month-data'
 import { getCalendarDays, formatDateString } from '@/lib/utils'
 import { cn } from '@/lib/utils'
@@ -117,7 +117,7 @@ export function MonthView({ locale, onSelectDate }: MonthViewProps) {
             onClick={goToPrevMonth}
             className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/60 transition-colors"
           >
-            <ChevronLeft className="w-5 h-5 text-gray-600" />
+            <AppIcon name="chevron-left" className="w-5 h-5 text-gray-600" />
           </button>
 
           <div className="text-center">
@@ -130,7 +130,7 @@ export function MonthView({ locale, onSelectDate }: MonthViewProps) {
             onClick={goToNextMonth}
             className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/60 transition-colors"
           >
-            <ChevronRight className="w-5 h-5 text-gray-600" />
+            <AppIcon name="chevron-right" className="w-5 h-5 text-gray-600" />
           </button>
         </div>
       </div>
@@ -233,7 +233,7 @@ export function MonthView({ locale, onSelectDate }: MonthViewProps) {
       {/* Month Stats - matches reference: gradient bg with stats */}
       <div className="bg-gradient-to-br from-[#F2B949] to-[#F27430] rounded-2xl p-6 shadow-xl mb-6">
         <h3 className="text-lg font-bold text-white mb-5 flex items-center gap-2">
-          <BarChart3 className="w-5 h-5" />
+          <AppIcon name="bar-chart" className="w-5 h-5" />
           {highlightsTitle}
         </h3>
         <div className="grid grid-cols-3 gap-4">
@@ -256,7 +256,7 @@ export function MonthView({ locale, onSelectDate }: MonthViewProps) {
       {topMoments.length > 0 && (
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-5 shadow-lg">
           <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <Star className="w-4 h-4 text-yellow-500" />
+            <AppIcon name="star" className="w-4 h-4 text-yellow-500" />
             {dict.calendar.topMoments}
           </h3>
           <div className="space-y-3">
@@ -288,7 +288,7 @@ export function MonthView({ locale, onSelectDate }: MonthViewProps) {
                       {moment.caption}
                     </p>
                   </div>
-                  <Heart className="w-4 h-4 text-[#F27430] flex-shrink-0" />
+                  <AppIcon name="heart" className="w-4 h-4 text-[#F27430] flex-shrink-0" />
                 </button>
               )
             })}

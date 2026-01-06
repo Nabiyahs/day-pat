@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X } from 'lucide-react'
+import { AppIcon } from '@/components/ui/app-icon'
 import { cn } from '@/lib/utils'
 
 interface ModalProps {
@@ -61,7 +61,7 @@ export function Modal({ isOpen, onClose, children, title, className }: ModalProp
                   onClick={onClose}
                   className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                 >
-                  <X className="w-5 h-5 text-gray-500" />
+                  <AppIcon name="x" className="w-5 h-5 text-gray-500" />
                 </button>
               </div>
             )}

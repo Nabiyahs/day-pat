@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback } from 'react'
-import { Camera, Edit2, Loader2 } from 'lucide-react'
+import { AppIcon } from '@/components/ui/app-icon'
 import { cn } from '@/lib/utils'
 import { uploadPhoto } from '@/lib/image-upload'
 import type { DayCard, StickerState } from '@/types/database'
@@ -142,9 +142,9 @@ export function PolaroidCard({
                 className="absolute bottom-3 right-3 p-2 bg-white/80 backdrop-blur-sm rounded-full shadow hover:bg-white transition-colors"
               >
                 {uploading ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-gray-600" />
+                  <AppIcon name="spinner" className="w-4 h-4 animate-spin text-gray-600" />
                 ) : (
-                  <Camera className="w-4 h-4 text-gray-600" />
+                  <AppIcon name="camera" className="w-4 h-4 text-gray-600" />
                 )}
               </button>
             </>
@@ -155,10 +155,10 @@ export function PolaroidCard({
               className="w-full h-[340px] flex flex-col items-center justify-center gap-2 text-gray-400 hover:text-gray-500 transition-colors"
             >
               {uploading ? (
-                <Loader2 className="w-10 h-10 animate-spin" />
+                <AppIcon name="spinner" className="w-10 h-10 animate-spin" />
               ) : (
                 <>
-                  <Camera className="w-10 h-10" />
+                  <AppIcon name="camera" className="w-10 h-10" />
                   <span className="text-sm">Add photo</span>
                 </>
               )}
@@ -233,7 +233,7 @@ export function PolaroidCard({
                 aria-label="Add sticker"
                 title="Add sticker"
               >
-                <Edit2 className="w-3.5 h-3.5" />
+                <AppIcon name="edit" className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
@@ -242,7 +242,7 @@ export function PolaroidCard({
         {/* Saving indicator */}
         {saving && (
           <div className="absolute top-2 right-2">
-            <Loader2 className="w-4 h-4 animate-spin text-pink-500" />
+            <AppIcon name="spinner" className="w-4 h-4 animate-spin text-pink-500" />
           </div>
         )}
       </div>

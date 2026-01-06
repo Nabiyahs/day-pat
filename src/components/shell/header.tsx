@@ -1,8 +1,8 @@
 'use client'
 
-import { Menu, Plus, Globe } from 'lucide-react'
+import { AppIcon } from '@/components/ui/app-icon'
 import { useRouter, usePathname } from 'next/navigation'
-import { type Locale, appTitles, i18n } from '@/lib/i18n/config'
+import { type Locale, appTitles } from '@/lib/i18n/config'
 
 interface HeaderProps {
   locale: Locale
@@ -35,7 +35,7 @@ export function Header({ locale, onMenuClick, onAddClick }: HeaderProps) {
         className="w-11 h-11 flex items-center justify-center rounded-xl hover:bg-amber-50 transition-colors"
         aria-label="Open menu"
       >
-        <Menu className="w-5 h-5 text-[#F27430]" />
+        <AppIcon name="menu" className="w-5 h-5 text-[#F27430]" />
       </button>
 
       <div className="flex items-center gap-2">
@@ -61,7 +61,7 @@ export function Header({ locale, onMenuClick, onAddClick }: HeaderProps) {
           className="w-11 h-11 flex items-center justify-center rounded-xl hover:bg-amber-50 transition-colors"
           aria-label="Add entry"
         >
-          <Plus className="w-5 h-5 text-[#F27430]" />
+          <AppIcon name="plus" className="w-5 h-5 text-[#F27430]" />
         </button>
       </div>
     </div>

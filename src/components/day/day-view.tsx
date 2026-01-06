@@ -1,7 +1,7 @@
 'use client'
 
 import { format } from 'date-fns'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { AppIcon } from '@/components/ui/app-icon'
 import { useDayCard } from '@/hooks/use-day-card'
 import { formatDateString, parseDateString } from '@/lib/utils'
 import { PolaroidCard } from './polaroid-card'
@@ -39,7 +39,7 @@ export function DayView({ selectedDate, onDateChange }: DayViewProps) {
             onClick={goToPrevDay}
             className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/60 transition-colors"
           >
-            <ChevronLeft className="w-5 h-5 text-gray-600" />
+            <AppIcon name="chevron-left" className="w-5 h-5 text-gray-600" />
           </button>
 
           <div className="text-center">
@@ -55,7 +55,7 @@ export function DayView({ selectedDate, onDateChange }: DayViewProps) {
             onClick={goToNextDay}
             className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/60 transition-colors"
           >
-            <ChevronRight className="w-5 h-5 text-gray-600" />
+            <AppIcon name="chevron-right" className="w-5 h-5 text-gray-600" />
           </button>
         </div>
       </div>

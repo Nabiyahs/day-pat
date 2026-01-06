@@ -2,7 +2,7 @@
 
 import { forwardRef } from 'react'
 import { cn } from '@/lib/utils'
-import { Loader2 } from 'lucide-react'
+import { AppIcon } from '@/components/ui/app-icon'
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
@@ -52,7 +52,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={disabled || loading}
         {...props}
       >
-        {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+        {loading && <AppIcon name="spinner" className="w-4 h-4 animate-spin" />}
         {children}
       </button>
     )

@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense, use } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Mail, Lock, Loader2, AlertCircle, CheckCircle, Bug, Eye, EyeOff } from 'lucide-react'
+import { AppIcon } from '@/components/ui/app-icon'
 import { getDictionarySync, type Locale, appTitles, isValidLocale, i18n } from '@/lib/i18n'
 import { getRememberMe, setRememberMe } from '@/lib/auth/session-persistence'
 
@@ -222,7 +222,7 @@ function LoginFormContent({ locale }: { locale: Locale }) {
         <div className="w-full max-w-md">
           <div className="bg-white rounded-2xl shadow-xl p-8">
             <div className="text-center">
-              <Loader2 className="w-8 h-8 animate-spin text-[#F27430] mx-auto mb-4" />
+              <AppIcon name="spinner" className="w-8 h-8 animate-spin text-[#F27430] mx-auto mb-4" />
               <p className="text-gray-500">{appTitles[locale]}</p>
             </div>
           </div>
@@ -290,7 +290,7 @@ function LoginFormContent({ locale }: { locale: Locale }) {
           {/* Error Display */}
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+              <AppIcon name="alert-circle" className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
               <span className="text-red-600 text-sm">{error}</span>
             </div>
           )}
@@ -298,7 +298,7 @@ function LoginFormContent({ locale }: { locale: Locale }) {
           {/* Success Message */}
           {message && (
             <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-start gap-2">
-              <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+              <AppIcon name="check-circle" className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
               <span className="text-green-600 text-sm">{message}</span>
             </div>
           )}
@@ -311,7 +311,7 @@ function LoginFormContent({ locale }: { locale: Locale }) {
                   {dict.login.email}
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <AppIcon name="mail" className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     type="email"
                     value={email}
@@ -330,7 +330,7 @@ function LoginFormContent({ locale }: { locale: Locale }) {
                   {dict.login.password}
                 </label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <AppIcon name="lock" className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
@@ -346,7 +346,7 @@ function LoginFormContent({ locale }: { locale: Locale }) {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    {showPassword ? <AppIcon name="eye-off" className="w-5 h-5" /> : <AppIcon name="eye" className="w-5 h-5" />}
                   </button>
                 </div>
               </div>
@@ -378,7 +378,7 @@ function LoginFormContent({ locale }: { locale: Locale }) {
               >
                 {loading ? (
                   <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <AppIcon name="spinner" className="w-5 h-5 animate-spin" />
                     {dict.login.signingIn}
                   </>
                 ) : (
@@ -396,7 +396,7 @@ function LoginFormContent({ locale }: { locale: Locale }) {
                   {dict.login.email}
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <AppIcon name="mail" className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     type="email"
                     value={email}
@@ -415,7 +415,7 @@ function LoginFormContent({ locale }: { locale: Locale }) {
                   {dict.login.password}
                 </label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <AppIcon name="lock" className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
@@ -431,7 +431,7 @@ function LoginFormContent({ locale }: { locale: Locale }) {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    {showPassword ? <AppIcon name="eye-off" className="w-5 h-5" /> : <AppIcon name="eye" className="w-5 h-5" />}
                   </button>
                 </div>
                 <p className="text-xs text-gray-500 mt-1">{dict.login.passwordHint}</p>
@@ -442,7 +442,7 @@ function LoginFormContent({ locale }: { locale: Locale }) {
                   {dict.login.confirmPassword}
                 </label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <AppIcon name="lock" className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={confirmPassword}
@@ -463,7 +463,7 @@ function LoginFormContent({ locale }: { locale: Locale }) {
               >
                 {loading ? (
                   <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <AppIcon name="spinner" className="w-5 h-5 animate-spin" />
                     {dict.login.creatingAccount}
                   </>
                 ) : (
@@ -485,7 +485,7 @@ function LoginFormContent({ locale }: { locale: Locale }) {
                   {dict.login.email}
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <AppIcon name="mail" className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     type="email"
                     value={email}
@@ -506,7 +506,7 @@ function LoginFormContent({ locale }: { locale: Locale }) {
               >
                 {loading ? (
                   <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <AppIcon name="spinner" className="w-5 h-5 animate-spin" />
                     {dict.login.sending}
                   </>
                 ) : (
@@ -523,7 +523,7 @@ function LoginFormContent({ locale }: { locale: Locale }) {
                 onClick={() => setShowDebug(!showDebug)}
                 className="flex items-center gap-2 text-xs text-gray-400 hover:text-gray-600"
               >
-                <Bug className="w-4 h-4" />
+                <AppIcon name="bug" className="w-4 h-4" />
                 {showDebug ? 'Hide' : 'Show'} Debug Info
               </button>
 
@@ -569,7 +569,7 @@ function LoginFallback({ locale }: { locale: Locale }) {
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center">
-            <Loader2 className="w-8 h-8 animate-spin text-[#F27430] mx-auto mb-4" />
+            <AppIcon name="spinner" className="w-8 h-8 animate-spin text-[#F27430] mx-auto mb-4" />
             <p className="text-gray-500">{appTitles[locale]}</p>
           </div>
         </div>

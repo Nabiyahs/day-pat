@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Loader2 } from 'lucide-react'
+import { AppIcon } from '@/components/ui/app-icon'
 import { type Locale, appTitles } from '@/lib/i18n/config'
 import { shouldSignOutOnNewSession, clearSessionTracking } from '@/lib/auth/session-persistence'
 import { createClient } from '@/lib/supabase/client'
@@ -161,7 +161,7 @@ export function EntryRouter({ locale, isAuthenticated }: EntryRouterProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 flex items-center justify-center">
       <div className="text-center px-4">
-        <Loader2 className="w-8 h-8 animate-spin text-[#F2B949] mx-auto mb-4" />
+        <AppIcon name="spinner" className="w-8 h-8 animate-spin text-[#F2B949] mx-auto mb-4" />
         <p className="text-gray-500 text-sm mb-4">
           {hasError ? 'Redirecting...' : appTitles[locale]}
         </p>
