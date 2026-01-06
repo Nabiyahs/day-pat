@@ -40,6 +40,7 @@ import {
   faEnvelope,
   faUser,
   faTriangleExclamation,
+  faFire,
 } from '@fortawesome/free-solid-svg-icons'
 
 // Icon name to FontAwesome icon mapping
@@ -82,6 +83,7 @@ const iconMap: Record<string, IconDefinition> = {
   'mail': faEnvelope,
   'user': faUser,
   'construction': faTriangleExclamation,
+  'flame': faFire,
 }
 
 export type IconName = keyof typeof iconMap

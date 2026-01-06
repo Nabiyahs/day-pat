@@ -2,15 +2,13 @@
 
 import { AppIcon } from '@/components/ui/app-icon'
 import { useRouter, usePathname } from 'next/navigation'
-import { type Locale, appTitles } from '@/lib/i18n/config'
+import { type Locale } from '@/lib/i18n/config'
 
 interface HeaderProps {
   locale: Locale
-  onMenuClick: () => void
-  onAddClick?: () => void
 }
 
-export function Header({ locale, onMenuClick, onAddClick }: HeaderProps) {
+export function Header({ locale }: HeaderProps) {
   const router = useRouter()
   const pathname = usePathname()
 
@@ -30,43 +28,22 @@ export function Header({ locale, onMenuClick, onAddClick }: HeaderProps) {
 
   return (
     <div className="flex items-center justify-between px-5 py-4">
+      {/* Spacer for centering */}
+      <div className="w-11" />
+
+      {/* Centered title */}
+      <h1 className="text-lg font-bold text-gray-800">DayPat</h1>
+
+      {/* Language Toggle */}
       <button
-        onClick={onMenuClick}
+        onClick={toggleLocale}
         className="w-11 h-11 flex items-center justify-center rounded-xl hover:bg-amber-50 transition-colors"
-        aria-label="Open menu"
-        data-testid="btn-hamburger"
+        aria-label="Change language"
+        title={locale === 'ko' ? 'Switch to English' : '한국어로 변경'}
+        data-testid="btn-lang-toggle"
       >
-        <AppIcon name="menu" className="w-5 h-5 text-[#F27430]" />
+        <AppIcon name="globe" className="w-5 h-5 text-[#F27430]" />
       </button>
-
-      <div className="flex items-center gap-2">
-        <h1 className="text-lg font-bold text-gray-800">{appTitles[locale]}</h1>
-      </div>
-
-      <div className="flex items-center gap-1">
-        {/* Language Toggle */}
-        <button
-          onClick={toggleLocale}
-          className="w-11 h-11 flex items-center justify-center rounded-xl hover:bg-amber-50 transition-colors"
-          aria-label="Change language"
-          title={locale === 'ko' ? 'Switch to English' : '한국어로 변경'}
-          data-testid="btn-lang-toggle"
-        >
-          <span className="text-xs font-bold text-[#F27430]">
-            {locale === 'ko' ? 'EN' : 'KO'}
-          </span>
-        </button>
-
-        {/* Add Button */}
-        <button
-          onClick={onAddClick}
-          className="w-11 h-11 flex items-center justify-center rounded-xl hover:bg-amber-50 transition-colors"
-          aria-label="Add entry"
-          data-testid="btn-top-plus"
-        >
-          <AppIcon name="plus" className="w-5 h-5 text-[#F27430]" />
-        </button>
-      </div>
     </div>
   )
 }

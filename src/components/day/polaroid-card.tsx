@@ -167,10 +167,7 @@ export function PolaroidCard({
               {uploading ? (
                 <AppIcon name="spinner" className="w-10 h-10 animate-spin" />
               ) : (
-                <>
-                  <AppIcon name="camera" className="w-10 h-10" />
-                  <span className="text-sm">Add photo</span>
-                </>
+                <AppIcon name="camera" className="w-10 h-10" />
               )}
             </button>
           )}
@@ -222,7 +219,7 @@ export function PolaroidCard({
               onBlur={handleCaptionBlur}
               onKeyDown={(e) => e.key === 'Enter' && handleCaptionBlur()}
               autoFocus
-              placeholder="Add a caption..."
+              placeholder="오늘의 칭찬 하나"
               className="w-full text-center text-gray-700 font-medium leading-relaxed mb-3 bg-transparent border-b border-gray-200 focus:border-pink-400 outline-none py-1"
               maxLength={150}
             />
@@ -237,7 +234,7 @@ export function PolaroidCard({
                 dayCard?.caption ? 'text-gray-700' : 'text-gray-400'
               )}
             >
-              {dayCard?.caption || 'Add a caption...'}
+              {dayCard?.caption || '오늘의 칭찬 하나'}
             </p>
           )}
 

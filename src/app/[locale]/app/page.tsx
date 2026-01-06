@@ -95,14 +95,7 @@ export default function AppPage({ params }: Props) {
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50">
       {/* Fixed Header with View Tabs - matches reference HTML structure */}
       <header className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-lg border-b border-amber-100 z-50">
-        <Header
-          locale={locale}
-          onMenuClick={() => setDrawerOpen(true)}
-          onAddClick={() => {
-            setSelectedDate(formatDateString(new Date()))
-            setActiveView('day')
-          }}
-        />
+        <Header locale={locale} />
         <ViewTabs
           locale={locale}
           activeView={activeView}
