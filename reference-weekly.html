@@ -1,0 +1,596 @@
+<html>
+
+  <head>
+    <link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Calendar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      window.FontAwesomeConfig = {
+        autoReplaceSvg: 'nest'
+      };
+    </script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"
+      crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap"
+      rel="stylesheet">
+    <style>
+      ::-webkit-scrollbar
+      {
+        display: none;
+      }
+    </style>
+    <script>
+      tailwind.config = {
+        theme:
+        {
+          extend:
+          {
+            fontFamily:
+            {
+              sans: ['Inter', 'sans-serif'],
+            },
+            colors:
+            {
+              primary: '#FF6B9D',
+              secondary: '#FFC7D8',
+              accent: '#FFE5ED',
+            }
+          }
+        }
+      }
+    </script>
+    <style data-grapesjs-styles="true">
+      *
+      {
+        box-sizing: border-box;
+      }
+
+      body
+      {
+        margin: 0;
+      }
+
+      ::-webkit-scrollbar
+      {
+        display: none;
+      }
+    </style>
+  </head>
+
+  <body
+    class="bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 font-sans">
+    <header id="header"
+      class="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-lg border-b border-pink-100 z-50">
+      <div class="flex items-center justify-between px-5 py-4"><button
+          id="menuBtn"
+          class="w-11 h-11 flex items-center justify-center rounded-xl hover:bg-pink-50 transition-colors"><i
+            class="fa-solid fa-bars text-pink-600 text-xl"></i></button>
+        <h1 class="text-lg font-bold text-gray-800">Praise Journal</h1><button
+          class="w-11 h-11 flex items-center justify-center rounded-xl hover:bg-pink-50 transition-colors"><i
+            class="fa-solid fa-plus text-pink-600 text-xl"></i></button>
+      </div>
+      <div id="viewTabs"
+        class="flex items-center justify-center gap-2 px-5 pb-3"><button
+          data-view="day"
+          class="view-tab px-6 py-2 rounded-full text-sm font-semibold transition-all">Day</button><button
+          data-view="week"
+          class="view-tab active px-6 py-2 rounded-full text-sm font-semibold transition-all">Week</button><button
+          data-view="month"
+          class="view-tab px-6 py-2 rounded-full text-sm font-semibold transition-all">Month</button>
+      </div>
+    </header>
+    <div id="sideDrawer"
+      class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none transition-opacity duration-300">
+      <div id="drawerContent"
+        class="absolute left-0 top-0 bottom-0 w-[280px] bg-white shadow-2xl transform -translate-x-full transition-transform duration-300">
+        <div class="p-6">
+          <div class="flex items-center justify-between mb-8">
+            <h2 class="text-xl font-bold text-gray-800">Menu</h2><button
+              id="closeDrawer"
+              class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100"><i
+                class="fa-solid fa-times text-gray-600"></i></button>
+          </div>
+          <nav class="space-y-2"><a href="#"
+              class="flex items-center gap-4 px-4 py-3 rounded-xl bg-pink-50 text-pink-600"><i
+                class="fa-solid fa-calendar-days text-lg"></i><span
+                class="font-semibold">Calendar</span></a><a href="#"
+              class="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-gray-50 text-gray-700"><i
+                class="fa-solid fa-heart text-lg"></i><span
+                class="font-semibold">Favorites</span></a><a href="#"
+              class="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-gray-50 text-gray-700"><i
+                class="fa-solid fa-chart-line text-lg"></i><span
+                class="font-semibold">Insights</span></a><a href="#"
+              class="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-gray-50 text-gray-700"><i
+                class="fa-solid fa-gear text-lg"></i><span
+                class="font-semibold">Settings</span></a></nav>
+        </div>
+      </div>
+    </div>
+    <main id="mainContent" class="pt-[140px] pb-24 px-5">
+      <div id="dayView" class="view-content hidden">
+        <div class="mb-6">
+          <div class="flex items-center justify-between mb-4"><button
+              class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/60 transition-colors"><i
+                class="fa-solid fa-chevron-left text-gray-600"></i></button>
+            <div class="text-center">
+              <h2 class="text-2xl font-bold text-gray-800">January 15</h2>
+              <p class="text-sm text-gray-500">Monday, 2025</p>
+            </div><button
+              class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/60 transition-colors"><i
+                class="fa-solid fa-chevron-right text-gray-600"></i></button>
+          </div>
+        </div>
+        <div id="polaroidCard"
+          class="bg-white rounded-3xl shadow-xl p-5 mb-6 transform rotate-[-1deg]">
+          <div class="bg-gray-100 rounded-2xl overflow-hidden mb-4 relative">
+            <img
+              src="https://storage.googleapis.com/uxpilot-auth.appspot.com/9848b97d68-29d8f31e7e5b8dcb9f5d.png"
+              alt="peaceful morning coffee on wooden table with sunlight streaming through window, warm cozy atmosphere"
+              class="w-full h-[340px] object-cover">
+            <div class="absolute top-3 right-3 flex gap-2"><span
+                class="text-3xl">☕</span><span class="text-3xl">✨</span></div>
+          </div>
+          <div class="px-2">
+            <p
+              class="text-gray-700 text-center font-medium leading-relaxed mb-3">
+              Started my day with gratitude. The simple joy of morning coffee
+              and sunshine reminded me to appreciate the little things.
+            </p>
+            <div
+              class="flex items-center justify-between text-xs text-gray-400">
+              <span>3:42 PM</span>
+              <div class="flex gap-3"><button
+                  class="hover:text-pink-500 transition-colors"><i
+                    class="fa-solid fa-pen-to-square"></i></button><button
+                  class="hover:text-pink-500 transition-colors"><i
+                    class="fa-solid fa-heart"></i></button></div>
+            </div>
+          </div>
+        </div>
+        <div id="moodTracker"
+          class="bg-white/80 backdrop-blur-sm rounded-2xl p-5">
+          <h3 class="text-sm font-semibold text-gray-700 mb-4">Today's Mood</h3>
+          <div class="flex justify-between"><button
+              class="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-pink-50 transition-colors"><span
+                class="text-3xl">😊</span><span
+                class="text-xs text-gray-600">Happy</span></button><button
+              class="flex flex-col items-center gap-2 p-3 rounded-xl bg-pink-100 transition-colors"><span
+                class="text-3xl">😌</span><span
+                class="text-xs text-pink-600 font-semibold">Peaceful</span></button><button
+              class="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-pink-50 transition-colors"><span
+                class="text-3xl">🥰</span><span
+                class="text-xs text-gray-600">Grateful</span></button><button
+              class="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-pink-50 transition-colors"><span
+                class="text-3xl">🤗</span><span
+                class="text-xs text-gray-600">Loved</span></button></div>
+        </div>
+      </div>
+      <div id="weekView" class="view-content">
+        <div class="mb-6">
+          <div class="flex items-center justify-between mb-4"><button
+              class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/60 transition-colors"><i
+                class="fa-solid fa-chevron-left text-gray-600"></i></button>
+            <div class="text-center">
+              <h2 class="text-xl font-bold text-gray-800">Week 3</h2>
+              <p class="text-sm text-gray-500">Jan 13 - Jan 19, 2025</p>
+            </div><button
+              class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/60 transition-colors"><i
+                class="fa-solid fa-chevron-right text-gray-600"></i></button>
+          </div>
+        </div>
+        <div id="weekGrid" class="space-y-3">
+          <div id="mondayCard"
+            class="bg-white rounded-2xl shadow-lg overflow-hidden">
+            <div class="flex items-stretch">
+              <div
+                class="w-20 bg-gradient-to-br from-pink-100 to-purple-100 flex flex-col items-center justify-center p-3 border-r-2 border-pink-200">
+                <p class="text-xs font-bold text-pink-600 mb-1">MON</p>
+                <p class="text-3xl font-bold text-gray-800">13</p>
+              </div>
+              <div class="flex-1 p-4">
+                <div class="h-[160px] rounded-xl overflow-hidden mb-3 relative">
+                  <img
+                    src="https://storage.googleapis.com/uxpilot-auth.appspot.com/df82fafb81-e691c7ae868ff48609ca.png"
+                    alt="morning yoga meditation peaceful sunrise"
+                    class="w-full h-full object-cover">
+                  <div class="absolute top-2 right-2 flex gap-1"><span
+                      class="text-2xl drop-shadow">🧘‍♀️</span><span
+                      class="text-2xl drop-shadow">✨</span></div>
+                </div>
+                <p
+                  class="text-sm text-gray-700 font-medium leading-relaxed mb-2">
+                  Morning yoga session brought peace to my mind and clarity to
+                  my thoughts</p>
+                <div class="flex items-center justify-between"><span
+                    class="text-xs text-gray-400">8:30 AM</span>
+                  <div class="flex gap-2"><button
+                      class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-pink-50 transition-colors"><i
+                        class="fa-solid fa-heart text-pink-400 text-sm"></i></button><button
+                      class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-pink-50 transition-colors"><i
+                        class="fa-solid fa-share-nodes text-gray-400 text-sm"></i></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="tuesdayCard"
+            class="bg-white rounded-2xl shadow-lg overflow-hidden">
+            <div class="flex items-stretch">
+              <div
+                class="w-20 bg-gradient-to-br from-purple-100 to-blue-100 flex flex-col items-center justify-center p-3 border-r-2 border-purple-200">
+                <p class="text-xs font-bold text-purple-600 mb-1">TUE</p>
+                <p class="text-3xl font-bold text-gray-800">14</p>
+              </div>
+              <div class="flex-1 p-4">
+                <div class="h-[160px] rounded-xl overflow-hidden mb-3 relative">
+                  <img
+                    src="https://storage.googleapis.com/uxpilot-auth.appspot.com/67c9033525-e71831b512ea2e428637.png"
+                    alt="colorful healthy salad bowl fresh vegetables"
+                    class="w-full h-full object-cover">
+                  <div class="absolute top-2 right-2 flex gap-1"><span
+                      class="text-2xl drop-shadow">🥗</span><span
+                      class="text-2xl drop-shadow">💚</span></div>
+                </div>
+                <p
+                  class="text-sm text-gray-700 font-medium leading-relaxed mb-2">
+                  Nourishing my body with fresh healthy food makes me feel
+                  energized and alive</p>
+                <div class="flex items-center justify-between"><span
+                    class="text-xs text-gray-400">12:45 PM</span>
+                  <div class="flex gap-2"><button
+                      class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-pink-50 transition-colors"><i
+                        class="fa-solid fa-heart text-pink-400 text-sm"></i></button><button
+                      class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-pink-50 transition-colors"><i
+                        class="fa-solid fa-share-nodes text-gray-400 text-sm"></i></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="wednesdayCard"
+            class="bg-gradient-to-br from-pink-50 to-purple-50 rounded-2xl shadow-lg overflow-hidden border-2 border-pink-300">
+            <div class="flex items-stretch">
+              <div
+                class="w-20 bg-gradient-to-br from-pink-200 to-pink-300 flex flex-col items-center justify-center p-3 border-r-2 border-pink-400">
+                <p class="text-xs font-bold text-pink-700 mb-1">WED</p>
+                <p class="text-3xl font-bold text-pink-700">15</p>
+                <div class="mt-1 w-2 h-2 bg-pink-600 rounded-full"></div>
+              </div>
+              <div class="flex-1 p-4 bg-white/60">
+                <div class="h-[160px] rounded-xl overflow-hidden mb-3 relative">
+                  <img
+                    src="https://storage.googleapis.com/uxpilot-auth.appspot.com/085a115998-cbb43d62b37ed7285cf1.png"
+                    alt="morning coffee on wooden table with sunlight"
+                    class="w-full h-full object-cover">
+                  <div class="absolute top-2 right-2 flex gap-1"><span
+                      class="text-2xl drop-shadow">☕</span><span
+                      class="text-2xl drop-shadow">✨</span></div>
+                  <div
+                    class="absolute top-2 left-2 bg-pink-600 text-white text-xs font-bold px-2 py-1 rounded-full">
+                    Today</div>
+                </div>
+                <p
+                  class="text-sm text-gray-700 font-medium leading-relaxed mb-2">
+                  Simple joy of morning coffee and sunshine reminded me to
+                  appreciate the little things</p>
+                <div class="flex items-center justify-between"><span
+                    class="text-xs text-pink-600 font-semibold">3:42 PM</span>
+                  <div class="flex gap-2"><button
+                      class="w-8 h-8 flex items-center justify-center rounded-lg bg-pink-100 hover:bg-pink-200 transition-colors"><i
+                        class="fa-solid fa-heart text-pink-600 text-sm"></i></button><button
+                      class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-pink-50 transition-colors"><i
+                        class="fa-solid fa-share-nodes text-pink-400 text-sm"></i></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="weekSummary" class="hidden">
+        </div>
+      </div>
+      <div id="monthView" class="view-content hidden">
+        <div class="mb-6">
+          <div class="flex items-center justify-between mb-4"><button
+              class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/60 transition-colors"><i
+                class="fa-solid fa-chevron-left text-gray-600"></i></button>
+            <div class="text-center">
+              <h2 class="text-xl font-bold text-gray-800">January 2025</h2>
+            </div><button
+              class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/60 transition-colors"><i
+                class="fa-solid fa-chevron-right text-gray-600"></i></button>
+          </div>
+        </div>
+        <div id="monthCalendar"
+          class="bg-white/80 backdrop-blur-sm rounded-2xl p-4">
+          <div class="grid grid-cols-7 gap-1 mb-2">
+            <div class="text-center text-xs font-semibold text-gray-500 py-2">
+              Mon</div>
+            <div class="text-center text-xs font-semibold text-gray-500 py-2">
+              Tue</div>
+            <div class="text-center text-xs font-semibold text-gray-500 py-2">
+              Wed</div>
+            <div class="text-center text-xs font-semibold text-gray-500 py-2">
+              Thu</div>
+            <div class="text-center text-xs font-semibold text-gray-500 py-2">
+              Fri</div>
+            <div class="text-center text-xs font-semibold text-gray-500 py-2">
+              Sat</div>
+            <div class="text-center text-xs font-semibold text-gray-500 py-2">
+              Sun</div>
+          </div>
+          <div class="grid grid-cols-7 gap-1">
+            <div class="aspect-square bg-gray-50 rounded-lg"></div>
+            <div class="aspect-square bg-gray-50 rounded-lg"></div>
+            <div class="aspect-square bg-gray-50 rounded-lg"></div>
+            <div class="aspect-square bg-gray-50 rounded-lg"></div>
+            <div class="aspect-square bg-gray-50 rounded-lg"></div>
+            <div class="aspect-square bg-gray-50 rounded-lg"></div>
+            <div class="aspect-square bg-gray-50 rounded-lg"></div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-700 z-10">1</span>
+            </div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-700 z-10">2</span>
+            </div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-700 z-10">3</span>
+            </div>
+            <div
+              class="aspect-square rounded-lg p-0.5 relative overflow-hidden">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-bold text-white z-10 drop-shadow">4</span><img
+                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/06c4d59883-ce5ce94d6ad46c42ee8e.png"
+                alt="sunset beach peaceful ocean"
+                class="w-full h-full object-cover rounded-lg"></div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-700 z-10">5</span>
+            </div>
+            <div
+              class="aspect-square rounded-lg p-0.5 relative overflow-hidden">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-bold text-white z-10 drop-shadow">6</span><img
+                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/5ec6adb291-19a4f27becd9bf81891a.png"
+                alt="cozy reading book with tea"
+                class="w-full h-full object-cover rounded-lg"></div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-700 z-10">7</span>
+            </div>
+            <div
+              class="aspect-square rounded-lg p-0.5 relative overflow-hidden">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-bold text-white z-10 drop-shadow">8</span><img
+                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/7d5f2711ea-308301cb34fc01259450.png"
+                alt="fresh flowers in vase morning light"
+                class="w-full h-full object-cover rounded-lg"></div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-700 z-10">9</span>
+            </div>
+            <div
+              class="aspect-square rounded-lg p-0.5 relative overflow-hidden">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-bold text-white z-10 drop-shadow">10</span><img
+                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/bbd9a37480-db910cb1c5c32661b40c.png"
+                alt="mountain hiking trail adventure"
+                class="w-full h-full object-cover rounded-lg"></div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-700 z-10">11</span>
+            </div>
+            <div
+              class="aspect-square rounded-lg p-0.5 relative overflow-hidden">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-bold text-white z-10 drop-shadow">12</span><img
+                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/3fef0312cc-ac35f49b2c70e143e772.png"
+                alt="home cooked meal delicious food"
+                class="w-full h-full object-cover rounded-lg"></div>
+            <div
+              class="aspect-square rounded-lg p-0.5 relative overflow-hidden">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-bold text-white z-10 drop-shadow">13</span><img
+                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/ea32fb5053-f4123dab51535d78b2ac.png"
+                alt="yoga meditation peaceful"
+                class="w-full h-full object-cover rounded-lg"></div>
+            <div
+              class="aspect-square rounded-lg p-0.5 relative overflow-hidden">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-bold text-white z-10 drop-shadow">14</span><img
+                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/011a105c86-64ea07166049e1017e9a.png"
+                alt="healthy salad bowl vegetables"
+                class="w-full h-full object-cover rounded-lg"></div>
+            <div
+              class="aspect-square rounded-lg p-0.5 relative overflow-hidden border-2 border-pink-400">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-bold text-white z-10 drop-shadow">15</span><img
+                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/13dfd0edd7-1248a08cd0625d7d2cb8.png"
+                alt="morning coffee sunlight"
+                class="w-full h-full object-cover rounded-lg"></div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-400 z-10">16</span>
+            </div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-400 z-10">17</span>
+            </div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-400 z-10">18</span>
+            </div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-400 z-10">19</span>
+            </div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-400 z-10">20</span>
+            </div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-400 z-10">21</span>
+            </div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-400 z-10">22</span>
+            </div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-400 z-10">23</span>
+            </div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-400 z-10">24</span>
+            </div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-400 z-10">25</span>
+            </div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-400 z-10">26</span>
+            </div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-400 z-10">27</span>
+            </div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-400 z-10">28</span>
+            </div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-400 z-10">29</span>
+            </div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-400 z-10">30</span>
+            </div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-400 z-10">31</span>
+            </div>
+          </div>
+        </div>
+        <div class="mt-6 bg-white/80 backdrop-blur-sm rounded-2xl p-5">
+          <h3 class="text-sm font-semibold text-gray-700 mb-4">January Stats
+          </h3>
+          <div class="grid grid-cols-3 gap-4">
+            <div class="text-center">
+              <p class="text-3xl font-bold text-pink-600">12</p>
+              <p class="text-xs text-gray-500 mt-1">Entries</p>
+            </div>
+            <div class="text-center">
+              <p class="text-3xl font-bold text-purple-600">8</p>
+              <p class="text-xs text-gray-500 mt-1">Streak</p>
+            </div>
+            <div class="text-center">
+              <p class="text-3xl font-bold text-blue-600">😊</p>
+              <p class="text-xs text-gray-500 mt-1">Top Mood</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+    <nav id="bottomNav"
+      class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
+      <div class="flex items-center justify-around px-5 py-3"><button
+          class="flex flex-col items-center gap-1 text-pink-600"><i
+            class="fa-solid fa-calendar-days text-xl"></i><span
+            class="text-xs font-semibold">Calendar</span></button><button
+          class="flex flex-col items-center gap-1 text-gray-400"><i
+            class="fa-solid fa-heart text-xl"></i><span
+            class="text-xs">Favorites</span></button><button
+          class="w-14 h-14 -mt-8 bg-gradient-to-br from-pink-500 to-purple-500 rounded-full flex items-center justify-center shadow-lg"><i
+            class="fa-solid fa-plus text-white text-2xl"></i></button><button
+          class="flex flex-col items-center gap-1 text-gray-400"><i
+            class="fa-solid fa-chart-line text-xl"></i><span
+            class="text-xs">Insights</span></button><button
+          class="flex flex-col items-center gap-1 text-gray-400"><i
+            class="fa-solid fa-user text-xl"></i><span
+            class="text-xs">Profile</span></button></div>
+    </nav>
+    <script>
+      const menuBtn = document.getElementById('menuBtn');
+      const sideDrawer = document.getElementById('sideDrawer');
+      const drawerContent = document.getElementById('drawerContent');
+      const closeDrawer = document.getElementById('closeDrawer');
+
+      menuBtn.addEventListener('click', () =>
+      {
+        sideDrawer.classList.remove('pointer-events-none', 'opacity-0');
+        drawerContent.classList.remove('-translate-x-full');
+      });
+
+      closeDrawer.addEventListener('click', () =>
+      {
+        sideDrawer.classList.add('pointer-events-none', 'opacity-0');
+        drawerContent.classList.add('-translate-x-full');
+      });
+
+      sideDrawer.addEventListener('click', (e) =>
+      {
+        if (e.target === sideDrawer)
+        {
+          sideDrawer.classList.add('pointer-events-none', 'opacity-0');
+          drawerContent.classList.add('-translate-x-full');
+        }
+      });
+
+      const viewTabs = document.querySelectorAll('.view-tab');
+      const viewContents = document.querySelectorAll('.view-content');
+
+      viewTabs.forEach(tab =>
+      {
+        tab.addEventListener('click', () =>
+        {
+          const viewType = tab.dataset.view;
+
+          viewTabs.forEach(t =>
+          {
+            t.classList.remove('active', 'bg-pink-500',
+              'text-white');
+            t.classList.add('bg-white/60', 'text-gray-600');
+          });
+
+          tab.classList.add('active', 'bg-pink-500', 'text-white');
+          tab.classList.remove('bg-white/60', 'text-gray-600');
+
+          viewContents.forEach(content =>
+          {
+            content.classList.add('hidden');
+          });
+
+          document.getElementById(viewType + 'View').classList.remove(
+            'hidden');
+        });
+      });
+
+      document.querySelector('.view-tab.active').classList.add('bg-pink-500',
+        'text-white');
+      document.querySelector('.view-tab.active').classList.remove('bg-white/60',
+        'text-gray-600');
+
+      viewTabs.forEach(t =>
+      {
+        if (!t.classList.contains('active'))
+        {
+          t.classList.add('bg-white/60', 'text-gray-600');
+        }
+      });
+    </script>
+  </body>
+
+</html>
