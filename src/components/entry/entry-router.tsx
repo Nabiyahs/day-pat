@@ -1,13 +1,15 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { type Locale, appTitles } from '@/lib/i18n/config'
 import { shouldSignOutOnNewSession, clearSessionTracking } from '@/lib/auth/session-persistence'
 import { createClient } from '@/lib/supabase/client'
+import { addDebugLog, isDebugMode } from '@/lib/debug'
 
 const ONBOARDING_KEY = 'onboarding_completed'
+const NAVIGATION_TIMEOUT_MS = 5000 // 5 second timeout for navigation
 
 interface EntryRouterProps {
   locale: Locale
@@ -25,20 +27,51 @@ interface EntryRouterProps {
  *   - If not logged in → go to login
  *
  * Also handles "Keep me logged in" session management.
+ * Includes timeout fallback for mobile browsers where router.replace may fail silently.
  */
 export function EntryRouter({ locale, isAuthenticated }: EntryRouterProps) {
   const router = useRouter()
   const [hasError, setHasError] = useState(false)
+  const [targetPath, setTargetPath] = useState<string | null>(null)
+  const [showFallback, setShowFallback] = useState(false)
+
+  // Determine target path
+  const getTargetPath = useCallback((): string => {
+    let completed = false
+    try {
+      completed = localStorage.getItem(ONBOARDING_KEY) === 'true'
+    } catch {
+      completed = false
+    }
+
+    if (!completed) {
+      return `/${locale}/onboarding`
+    } else if (isAuthenticated) {
+      return `/${locale}/app`
+    } else {
+      return `/${locale}/login`
+    }
+  }, [locale, isAuthenticated])
 
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout | null = null
+    let navigationAttempted = false
+
     const handleRouting = async () => {
       try {
+        addDebugLog('nav', 'EntryRouter: Starting routing', {
+          locale,
+          isAuthenticated,
+          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'SSR',
+        })
+
         // Safely check localStorage
         let completed = false
         try {
           completed = localStorage.getItem(ONBOARDING_KEY) === 'true'
-        } catch {
-          // localStorage not available, treat as new user
+          addDebugLog('info', 'EntryRouter: localStorage check', { onboardingCompleted: completed })
+        } catch (e) {
+          addDebugLog('warn', 'EntryRouter: localStorage not available', { error: String(e) })
           completed = false
         }
 
@@ -46,51 +79,111 @@ export function EntryRouter({ locale, isAuthenticated }: EntryRouterProps) {
         if (isAuthenticated) {
           try {
             if (shouldSignOutOnNewSession()) {
+              addDebugLog('info', 'EntryRouter: Signing out due to session policy')
               const supabase = createClient()
               await supabase.auth.signOut()
               clearSessionTracking()
               // After sign out, proceed as unauthenticated
-              if (completed) {
-                router.replace(`/${locale}/login`)
-              } else {
-                router.replace(`/${locale}/onboarding`)
-              }
+              const path = completed ? `/${locale}/login` : `/${locale}/onboarding`
+              setTargetPath(path)
+              navigationAttempted = true
+              addDebugLog('nav', 'EntryRouter: Navigating after sign out', { path })
+              router.replace(path)
               return
             }
-          } catch {
-            // If session check fails, continue with normal flow
+          } catch (e) {
+            addDebugLog('warn', 'EntryRouter: Session check failed', { error: String(e) })
           }
         }
 
+        // Determine target path
+        let path: string
         if (!completed) {
-          // First time user - show onboarding
-          router.replace(`/${locale}/onboarding`)
+          path = `/${locale}/onboarding`
+          addDebugLog('nav', 'EntryRouter: New user, going to onboarding')
         } else if (isAuthenticated) {
-          // Completed onboarding and logged in - go to app
-          router.replace(`/${locale}/app`)
+          path = `/${locale}/app`
+          addDebugLog('nav', 'EntryRouter: Authenticated user, going to app')
         } else {
-          // Completed onboarding but not logged in - go to login
-          router.replace(`/${locale}/login`)
+          path = `/${locale}/login`
+          addDebugLog('nav', 'EntryRouter: Returning user, going to login')
         }
+
+        setTargetPath(path)
+        navigationAttempted = true
+
+        // Set a timeout to detect if navigation fails silently
+        timeoutId = setTimeout(() => {
+          addDebugLog('error', 'EntryRouter: Navigation timeout - router.replace may have failed', {
+            targetPath: path,
+            showingFallback: true,
+          })
+          setShowFallback(true)
+        }, NAVIGATION_TIMEOUT_MS)
+
+        // Attempt navigation
+        router.replace(path)
+        addDebugLog('nav', 'EntryRouter: router.replace called', { path })
+
       } catch (error) {
+        addDebugLog('error', 'EntryRouter: Routing error', {
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        })
         console.error('[EntryRouter] Routing error:', error)
         setHasError(true)
+
         // Fallback: go to onboarding on any error
-        router.replace(`/${locale}/onboarding`)
+        const fallbackPath = `/${locale}/onboarding`
+        setTargetPath(fallbackPath)
+        setShowFallback(true)
+        router.replace(fallbackPath)
       }
     }
 
     handleRouting()
-  }, [router, locale, isAuthenticated])
 
-  // Show loading while checking
+    // Cleanup timeout on unmount (successful navigation)
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
+    }
+  }, [router, locale, isAuthenticated, getTargetPath])
+
+  // Show loading with fallback link if navigation times out
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 flex items-center justify-center">
-      <div className="text-center">
+      <div className="text-center px-4">
         <Loader2 className="w-8 h-8 animate-spin text-[#F2B949] mx-auto mb-4" />
-        <p className="text-gray-500 text-sm">
+        <p className="text-gray-500 text-sm mb-4">
           {hasError ? 'Redirecting...' : appTitles[locale]}
         </p>
+
+        {/* Fallback link if navigation times out */}
+        {showFallback && targetPath && (
+          <div className="mt-4 space-y-2">
+            <p className="text-gray-400 text-xs">
+              {locale === 'ko' ? '로딩이 느린가요?' : 'Taking too long?'}
+            </p>
+            <a
+              href={targetPath}
+              className="inline-block px-4 py-2 bg-[#F2B949] text-white rounded-lg text-sm font-medium hover:bg-[#e5a93c] transition-colors"
+            >
+              {locale === 'ko' ? '여기를 탭하세요' : 'Tap here to continue'}
+            </a>
+          </div>
+        )}
+
+        {/* Debug info in debug mode */}
+        {isDebugMode() && (
+          <div className="mt-6 p-3 bg-black/5 rounded-lg text-left text-xs">
+            <p className="text-gray-600 font-mono">Debug: EntryRouter</p>
+            <p className="text-gray-500 font-mono">Target: {targetPath || 'calculating...'}</p>
+            <p className="text-gray-500 font-mono">Auth: {isAuthenticated ? 'yes' : 'no'}</p>
+            <p className="text-gray-500 font-mono">Fallback: {showFallback ? 'yes' : 'no'}</p>
+          </div>
+        )}
       </div>
     </div>
   )
