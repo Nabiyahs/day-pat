@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback } from 'react'
-import { Camera, Edit2, Heart, Loader2 } from 'lucide-react'
+import { Camera, Edit2, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { uploadPhoto } from '@/lib/image-upload'
 import type { DayCard, StickerState } from '@/types/database'
@@ -223,18 +223,17 @@ export function PolaroidCard({
             </p>
           )}
 
-          {/* Footer actions - matches reference: time + edit/heart buttons */}
+          {/* Footer actions - matches reference: time + sticker button */}
           <div className="flex items-center justify-between text-xs text-gray-400">
-            <span>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            <span>{dayCard?.updated_at ? new Date(dayCard.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                className="hover:text-pink-500 transition-colors"
+                className="hover:text-[#F27430] transition-colors p-1"
+                aria-label="Add sticker"
+                title="Add sticker"
               >
                 <Edit2 className="w-3.5 h-3.5" />
-              </button>
-              <button className="hover:text-pink-500 transition-colors">
-                <Heart className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>

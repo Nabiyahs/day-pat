@@ -13,6 +13,8 @@ type Props = {
   params: Promise<{ locale: string }>
 }
 
+const ONBOARDING_KEY = 'onboarding_completed'
+
 function LoginFormContent({ locale }: { locale: Locale }) {
   const dict = getDictionarySync(locale)
   const [mode, setMode] = useState<AuthMode>('login')
@@ -25,9 +27,28 @@ function LoginFormContent({ locale }: { locale: Locale }) {
   const [message, setMessage] = useState<string | null>(null)
   const [showDebug, setShowDebug] = useState(false)
   const [rememberMe, setRememberMeState] = useState(true)
+  const [checkingOnboarding, setCheckingOnboarding] = useState(true)
 
   const searchParams = useSearchParams()
   const router = useRouter()
+
+  // Check if onboarding is completed - if not, redirect to onboarding
+  useEffect(() => {
+    try {
+      const completed = localStorage.getItem(ONBOARDING_KEY) === 'true'
+      if (!completed) {
+        console.log('[Login] Onboarding not completed, redirecting to onboarding')
+        router.replace(`/${locale}/onboarding`)
+        return
+      }
+    } catch (e) {
+      // localStorage not available, redirect to onboarding to be safe
+      console.log('[Login] localStorage error, redirecting to onboarding')
+      router.replace(`/${locale}/onboarding`)
+      return
+    }
+    setCheckingOnboarding(false)
+  }, [locale, router])
 
   // Load saved "remember me" preference on mount
   useEffect(() => {
@@ -192,6 +213,22 @@ function LoginFormContent({ locale }: { locale: Locale }) {
   }
 
   const isDev = process.env.NODE_ENV === 'development'
+
+  // Show loading while checking onboarding status
+  if (checkingOnboarding) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="bg-white rounded-2xl shadow-xl p-8">
+            <div className="text-center">
+              <Loader2 className="w-8 h-8 animate-spin text-[#F27430] mx-auto mb-4" />
+              <p className="text-gray-500">{appTitles[locale]}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 flex items-center justify-center p-4">

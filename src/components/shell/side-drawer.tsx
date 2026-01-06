@@ -1,6 +1,7 @@
 'use client'
 
-import { X, CalendarDays, Heart, TrendingUp, Settings, LogOut } from 'lucide-react'
+import { useEffect } from 'react'
+import { X, CalendarDays, Heart, TrendingUp, Settings, LogOut, Construction } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getDictionarySync, type Locale } from '@/lib/i18n'
 
@@ -14,12 +15,34 @@ interface SideDrawerProps {
 export function SideDrawer({ locale, isOpen, onClose, onLogout }: SideDrawerProps) {
   const dict = getDictionarySync(locale)
 
+  // ESC key handler
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose()
+      }
+    }
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown)
+      // Prevent body scroll when drawer is open
+      document.body.style.overflow = 'hidden'
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = ''
+    }
+  }, [isOpen, onClose])
+
   const MENU_ITEMS = [
-    { id: 'calendar', label: dict.nav.calendar, icon: CalendarDays, active: true },
-    { id: 'favorites', label: dict.nav.favorites, icon: Heart, active: false },
-    { id: 'insights', label: dict.nav.insights, icon: TrendingUp, active: false },
-    { id: 'settings', label: dict.nav.settings, icon: Settings, active: false },
+    { id: 'calendar', label: dict.nav.calendar, icon: CalendarDays, active: true, available: true },
+    { id: 'favorites', label: dict.nav.favorites, icon: Heart, active: false, available: false },
+    { id: 'insights', label: dict.nav.insights, icon: TrendingUp, active: false, available: false },
+    { id: 'settings', label: dict.nav.settings, icon: Settings, active: false, available: false },
   ]
+
+  const comingSoonText = locale === 'ko' ? '준비 중' : 'Coming soon'
 
   return (
     <div
@@ -28,6 +51,9 @@ export function SideDrawer({ locale, isOpen, onClose, onLogout }: SideDrawerProp
         isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
       )}
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={dict.nav.menu}
     >
       <div
         className={cn(
@@ -42,6 +68,7 @@ export function SideDrawer({ locale, isOpen, onClose, onLogout }: SideDrawerProp
             <button
               onClick={onClose}
               className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
+              aria-label={locale === 'ko' ? '메뉴 닫기' : 'Close menu'}
             >
               <X className="w-5 h-5 text-gray-600" />
             </button>
@@ -53,15 +80,30 @@ export function SideDrawer({ locale, isOpen, onClose, onLogout }: SideDrawerProp
               return (
                 <button
                   key={item.id}
+                  onClick={() => {
+                    if (item.active) {
+                      onClose()
+                    }
+                  }}
+                  disabled={!item.available && !item.active}
+                  title={!item.available && !item.active ? comingSoonText : undefined}
                   className={cn(
-                    'w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-colors',
+                    'w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-colors relative',
                     item.active
                       ? 'bg-amber-50 text-[#F27430]'
-                      : 'hover:bg-gray-50 text-gray-700'
+                      : item.available
+                      ? 'hover:bg-gray-50 text-gray-700'
+                      : 'text-gray-400 cursor-not-allowed'
                   )}
                 >
                   <Icon className="w-5 h-5" />
                   <span className="font-semibold">{item.label}</span>
+                  {!item.available && !item.active && (
+                    <span className="ml-auto flex items-center gap-1 text-xs text-gray-400">
+                      <Construction className="w-3 h-3" />
+                      {comingSoonText}
+                    </span>
+                  )}
                 </button>
               )
             })}
