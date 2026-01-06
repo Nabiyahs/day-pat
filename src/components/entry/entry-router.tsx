@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { type Locale, appTitles } from '@/lib/i18n/config'
@@ -28,38 +28,55 @@ interface EntryRouterProps {
  */
 export function EntryRouter({ locale, isAuthenticated }: EntryRouterProps) {
   const router = useRouter()
+  const [hasError, setHasError] = useState(false)
 
   useEffect(() => {
     const handleRouting = async () => {
-      const completed = localStorage.getItem(ONBOARDING_KEY) === 'true'
-
-      // Check if we should sign out due to "remember me" being off
-      if (isAuthenticated && shouldSignOutOnNewSession()) {
+      try {
+        // Safely check localStorage
+        let completed = false
         try {
-          const supabase = createClient()
-          await supabase.auth.signOut()
-          clearSessionTracking()
-          // After sign out, proceed as unauthenticated
-          if (completed) {
-            router.replace(`/${locale}/login`)
-          } else {
-            router.replace(`/${locale}/onboarding`)
-          }
-          return
+          completed = localStorage.getItem(ONBOARDING_KEY) === 'true'
         } catch {
-          // If sign out fails, continue with normal flow
+          // localStorage not available, treat as new user
+          completed = false
         }
-      }
 
-      if (!completed) {
-        // First time user - show onboarding
+        // Check if we should sign out due to "remember me" being off
+        if (isAuthenticated) {
+          try {
+            if (shouldSignOutOnNewSession()) {
+              const supabase = createClient()
+              await supabase.auth.signOut()
+              clearSessionTracking()
+              // After sign out, proceed as unauthenticated
+              if (completed) {
+                router.replace(`/${locale}/login`)
+              } else {
+                router.replace(`/${locale}/onboarding`)
+              }
+              return
+            }
+          } catch {
+            // If session check fails, continue with normal flow
+          }
+        }
+
+        if (!completed) {
+          // First time user - show onboarding
+          router.replace(`/${locale}/onboarding`)
+        } else if (isAuthenticated) {
+          // Completed onboarding and logged in - go to app
+          router.replace(`/${locale}/app`)
+        } else {
+          // Completed onboarding but not logged in - go to login
+          router.replace(`/${locale}/login`)
+        }
+      } catch (error) {
+        console.error('[EntryRouter] Routing error:', error)
+        setHasError(true)
+        // Fallback: go to onboarding on any error
         router.replace(`/${locale}/onboarding`)
-      } else if (isAuthenticated) {
-        // Completed onboarding and logged in - go to app
-        router.replace(`/${locale}/app`)
-      } else {
-        // Completed onboarding but not logged in - go to login
-        router.replace(`/${locale}/login`)
       }
     }
 
@@ -71,7 +88,9 @@ export function EntryRouter({ locale, isAuthenticated }: EntryRouterProps) {
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 flex items-center justify-center">
       <div className="text-center">
         <Loader2 className="w-8 h-8 animate-spin text-[#F2B949] mx-auto mb-4" />
-        <p className="text-gray-500 text-sm">{appTitles[locale]}</p>
+        <p className="text-gray-500 text-sm">
+          {hasError ? 'Redirecting...' : appTitles[locale]}
+        </p>
       </div>
     </div>
   )
