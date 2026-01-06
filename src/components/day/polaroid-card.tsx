@@ -26,6 +26,7 @@ export function PolaroidCard({
   saving,
 }: PolaroidCardProps) {
   const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
   const [editingCaption, setEditingCaption] = useState(false)
   const [captionDraft, setCaptionDraft] = useState(dayCard?.caption || '')
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
@@ -39,6 +40,7 @@ export function PolaroidCard({
     if (!file) return
 
     setUploading(true)
+    setUploadError(null)
     try {
       const url = await uploadPhoto(file, date)
       if (url) {
@@ -46,8 +48,16 @@ export function PolaroidCard({
       }
     } catch (error) {
       console.error('Upload failed:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Upload failed'
+      setUploadError(errorMessage)
+      // Clear error after 5 seconds
+      setTimeout(() => setUploadError(null), 5000)
     } finally {
       setUploading(false)
+      // Reset file input so same file can be selected again
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
     }
   }
 
@@ -163,6 +173,14 @@ export function PolaroidCard({
                 </>
               )}
             </button>
+          )}
+
+          {/* Upload error message */}
+          {uploadError && (
+            <div className="absolute bottom-3 left-3 right-3 bg-red-500/90 text-white text-xs px-3 py-2 rounded-lg flex items-center gap-2">
+              <AppIcon name="alert-circle" className="w-4 h-4 flex-shrink-0" />
+              <span className="truncate">{uploadError}</span>
+            </div>
           )}
 
           {/* Stickers overlay - matches reference: absolute top-3 right-3 flex gap-2 text-3xl */}

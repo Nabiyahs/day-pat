@@ -116,12 +116,14 @@ export function MonthView({ locale, onSelectDate }: MonthViewProps) {
           <button
             onClick={goToPrevMonth}
             className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/60 transition-colors"
+            aria-label={locale === 'ko' ? '이전 달' : 'Previous month'}
+            data-testid="btn-month-prev"
           >
             <AppIcon name="chevron-left" className="w-5 h-5 text-gray-600" />
           </button>
 
           <div className="text-center">
-            <h2 className="text-xl font-bold text-gray-800">
+            <h2 className="text-xl font-bold text-gray-800" data-testid="month-title">
               {format(currentMonth, locale === 'ko' ? 'yyyy년 MMMM' : 'MMMM yyyy', { locale: dateLocale })}
             </h2>
           </div>
@@ -129,6 +131,8 @@ export function MonthView({ locale, onSelectDate }: MonthViewProps) {
           <button
             onClick={goToNextMonth}
             className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/60 transition-colors"
+            aria-label={locale === 'ko' ? '다음 달' : 'Next month'}
+            data-testid="btn-month-next"
           >
             <AppIcon name="chevron-right" className="w-5 h-5 text-gray-600" />
           </button>
@@ -188,6 +192,8 @@ export function MonthView({ locale, onSelectDate }: MonthViewProps) {
                   isCurrentDay && !hasPhoto && 'ring-2 ring-[#F2B949]',
                   !isCurrentDay && 'hover:ring-1 hover:ring-amber-200'
                 )}
+                data-testid={`cell-date-${dateStr}`}
+                aria-label={format(date, locale === 'ko' ? 'M월 d일' : 'MMMM d', { locale: dateLocale })}
               >
                 {/* Date number */}
                 <span

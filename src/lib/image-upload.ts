@@ -30,14 +30,26 @@ export async function uploadPhoto(
 
   const {
     data: { user },
+    error: authError,
   } = await supabase.auth.getUser()
 
+  if (authError) {
+    console.error('Auth error:', authError)
+    throw new Error('Authentication failed. Please log in again.')
+  }
+
   if (!user) {
-    throw new Error('User not authenticated')
+    throw new Error('Please log in to upload photos.')
   }
 
   // Compress image before upload
-  const compressedFile = await compressImage(file)
+  let compressedFile: File
+  try {
+    compressedFile = await compressImage(file)
+  } catch (compressionError) {
+    console.error('Compression error:', compressionError)
+    throw new Error('Failed to process image. Please try a different photo.')
+  }
 
   // Generate file path: {user_id}/{YYYY-MM-DD}.webp
   const fileExt = 'webp'
@@ -53,7 +65,17 @@ export async function uploadPhoto(
 
   if (uploadError) {
     console.error('Upload error:', uploadError)
-    throw uploadError
+    // Provide more specific error messages based on error type
+    if (uploadError.message?.includes('Bucket not found')) {
+      throw new Error('Storage not configured. Please contact support.')
+    }
+    if (uploadError.message?.includes('not allowed') || uploadError.message?.includes('policy')) {
+      throw new Error('Upload permission denied. Please try logging in again.')
+    }
+    if (uploadError.message?.includes('exceeded') || uploadError.message?.includes('size')) {
+      throw new Error('Image is too large. Please use a smaller photo.')
+    }
+    throw new Error(uploadError.message || 'Upload failed. Please try again.')
   }
 
   // Get public URL

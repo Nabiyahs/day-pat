@@ -32,6 +32,8 @@ export function ViewTabs({ locale, activeView, onViewChange }: ViewTabsProps) {
               ? 'bg-[#F2B949] text-white'
               : 'bg-white/60 text-gray-600 hover:bg-white/80'
           )}
+          data-testid={`tab-${tab.id}`}
+          aria-pressed={activeView === tab.id}
         >
           {tab.label}
         </button>
