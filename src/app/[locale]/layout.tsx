@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { i18n, isValidLocale, type Locale, appTitles } from '@/lib/i18n/config'
+import { ClientProviders } from '@/components/providers/client-providers'
 
 type Props = {
   children: React.ReactNode
@@ -49,7 +50,7 @@ export default async function LocaleLayout({ children, params }: Props) {
         />
       </head>
       <body className="antialiased">
-        {children}
+        <ClientProviders>{children}</ClientProviders>
       </body>
     </html>
   )

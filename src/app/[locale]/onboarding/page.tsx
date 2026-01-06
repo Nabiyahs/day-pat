@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, ReactNode, use, useRef, TouchEvent } from 'react'
+import { useState, ReactNode, use, useRef, TouchEvent, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { getDictionarySync, type Locale, i18n, isValidLocale } from '@/lib/i18n'
 import { createClient } from '@/lib/supabase/client'
 import { SlidePraise, SlideStreak, SlideExport } from '@/components/onboarding/slides'
+import { addDebugLog } from '@/lib/debug'
 
 const ONBOARDING_KEY = 'onboarding_completed'
 
@@ -97,22 +98,32 @@ export default function OnboardingPage({ params }: Props) {
    */
   const completeOnboarding = async () => {
     setIsCheckingAuth(true)
+    addDebugLog('nav', 'Onboarding: Completing onboarding')
+
     try {
       localStorage.setItem(ONBOARDING_KEY, 'true')
-    } catch {
-      // Ignore localStorage errors
+      addDebugLog('info', 'Onboarding: localStorage set')
+    } catch (e) {
+      addDebugLog('warn', 'Onboarding: localStorage failed', { error: String(e) })
     }
 
     try {
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { user }, error } = await supabase.auth.getUser()
+
+      if (error) {
+        addDebugLog('warn', 'Onboarding: Auth check error', { error: error.message })
+      }
 
       if (user) {
+        addDebugLog('nav', 'Onboarding: User authenticated, navigating to app')
         router.replace(`/${locale}/app`)
       } else {
+        addDebugLog('nav', 'Onboarding: No user, navigating to login')
         router.replace(`/${locale}/login`)
       }
-    } catch {
+    } catch (e) {
+      addDebugLog('error', 'Onboarding: Navigation error', { error: String(e) })
       router.replace(`/${locale}/login`)
     }
   }
