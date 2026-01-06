@@ -186,3 +186,45 @@ export function checkStorageAvailability(): Record<string, string> {
 
   return result
 }
+
+/**
+ * Get app-specific localStorage values for debugging
+ */
+export function getAppLocalStorage(): Record<string, string> {
+  if (typeof window === 'undefined') {
+    return { status: 'SSR' }
+  }
+
+  const result: Record<string, string> = {}
+  const appKeys = [
+    'onboarding_completed',
+    'remember_me',
+    'session_id',
+    'locale',
+  ]
+
+  for (const key of appKeys) {
+    try {
+      const value = localStorage.getItem(key)
+      result[key] = value === null ? '(not set)' : `"${value}"`
+    } catch (e) {
+      result[key] = `Error: ${e}`
+    }
+  }
+
+  return result
+}
+
+/**
+ * Reset onboarding state (for testing)
+ */
+export function resetOnboarding(): void {
+  if (typeof window === 'undefined') return
+
+  try {
+    localStorage.removeItem('onboarding_completed')
+    addDebugLog('info', 'Onboarding state reset')
+  } catch (e) {
+    addDebugLog('error', 'Failed to reset onboarding', { error: String(e) })
+  }
+}

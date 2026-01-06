@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { type Locale, appTitles } from '@/lib/i18n/config'
 import { shouldSignOutOnNewSession, clearSessionTracking } from '@/lib/auth/session-persistence'
@@ -26,36 +26,23 @@ interface EntryRouterProps {
  *   - If logged in → go to app
  *   - If not logged in → go to login
  *
+ * Query params:
+ * - ?reset_onboarding=1 - Clears onboarding completion to test intro flow
+ * - ?debug=1 - Shows debug info
+ *
  * Also handles "Keep me logged in" session management.
  * Includes timeout fallback for mobile browsers where router.replace may fail silently.
  */
 export function EntryRouter({ locale, isAuthenticated }: EntryRouterProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [hasError, setHasError] = useState(false)
   const [targetPath, setTargetPath] = useState<string | null>(null)
   const [showFallback, setShowFallback] = useState(false)
-
-  // Determine target path
-  const getTargetPath = useCallback((): string => {
-    let completed = false
-    try {
-      completed = localStorage.getItem(ONBOARDING_KEY) === 'true'
-    } catch {
-      completed = false
-    }
-
-    if (!completed) {
-      return `/${locale}/onboarding`
-    } else if (isAuthenticated) {
-      return `/${locale}/app`
-    } else {
-      return `/${locale}/login`
-    }
-  }, [locale, isAuthenticated])
+  const [onboardingStatus, setOnboardingStatus] = useState<string>('checking...')
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout | null = null
-    let navigationAttempted = false
 
     const handleRouting = async () => {
       try {
@@ -65,12 +52,30 @@ export function EntryRouter({ locale, isAuthenticated }: EntryRouterProps) {
           userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'SSR',
         })
 
+        // Check for reset_onboarding query param (for testing)
+        const resetOnboarding = searchParams.get('reset_onboarding') === '1'
+        if (resetOnboarding) {
+          try {
+            localStorage.removeItem(ONBOARDING_KEY)
+            addDebugLog('info', 'EntryRouter: Onboarding reset via query param')
+          } catch (e) {
+            addDebugLog('warn', 'EntryRouter: Failed to reset onboarding', { error: String(e) })
+          }
+        }
+
         // Safely check localStorage
         let completed = false
+        let rawValue: string | null = null
         try {
-          completed = localStorage.getItem(ONBOARDING_KEY) === 'true'
-          addDebugLog('info', 'EntryRouter: localStorage check', { onboardingCompleted: completed })
+          rawValue = localStorage.getItem(ONBOARDING_KEY)
+          completed = rawValue === 'true'
+          setOnboardingStatus(`localStorage: "${rawValue}" → completed: ${completed}`)
+          addDebugLog('info', 'EntryRouter: localStorage check', {
+            rawValue,
+            onboardingCompleted: completed
+          })
         } catch (e) {
+          setOnboardingStatus(`localStorage error: ${String(e)}`)
           addDebugLog('warn', 'EntryRouter: localStorage not available', { error: String(e) })
           completed = false
         }
@@ -86,7 +91,6 @@ export function EntryRouter({ locale, isAuthenticated }: EntryRouterProps) {
               // After sign out, proceed as unauthenticated
               const path = completed ? `/${locale}/login` : `/${locale}/onboarding`
               setTargetPath(path)
-              navigationAttempted = true
               addDebugLog('nav', 'EntryRouter: Navigating after sign out', { path })
               router.replace(path)
               return
@@ -96,21 +100,23 @@ export function EntryRouter({ locale, isAuthenticated }: EntryRouterProps) {
           }
         }
 
-        // Determine target path
+        // Determine target path based on onboarding completion and auth status
         let path: string
         if (!completed) {
+          // New user or reset - show onboarding
           path = `/${locale}/onboarding`
           addDebugLog('nav', 'EntryRouter: New user, going to onboarding')
         } else if (isAuthenticated) {
+          // Completed onboarding and logged in - go to app
           path = `/${locale}/app`
           addDebugLog('nav', 'EntryRouter: Authenticated user, going to app')
         } else {
+          // Completed onboarding but not logged in - go to login
           path = `/${locale}/login`
           addDebugLog('nav', 'EntryRouter: Returning user, going to login')
         }
 
         setTargetPath(path)
-        navigationAttempted = true
 
         // Set a timeout to detect if navigation fails silently
         timeoutId = setTimeout(() => {
@@ -149,7 +155,7 @@ export function EntryRouter({ locale, isAuthenticated }: EntryRouterProps) {
         clearTimeout(timeoutId)
       }
     }
-  }, [router, locale, isAuthenticated, getTargetPath])
+  }, [router, locale, isAuthenticated, searchParams])
 
   // Show loading with fallback link if navigation times out
   return (
@@ -177,11 +183,15 @@ export function EntryRouter({ locale, isAuthenticated }: EntryRouterProps) {
 
         {/* Debug info in debug mode */}
         {isDebugMode() && (
-          <div className="mt-6 p-3 bg-black/5 rounded-lg text-left text-xs">
-            <p className="text-gray-600 font-mono">Debug: EntryRouter</p>
+          <div className="mt-6 p-3 bg-black/5 rounded-lg text-left text-xs space-y-1">
+            <p className="text-gray-600 font-mono font-bold">Debug: EntryRouter</p>
             <p className="text-gray-500 font-mono">Target: {targetPath || 'calculating...'}</p>
             <p className="text-gray-500 font-mono">Auth: {isAuthenticated ? 'yes' : 'no'}</p>
+            <p className="text-gray-500 font-mono">Onboarding: {onboardingStatus}</p>
             <p className="text-gray-500 font-mono">Fallback: {showFallback ? 'yes' : 'no'}</p>
+            <p className="text-gray-400 font-mono text-[10px] mt-2">
+              Tip: Add ?reset_onboarding=1 to URL to reset intro
+            </p>
           </div>
         )}
       </div>

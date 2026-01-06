@@ -10,6 +10,8 @@ import {
   setupGlobalErrorCapture,
   getDeviceInfo,
   checkStorageAvailability,
+  getAppLocalStorage,
+  resetOnboarding,
   addDebugLog,
   type DebugLog,
 } from '@/lib/debug'
@@ -25,6 +27,7 @@ export function DebugPanel() {
   const [logs, setLogs] = useState<DebugLog[]>([])
   const [deviceInfo, setDeviceInfo] = useState<Record<string, string>>({})
   const [storageInfo, setStorageInfo] = useState<Record<string, string>>({})
+  const [appStorage, setAppStorage] = useState<Record<string, string>>({})
 
   useEffect(() => {
     // Only show in debug mode
@@ -38,6 +41,7 @@ export function DebugPanel() {
     // Get device info
     setDeviceInfo(getDeviceInfo())
     setStorageInfo(checkStorageAvailability())
+    setAppStorage(getAppLocalStorage())
 
     // Log initial page load
     addDebugLog('nav', 'Page loaded', {
@@ -62,6 +66,17 @@ export function DebugPanel() {
   const handleClearLogs = () => {
     clearDebugLogs()
     addDebugLog('info', 'Logs cleared')
+  }
+
+  const handleResetOnboarding = () => {
+    resetOnboarding()
+    setAppStorage(getAppLocalStorage())
+    // Reload the page to see the effect
+    window.location.href = window.location.pathname
+  }
+
+  const refreshAppStorage = () => {
+    setAppStorage(getAppLocalStorage())
   }
 
   const formatTimestamp = (ts: number) => {
@@ -137,6 +152,35 @@ export function DebugPanel() {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* App State (localStorage) */}
+          <div className="border-b border-gray-700 p-3">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-gray-400 uppercase text-[10px]">App State</h3>
+              <button
+                onClick={refreshAppStorage}
+                className="text-gray-500 hover:text-gray-300 text-[10px]"
+              >
+                Refresh
+              </button>
+            </div>
+            <div className="space-y-1">
+              {Object.entries(appStorage).map(([key, value]) => (
+                <div key={key} className="flex items-center justify-between">
+                  <span className="text-gray-500 text-[11px]">{key}:</span>
+                  <span className={`text-[11px] ${value === '(not set)' ? 'text-gray-600' : 'text-green-400'}`}>
+                    {value}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={handleResetOnboarding}
+              className="mt-3 w-full py-1.5 bg-red-600 hover:bg-red-500 text-white rounded text-[10px] font-medium"
+            >
+              Reset Onboarding & Reload
+            </button>
           </div>
 
           {/* Current Route */}
