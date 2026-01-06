@@ -19,19 +19,19 @@
   "onboarding": {
     "skip": "Skip",
     "next": "Next",
-    "startJourney": "Go To Pat My Day",
+    "startJourney": "Pat My Day",
     "steps": {
-      "daily": {
-        "title": "Capture Daily Moments",
-        "description": "Document your daily wins with beautiful polaroid-style cards. Add photos, stickers, and heartfelt captions."
+      "praise": {
+        "title": "One sentence to pat your day",
+        "description": "It doesn't have to be grand.\nRecord what you did best today and stamp it."
       },
-      "weekly": {
-        "title": "Track Your Week",
-        "description": "See your week at a glance. Each day shows your gratitude entry with photos and emotions."
+      "streak": {
+        "title": "Keep the flame of praise alive",
+        "description": "Build your streak with daily praise.\nConsistency leads to positive change."
       },
-      "monthly": {
-        "title": "Monthly Overview",
-        "description": "Review your journey with a photo calendar. Track streaks, view stats, and celebrate your progress."
+      "export": {
+        "title": "Keep and share your records",
+        "description": "Save your monthly records as PDF\nand share positive energy on social media."
       }
     }
   },

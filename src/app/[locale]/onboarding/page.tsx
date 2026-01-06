@@ -1,19 +1,45 @@
 'use client'
 
-import { useState, ReactNode, use } from 'react'
+import { useState, ReactNode, use, useRef, TouchEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronRight, Loader2 } from 'lucide-react'
-import { DailyPreview, WeeklyPreview, MonthlyPreview } from '@/components/onboarding'
+import { Loader2 } from 'lucide-react'
 import { getDictionarySync, type Locale, i18n, isValidLocale } from '@/lib/i18n'
 import { createClient } from '@/lib/supabase/client'
+import { SlidePraise, SlideStreak, SlideExport } from '@/components/onboarding/slides'
 
 const ONBOARDING_KEY = 'onboarding_completed'
 
-interface OnboardingStep {
-  title: string
-  description: string
-  preview: ReactNode
+interface OnboardingSlide {
+  id: string
+  titleKey: 'praise' | 'streak' | 'export'
+  bgColor: string
+  textColor: string
+  visual: ReactNode
 }
+
+const SLIDES: OnboardingSlide[] = [
+  {
+    id: 'praise',
+    titleKey: 'praise',
+    bgColor: 'bg-[#EDD377]',
+    textColor: 'text-gray-800',
+    visual: <SlidePraise />,
+  },
+  {
+    id: 'streak',
+    titleKey: 'streak',
+    bgColor: 'bg-[#F27430]',
+    textColor: 'text-white',
+    visual: <SlideStreak />,
+  },
+  {
+    id: 'export',
+    titleKey: 'export',
+    bgColor: 'bg-[#F2B949]',
+    textColor: 'text-gray-800',
+    visual: <SlideExport />,
+  },
+]
 
 type Props = {
   params: Promise<{ locale: string }>
@@ -24,64 +50,77 @@ export default function OnboardingPage({ params }: Props) {
   const locale: Locale = isValidLocale(localeParam) ? localeParam : i18n.defaultLocale
   const dict = getDictionarySync(locale)
 
-  const STEPS: OnboardingStep[] = [
-    {
-      title: dict.onboarding.steps.daily.title,
-      description: dict.onboarding.steps.daily.description,
-      preview: <DailyPreview />,
-    },
-    {
-      title: dict.onboarding.steps.weekly.title,
-      description: dict.onboarding.steps.weekly.description,
-      preview: <WeeklyPreview />,
-    },
-    {
-      title: dict.onboarding.steps.monthly.title,
-      description: dict.onboarding.steps.monthly.description,
-      preview: <MonthlyPreview />,
-    },
-  ]
-
-  const [currentStep, setCurrentStep] = useState(0)
+  const [currentSlide, setCurrentSlide] = useState(0)
   const [isTransitioning, setIsTransitioning] = useState(false)
   const [isCheckingAuth, setIsCheckingAuth] = useState(false)
   const router = useRouter()
 
+  // Touch handling for swipe
+  const touchStartX = useRef<number>(0)
+  const touchEndX = useRef<number>(0)
+
+  const handleTouchStart = (e: TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX
+  }
+
+  const handleTouchMove = (e: TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX
+  }
+
+  const handleTouchEnd = () => {
+    const diff = touchStartX.current - touchEndX.current
+    const threshold = 50
+
+    if (Math.abs(diff) > threshold) {
+      if (diff > 0 && currentSlide < SLIDES.length - 1) {
+        // Swipe left - next slide
+        goToSlide(currentSlide + 1)
+      } else if (diff < 0 && currentSlide > 0) {
+        // Swipe right - previous slide
+        goToSlide(currentSlide - 1)
+      }
+    }
+  }
+
+  const goToSlide = (index: number) => {
+    if (index < 0 || index >= SLIDES.length || isTransitioning) return
+
+    setIsTransitioning(true)
+    setTimeout(() => {
+      setCurrentSlide(index)
+      setIsTransitioning(false)
+    }, 150)
+  }
+
   /**
    * Complete onboarding and navigate based on auth state.
-   * If user is logged in -> go to app
-   * If not logged in -> go to login
    */
   const completeOnboarding = async () => {
     setIsCheckingAuth(true)
-    localStorage.setItem(ONBOARDING_KEY, 'true')
+    try {
+      localStorage.setItem(ONBOARDING_KEY, 'true')
+    } catch {
+      // Ignore localStorage errors
+    }
 
     try {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
 
       if (user) {
-        // User is already logged in, go directly to app
         router.replace(`/${locale}/app`)
       } else {
-        // User not logged in, go to login
         router.replace(`/${locale}/login`)
       }
     } catch {
-      // On error, default to login
       router.replace(`/${locale}/login`)
     }
   }
 
   const handleNext = () => {
-    if (currentStep < STEPS.length - 1) {
-      setIsTransitioning(true)
-      setTimeout(() => {
-        setCurrentStep(currentStep + 1)
-        setIsTransitioning(false)
-      }, 150)
+    if (currentSlide < SLIDES.length - 1) {
+      goToSlide(currentSlide + 1)
     } else {
-      // Final step - complete onboarding and check auth
       completeOnboarding()
     }
   }
@@ -90,59 +129,79 @@ export default function OnboardingPage({ params }: Props) {
     completeOnboarding()
   }
 
-  const step = STEPS[currentStep]
-  const isLastStep = currentStep === STEPS.length - 1
+  const slide = SLIDES[currentSlide]
+  const isLastSlide = currentSlide === SLIDES.length - 1
+  const stepData = dict.onboarding.steps[slide.titleKey]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 flex flex-col overflow-hidden">
+    <div
+      className={`min-h-screen min-h-[100dvh] ${slide.bgColor} flex flex-col transition-colors duration-300 overflow-hidden`}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
       {/* Skip button - always visible in top-right */}
-      <div className="absolute top-4 right-4 z-10 safe-area-inset-top">
-        <button
-          onClick={handleSkip}
-          disabled={isCheckingAuth}
-          className="text-gray-500 hover:text-gray-700 text-sm font-medium px-3 py-2 transition-colors disabled:opacity-50"
-        >
-          {dict.onboarding.skip}
-        </button>
+      <div className="absolute top-0 right-0 z-20 pt-[env(safe-area-inset-top)]">
+        <div className="p-4">
+          <button
+            onClick={handleSkip}
+            disabled={isCheckingAuth}
+            className={`text-sm font-medium px-3 py-2 rounded-lg transition-all disabled:opacity-50 ${
+              slide.textColor === 'text-white'
+                ? 'text-white/80 hover:text-white hover:bg-white/10'
+                : 'text-gray-600 hover:text-gray-800 hover:bg-black/5'
+            }`}
+          >
+            {dict.onboarding.skip}
+          </button>
+        </div>
       </div>
 
-      {/* Main content - scrollable area for preview */}
-      <div className="flex-1 flex flex-col items-center pt-8 pb-4 px-4 overflow-y-auto">
+      {/* Main content */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 pt-16 pb-4">
+        {/* Visual area */}
         <div
-          className={`transition-all duration-150 w-full ${
-            isTransitioning ? 'opacity-0 translate-x-4' : 'opacity-100 translate-x-0'
+          className={`mb-10 transition-all duration-300 ${
+            isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
           }`}
         >
-          {/* Preview - the actual reference design */}
-          <div className="flex justify-center mb-6">
-            {step.preview}
-          </div>
+          {slide.visual}
+        </div>
 
-          {/* Title */}
-          <h1 className="text-xl font-bold text-gray-800 text-center mb-2">
-            {step.title}
+        {/* Text content */}
+        <div
+          className={`text-center max-w-xs transition-all duration-300 ${
+            isTransitioning ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'
+          }`}
+        >
+          <h1 className={`text-2xl font-bold mb-4 ${slide.textColor}`}>
+            {stepData.title}
           </h1>
-
-          {/* Description */}
-          <p className="text-gray-600 text-center text-sm leading-relaxed max-w-xs mx-auto">
-            {step.description}
+          <p
+            className={`text-base leading-relaxed whitespace-pre-line ${
+              slide.textColor === 'text-white' ? 'text-white/80' : 'text-gray-600'
+            }`}
+          >
+            {stepData.description}
           </p>
         </div>
       </div>
 
-      {/* Bottom section - fixed to bottom */}
-      <div className="flex-shrink-0 p-6 pb-8 safe-area-inset-bottom bg-gradient-to-t from-amber-50 via-amber-50/80 to-transparent">
+      {/* Bottom section */}
+      <div className="flex-shrink-0 px-6 pb-8 pb-[max(2rem,env(safe-area-inset-bottom))]">
         {/* Progress dots */}
         <div className="flex justify-center gap-2 mb-6">
-          {STEPS.map((_, index) => (
-            <div
+          {SLIDES.map((_, index) => (
+            <button
               key={index}
+              onClick={() => goToSlide(index)}
+              disabled={isTransitioning}
               className={`h-2 rounded-full transition-all duration-300 ${
-                index === currentStep
-                  ? 'w-6 bg-[#F2B949]'
-                  : index < currentStep
-                  ? 'w-2 bg-amber-300'
-                  : 'w-2 bg-gray-300'
+                index === currentSlide
+                  ? `w-8 ${slide.textColor === 'text-white' ? 'bg-white' : 'bg-gray-800'}`
+                  : `w-2 ${
+                      slide.textColor === 'text-white' ? 'bg-white/40' : 'bg-gray-800/30'
+                    }`
               }`}
             />
           ))}
@@ -152,17 +211,20 @@ export default function OnboardingPage({ params }: Props) {
         <button
           onClick={handleNext}
           disabled={isCheckingAuth}
-          className="w-full bg-gradient-to-r from-[#F2B949] to-[#F27430] hover:from-[#EDD377] hover:to-[#F2B949] disabled:opacity-70 text-white font-semibold py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg active:scale-[0.98]"
+          className={`w-full font-semibold py-4 px-6 rounded-2xl transition-all flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] disabled:opacity-70 ${
+            isLastSlide
+              ? 'bg-gray-900 text-white hover:bg-gray-800'
+              : slide.textColor === 'text-white'
+              ? 'bg-white text-gray-800 hover:bg-white/90'
+              : 'bg-gray-800 text-white hover:bg-gray-700'
+          }`}
         >
           {isCheckingAuth ? (
             <Loader2 className="w-5 h-5 animate-spin" />
-          ) : isLastStep ? (
+          ) : isLastSlide ? (
             dict.onboarding.startJourney
           ) : (
-            <>
-              {dict.onboarding.next}
-              <ChevronRight className="w-5 h-5" />
-            </>
+            dict.onboarding.next
           )}
         </button>
       </div>
