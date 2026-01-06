@@ -1,13 +1,19 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense, use } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Mail, Lock, Loader2, AlertCircle, CheckCircle, Bug, Eye, EyeOff } from 'lucide-react'
+import { getDictionarySync, type Locale, appTitles, isValidLocale, i18n } from '@/lib/i18n'
 
 type AuthMode = 'login' | 'signup' | 'forgot'
 
-function LoginForm() {
+type Props = {
+  params: Promise<{ locale: string }>
+}
+
+function LoginFormContent({ locale }: { locale: Locale }) {
+  const dict = getDictionarySync(locale)
   const [mode, setMode] = useState<AuthMode>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -30,11 +36,11 @@ function LoginForm() {
       let errorMessage = errorDesc || `Authentication error: ${errorParam}`
 
       if (errorParam === 'access_denied') {
-        errorMessage = 'Access was denied. Please try again.'
+        errorMessage = dict.login.errors.accessDenied
       } else if (errorParam === 'code_exchange_failed') {
-        errorMessage = 'Failed to complete sign in. The link may have expired.'
+        errorMessage = dict.login.errors.codeExchangeFailed
       } else if (errorParam === 'no_code') {
-        errorMessage = 'Invalid authentication link.'
+        errorMessage = dict.login.errors.invalidLink
       }
 
       setError(errorMessage)
@@ -44,7 +50,7 @@ function LoginForm() {
     if (successParam) {
       setMessage(decodeURIComponent(successParam))
     }
-  }, [searchParams])
+  }, [searchParams, dict])
 
   const resetForm = () => {
     setError(null)
@@ -70,19 +76,19 @@ function LoginForm() {
       if (error) {
         // Provide user-friendly error messages
         if (error.message.includes('Invalid login credentials')) {
-          throw new Error('Invalid email or password. Please check your credentials.')
+          throw new Error(dict.login.errors.invalidCredentials)
         }
         if (error.message.includes('Email not confirmed')) {
-          throw new Error('Please confirm your email address before signing in. Check your inbox.')
+          throw new Error(dict.login.errors.emailNotConfirmed)
         }
         throw error
       }
 
       // Success - redirect to app
-      router.push('/app')
+      router.push(`/${locale}/app`)
     } catch (err) {
       console.error('[Auth] Login error:', err)
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      setError(err instanceof Error ? err.message : dict.login.errors.genericError)
     } finally {
       setLoading(false)
     }
@@ -96,20 +102,20 @@ function LoginForm() {
 
     // Validate passwords match
     if (password !== confirmPassword) {
-      setError('Passwords do not match')
+      setError(dict.login.errors.passwordMismatch)
       setLoading(false)
       return
     }
 
     // Validate password strength
     if (password.length < 6) {
-      setError('Password must be at least 6 characters long')
+      setError(dict.login.errors.passwordTooShort)
       setLoading(false)
       return
     }
 
     const supabase = createClient()
-    const emailRedirectTo = `${window.location.origin}/auth/callback`
+    const emailRedirectTo = `${window.location.origin}/${locale}/auth/callback`
 
     try {
       const { error } = await supabase.auth.signUp({
@@ -123,22 +129,22 @@ function LoginForm() {
       if (error) {
         // Provide user-friendly error messages
         if (error.message.includes('User already registered')) {
-          throw new Error('An account with this email already exists. Please log in instead.')
+          throw new Error(dict.login.errors.userExists)
         }
         if (error.message.includes('Password should be')) {
-          throw new Error('Password is too weak. Use at least 6 characters with a mix of letters and numbers.')
+          throw new Error(dict.login.errors.weakPassword)
         }
         throw error
       }
 
       // Success - show confirmation message
-      setMessage('Check your email to confirm your account! You can close this page.')
+      setMessage(dict.login.success.checkEmail)
       setEmail('')
       setPassword('')
       setConfirmPassword('')
     } catch (err) {
       console.error('[Auth] Signup error:', err)
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      setError(err instanceof Error ? err.message : dict.login.errors.genericError)
     } finally {
       setLoading(false)
     }
@@ -151,7 +157,7 @@ function LoginForm() {
     setMessage(null)
 
     const supabase = createClient()
-    const redirectTo = `${window.location.origin}/auth/reset`
+    const redirectTo = `${window.location.origin}/${locale}/auth/reset`
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -160,11 +166,11 @@ function LoginForm() {
 
       if (error) throw error
 
-      setMessage('Check your email for a password reset link!')
+      setMessage(dict.login.success.resetLinkSent)
       setEmail('')
     } catch (err) {
       console.error('[Auth] Reset password error:', err)
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      setError(err instanceof Error ? err.message : dict.login.errors.genericError)
     } finally {
       setLoading(false)
     }
@@ -179,10 +185,10 @@ function LoginForm() {
           {/* Header */}
           <div className="text-center mb-6">
             <h1 className="text-2xl font-bold text-gray-800 mb-2">
-              Praise Journal
+              {appTitles[locale]}
             </h1>
             <p className="text-gray-500 text-sm">
-              Your daily praise journal with polaroid memories
+              {dict.login.subtitle}
             </p>
           </div>
 
@@ -197,7 +203,7 @@ function LoginForm() {
                     : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
-                Log in
+                {dict.login.signIn}
               </button>
               <button
                 onClick={() => { setMode('signup'); resetForm(); }}
@@ -207,7 +213,7 @@ function LoginForm() {
                     : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
-                Sign up
+                {dict.login.signUp}
               </button>
             </div>
           )}
@@ -219,11 +225,11 @@ function LoginForm() {
                 onClick={() => { setMode('login'); resetForm(); }}
                 className="text-sm text-[#F27430] hover:text-[#F2B949] mb-4"
               >
-                ← Back to login
+                {dict.login.backToLogin}
               </button>
-              <h2 className="text-lg font-semibold text-gray-800">Reset Password</h2>
+              <h2 className="text-lg font-semibold text-gray-800">{dict.login.resetPassword}</h2>
               <p className="text-gray-500 text-sm mt-1">
-                Enter your email and we&apos;ll send you a reset link.
+                {dict.login.resetPasswordDesc}
               </p>
             </div>
           )}
@@ -249,7 +255,7 @@ function LoginForm() {
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email
+                  {dict.login.email}
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -257,7 +263,7 @@ function LoginForm() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
+                    placeholder={dict.login.emailPlaceholder}
                     required
                     disabled={loading}
                     autoComplete="email"
@@ -268,7 +274,7 @@ function LoginForm() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Password
+                  {dict.login.password}
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -276,7 +282,7 @@ function LoginForm() {
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
+                    placeholder={dict.login.passwordPlaceholder}
                     required
                     disabled={loading}
                     autoComplete="current-password"
@@ -298,7 +304,7 @@ function LoginForm() {
                   onClick={() => { setMode('forgot'); resetForm(); }}
                   className="text-sm text-[#F27430] hover:text-[#F2B949]"
                 >
-                  Forgot password?
+                  {dict.login.forgotPassword}
                 </button>
               </div>
 
@@ -310,10 +316,10 @@ function LoginForm() {
                 {loading ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    Signing in...
+                    {dict.login.signingIn}
                   </>
                 ) : (
-                  'Sign in'
+                  dict.login.signIn
                 )}
               </button>
             </form>
@@ -324,7 +330,7 @@ function LoginForm() {
             <form onSubmit={handleSignup} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email
+                  {dict.login.email}
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -332,7 +338,7 @@ function LoginForm() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
+                    placeholder={dict.login.emailPlaceholder}
                     required
                     disabled={loading}
                     autoComplete="email"
@@ -343,7 +349,7 @@ function LoginForm() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Password
+                  {dict.login.password}
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -351,7 +357,7 @@ function LoginForm() {
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="At least 6 characters"
+                    placeholder={dict.login.passwordHint}
                     required
                     disabled={loading}
                     autoComplete="new-password"
@@ -365,12 +371,12 @@ function LoginForm() {
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
+                <p className="text-xs text-gray-500 mt-1">{dict.login.passwordHint}</p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Confirm Password
+                  {dict.login.confirmPassword}
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -378,7 +384,7 @@ function LoginForm() {
                     type={showPassword ? 'text' : 'password'}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Confirm your password"
+                    placeholder={dict.login.confirmPasswordPlaceholder}
                     required
                     disabled={loading}
                     autoComplete="new-password"
@@ -395,15 +401,15 @@ function LoginForm() {
                 {loading ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    Creating account...
+                    {dict.login.creatingAccount}
                   </>
                 ) : (
-                  'Create account'
+                  dict.login.createAccount
                 )}
               </button>
 
               <p className="text-center text-gray-500 text-xs">
-                By signing up, you agree to our terms of service.
+                {dict.login.termsAgreement}
               </p>
             </form>
           )}
@@ -413,7 +419,7 @@ function LoginForm() {
             <form onSubmit={handleForgotPassword} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email
+                  {dict.login.email}
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -421,7 +427,7 @@ function LoginForm() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
+                    placeholder={dict.login.emailPlaceholder}
                     required
                     disabled={loading}
                     autoComplete="email"
@@ -438,10 +444,10 @@ function LoginForm() {
                 {loading ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    Sending...
+                    {dict.login.sending}
                   </>
                 ) : (
-                  'Send reset link'
+                  dict.login.sendResetLink
                 )}
               </button>
             </form>
@@ -467,13 +473,13 @@ function LoginForm() {
                   <p>
                     <span className="text-gray-500">Callback:</span>{' '}
                     {typeof window !== 'undefined'
-                      ? `${window.location.origin}/auth/callback`
+                      ? `${window.location.origin}/${locale}/auth/callback`
                       : 'N/A'}
                   </p>
                   <p>
                     <span className="text-gray-500">Reset URL:</span>{' '}
                     {typeof window !== 'undefined'
-                      ? `${window.location.origin}/auth/reset`
+                      ? `${window.location.origin}/${locale}/auth/reset`
                       : 'N/A'}
                   </p>
                   <p>
@@ -490,14 +496,14 @@ function LoginForm() {
   )
 }
 
-function LoginFallback() {
+function LoginFallback({ locale }: { locale: Locale }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center">
             <Loader2 className="w-8 h-8 animate-spin text-[#F27430] mx-auto mb-4" />
-            <p className="text-gray-500">Loading...</p>
+            <p className="text-gray-500">{appTitles[locale]}</p>
           </div>
         </div>
       </div>
@@ -505,10 +511,13 @@ function LoginFallback() {
   )
 }
 
-export default function LoginPage() {
+export default function LoginPage({ params }: Props) {
+  const { locale: localeParam } = use(params)
+  const locale: Locale = isValidLocale(localeParam) ? localeParam : i18n.defaultLocale
+
   return (
-    <Suspense fallback={<LoginFallback />}>
-      <LoginForm />
+    <Suspense fallback={<LoginFallback locale={locale} />}>
+      <LoginFormContent locale={locale} />
     </Suspense>
   )
 }

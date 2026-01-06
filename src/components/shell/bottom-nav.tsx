@@ -2,19 +2,23 @@
 
 import { CalendarDays, Heart, Plus, TrendingUp, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { getDictionarySync, type Locale } from '@/lib/i18n'
 
 interface BottomNavProps {
+  locale: Locale
   onAddClick?: () => void
 }
 
-const NAV_ITEMS = [
-  { id: 'calendar', label: 'Calendar', icon: CalendarDays, active: true },
-  { id: 'favorites', label: 'Favorites', icon: Heart, active: false },
-  { id: 'insights', label: 'Insights', icon: TrendingUp, active: false },
-  { id: 'profile', label: 'Profile', icon: User, active: false },
-]
+export function BottomNav({ locale, onAddClick }: BottomNavProps) {
+  const dict = getDictionarySync(locale)
 
-export function BottomNav({ onAddClick }: BottomNavProps) {
+  const NAV_ITEMS = [
+    { id: 'calendar', label: dict.nav.calendar, icon: CalendarDays, active: true },
+    { id: 'favorites', label: dict.nav.favorites, icon: Heart, active: false },
+    { id: 'insights', label: dict.nav.insights, icon: TrendingUp, active: false },
+    { id: 'profile', label: dict.nav.profile, icon: User, active: false },
+  ]
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 safe-area-inset-bottom">
       <div className="flex items-center justify-around px-5 py-3">

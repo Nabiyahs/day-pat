@@ -1,0 +1,101 @@
+{
+  "app": {
+    "title": "DayPat",
+    "tagline": "Your daily praise journal with polaroid memories",
+    "loading": "Loading..."
+  },
+  "nav": {
+    "day": "Day",
+    "week": "Week",
+    "month": "Month",
+    "calendar": "Calendar",
+    "favorites": "Favorites",
+    "insights": "Insights",
+    "profile": "Profile",
+    "settings": "Settings",
+    "menu": "Menu",
+    "signOut": "Sign Out"
+  },
+  "onboarding": {
+    "skip": "Skip",
+    "next": "Next",
+    "startJourney": "Start Your Journey",
+    "steps": {
+      "daily": {
+        "title": "Capture Daily Moments",
+        "description": "Document your daily wins with beautiful polaroid-style cards. Add photos, stickers, and heartfelt captions."
+      },
+      "weekly": {
+        "title": "Track Your Week",
+        "description": "See your week at a glance. Each day shows your gratitude entry with photos and emotions."
+      },
+      "monthly": {
+        "title": "Monthly Overview",
+        "description": "Review your journey with a photo calendar. Track streaks, view stats, and celebrate your progress."
+      }
+    }
+  },
+  "login": {
+    "title": "Log in",
+    "subtitle": "Your daily praise journal with polaroid memories",
+    "email": "Email",
+    "emailPlaceholder": "you@example.com",
+    "password": "Password",
+    "passwordPlaceholder": "••••••••",
+    "confirmPassword": "Confirm Password",
+    "confirmPasswordPlaceholder": "Confirm your password",
+    "passwordHint": "Minimum 6 characters",
+    "forgotPassword": "Forgot password?",
+    "signIn": "Sign in",
+    "signingIn": "Signing in...",
+    "signUp": "Sign up",
+    "creatingAccount": "Creating account...",
+    "createAccount": "Create account",
+    "backToLogin": "← Back to login",
+    "resetPassword": "Reset Password",
+    "resetPasswordDesc": "Enter your email and we'll send you a reset link.",
+    "sendResetLink": "Send reset link",
+    "sending": "Sending...",
+    "termsAgreement": "By signing up, you agree to our terms of service.",
+    "errors": {
+      "invalidCredentials": "Invalid email or password. Please check your credentials.",
+      "emailNotConfirmed": "Please confirm your email address before signing in. Check your inbox.",
+      "userExists": "An account with this email already exists. Please log in instead.",
+      "weakPassword": "Password is too weak. Use at least 6 characters with a mix of letters and numbers.",
+      "passwordMismatch": "Passwords do not match",
+      "passwordTooShort": "Password must be at least 6 characters long",
+      "genericError": "An error occurred",
+      "accessDenied": "Access was denied. Please try again.",
+      "codeExchangeFailed": "Failed to complete sign in. The link may have expired.",
+      "invalidLink": "Invalid authentication link."
+    },
+    "success": {
+      "checkEmail": "Check your email to confirm your account! You can close this page.",
+      "resetLinkSent": "Check your email for a password reset link!"
+    }
+  },
+  "calendar": {
+    "today": "Today",
+    "week": "Week",
+    "month": "Month",
+    "noEntry": "No entry yet",
+    "addReflection": "Add today's reflection...",
+    "addEntry": "Add entry",
+    "justNow": "Just now",
+    "weekNumber": "Week {{week}}",
+    "highlights": "{{month}} Highlights",
+    "totalDays": "Total Days",
+    "dayStreak": "Day Streak",
+    "topMood": "Top Mood",
+    "topMoments": "Top Moments"
+  },
+  "common": {
+    "add": "Add",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "share": "Share",
+    "close": "Close"
+  }
+}

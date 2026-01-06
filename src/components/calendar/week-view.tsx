@@ -2,16 +2,20 @@
 
 import { useState, useMemo } from 'react'
 import { format, isToday, startOfWeek, addWeeks, subWeeks, getWeek } from 'date-fns'
+import { ko, enUS } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, Plus, Heart, Share2 } from 'lucide-react'
 import { useWeekData } from '@/hooks/use-week-data'
 import { getWeekDays, formatDateString } from '@/lib/utils'
 import { cn } from '@/lib/utils'
+import { getDictionarySync, type Locale } from '@/lib/i18n'
 
 interface WeekViewProps {
+  locale: Locale
   onSelectDate: (date: string) => void
 }
 
-const WEEKDAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
+const WEEKDAYS_KO = ['월', '화', '수', '목', '금', '토', '일']
+const WEEKDAYS_EN = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 
 // Gradient pairs for each day - amber/orange theme
 const DAY_GRADIENTS = [
@@ -24,7 +28,11 @@ const DAY_GRADIENTS = [
   { from: 'from-yellow-200', to: 'to-orange-200', border: 'border-yellow-300', text: 'text-yellow-700' },
 ]
 
-export function WeekView({ onSelectDate }: WeekViewProps) {
+export function WeekView({ locale, onSelectDate }: WeekViewProps) {
+  const dict = getDictionarySync(locale)
+  const dateLocale = locale === 'ko' ? ko : enUS
+  const WEEKDAYS = locale === 'ko' ? WEEKDAYS_KO : WEEKDAYS_EN
+
   const [currentWeekStart, setCurrentWeekStart] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 1 })
   )
@@ -41,6 +49,8 @@ export function WeekView({ onSelectDate }: WeekViewProps) {
     setCurrentWeekStart(addWeeks(currentWeekStart, 1))
   }
 
+  const weekTitle = locale === 'ko' ? `${weekNumber}주차` : `Week ${weekNumber}`
+
   return (
     <div>
       {/* Week Navigation - matches reference: prev/next + "Week N" title + date range */}
@@ -54,9 +64,9 @@ export function WeekView({ onSelectDate }: WeekViewProps) {
           </button>
 
           <div className="text-center">
-            <h2 className="text-xl font-bold text-gray-800">Week {weekNumber}</h2>
+            <h2 className="text-xl font-bold text-gray-800">{weekTitle}</h2>
             <p className="text-sm text-gray-500">
-              {format(weekDays[0], 'MMM d')} - {format(weekDays[6], 'MMM d, yyyy')}
+              {format(weekDays[0], 'MMM d', { locale: dateLocale })} - {format(weekDays[6], 'MMM d, yyyy', { locale: dateLocale })}
             </p>
           </div>
 
@@ -110,7 +120,7 @@ export function WeekView({ onSelectDate }: WeekViewProps) {
                             </div>
                           )}
                           <div className="absolute top-2 left-2 bg-[#F27430] text-white text-xs font-bold px-2 py-1 rounded-full">
-                            Today
+                            {dict.calendar.today}
                           </div>
                         </>
                       ) : (
@@ -120,11 +130,11 @@ export function WeekView({ onSelectDate }: WeekViewProps) {
                       )}
                     </div>
                     <p className="text-sm text-gray-700 font-medium leading-relaxed mb-2 line-clamp-2">
-                      {dayData?.caption || 'Add today\'s reflection...'}
+                      {dayData?.caption || dict.calendar.addReflection}
                     </p>
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-[#F27430] font-semibold">
-                        {dayData?.time || 'Just now'}
+                        {dayData?.time || dict.calendar.justNow}
                       </span>
                       <div className="flex gap-2">
                         <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-amber-100 hover:bg-amber-200 transition-colors">
@@ -185,7 +195,7 @@ export function WeekView({ onSelectDate }: WeekViewProps) {
                       )}
                     </div>
                     <p className="text-sm text-gray-700 font-medium leading-relaxed mb-2 line-clamp-2">
-                      {dayData?.caption || 'Add a reflection...'}
+                      {dayData?.caption || dict.calendar.addReflection}
                     </p>
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-gray-400">
@@ -225,7 +235,7 @@ export function WeekView({ onSelectDate }: WeekViewProps) {
                   <Plus className="w-8 h-8 text-gray-300" />
                 </div>
               </div>
-              <p className="text-sm text-gray-400">No entry yet</p>
+              <p className="text-sm text-gray-400">{dict.calendar.noEntry}</p>
             </button>
           )
         })}

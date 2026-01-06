@@ -2,21 +2,25 @@
 
 import { X, CalendarDays, Heart, TrendingUp, Settings, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { getDictionarySync, type Locale } from '@/lib/i18n'
 
 interface SideDrawerProps {
+  locale: Locale
   isOpen: boolean
   onClose: () => void
   onLogout?: () => void
 }
 
-const MENU_ITEMS = [
-  { id: 'calendar', label: 'Calendar', icon: CalendarDays, active: true },
-  { id: 'favorites', label: 'Favorites', icon: Heart, active: false },
-  { id: 'insights', label: 'Insights', icon: TrendingUp, active: false },
-  { id: 'settings', label: 'Settings', icon: Settings, active: false },
-]
+export function SideDrawer({ locale, isOpen, onClose, onLogout }: SideDrawerProps) {
+  const dict = getDictionarySync(locale)
 
-export function SideDrawer({ isOpen, onClose, onLogout }: SideDrawerProps) {
+  const MENU_ITEMS = [
+    { id: 'calendar', label: dict.nav.calendar, icon: CalendarDays, active: true },
+    { id: 'favorites', label: dict.nav.favorites, icon: Heart, active: false },
+    { id: 'insights', label: dict.nav.insights, icon: TrendingUp, active: false },
+    { id: 'settings', label: dict.nav.settings, icon: Settings, active: false },
+  ]
+
   return (
     <div
       className={cn(
@@ -34,7 +38,7 @@ export function SideDrawer({ isOpen, onClose, onLogout }: SideDrawerProps) {
       >
         <div className="p-6">
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-xl font-bold text-gray-800">Menu</h2>
+            <h2 className="text-xl font-bold text-gray-800">{dict.nav.menu}</h2>
             <button
               onClick={onClose}
               className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
@@ -70,7 +74,7 @@ export function SideDrawer({ isOpen, onClose, onLogout }: SideDrawerProps) {
                 className="w-full flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-red-50 text-red-600 transition-colors"
               >
                 <LogOut className="w-5 h-5" />
-                <span className="font-semibold">Sign Out</span>
+                <span className="font-semibold">{dict.nav.signOut}</span>
               </button>
             </div>
           )}

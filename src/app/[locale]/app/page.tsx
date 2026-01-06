@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, use } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSupabase, resetSupabaseClient } from '@/lib/supabase/client'
 import { Loader2, Bug } from 'lucide-react'
@@ -10,8 +10,17 @@ import { MonthView } from '@/components/calendar/month-view'
 import { WeekView } from '@/components/calendar/week-view'
 import { DayView } from '@/components/day/day-view'
 import { formatDateString } from '@/lib/utils'
+import { getDictionarySync, type Locale, appTitles, isValidLocale, i18n } from '@/lib/i18n'
 
-export default function AppPage() {
+type Props = {
+  params: Promise<{ locale: string }>
+}
+
+export default function AppPage({ params }: Props) {
+  const { locale: localeParam } = use(params)
+  const locale: Locale = isValidLocale(localeParam) ? localeParam : i18n.defaultLocale
+  const dict = getDictionarySync(locale)
+
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeView, setActiveView] = useState<ViewType>('day') // Day is the main/default view
@@ -28,13 +37,13 @@ export default function AppPage() {
 
       if (error) {
         console.error('[App] Auth error:', error)
-        router.replace('/login')
+        router.replace(`/${locale}/login`)
         return
       }
 
       if (!user) {
         console.log('[App] No user, redirecting to login')
-        router.replace('/login')
+        router.replace(`/${locale}/login`)
         return
       }
 
@@ -42,11 +51,11 @@ export default function AppPage() {
       setUser(user)
     } catch (err) {
       console.error('[App] Unexpected error:', err)
-      router.replace('/login')
+      router.replace(`/${locale}/login`)
     } finally {
       setLoading(false)
     }
-  }, [supabase, router])
+  }, [supabase, router, locale])
 
   useEffect(() => {
     checkUser()
@@ -57,7 +66,7 @@ export default function AppPage() {
 
         if (event === 'SIGNED_OUT') {
           setUser(null)
-          router.replace('/login')
+          router.replace(`/${locale}/login`)
         } else if (event === 'SIGNED_IN' && session?.user) {
           setUser(session.user)
         } else if (event === 'TOKEN_REFRESHED' && session?.user) {
@@ -67,7 +76,7 @@ export default function AppPage() {
     )
 
     return () => subscription.unsubscribe()
-  }, [checkUser, supabase, router])
+  }, [checkUser, supabase, router, locale])
 
   const handleSelectDate = (date: string) => {
     setSelectedDate(date)
@@ -80,7 +89,7 @@ export default function AppPage() {
   const handleLogout = async () => {
     await supabase.auth.signOut()
     resetSupabaseClient()
-    router.replace('/login')
+    router.replace(`/${locale}/login`)
   }
 
   if (loading) {
@@ -88,7 +97,7 @@ export default function AppPage() {
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin text-[#F2B949] mx-auto mb-4" />
-          <p className="text-gray-500 text-sm">Loading...</p>
+          <p className="text-gray-500 text-sm">{dict.app.loading}</p>
         </div>
       </div>
     )
@@ -103,6 +112,7 @@ export default function AppPage() {
       {/* Fixed Header with View Tabs - matches reference HTML structure */}
       <header className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-lg border-b border-amber-100 z-50">
         <Header
+          locale={locale}
           onMenuClick={() => setDrawerOpen(true)}
           onAddClick={() => {
             setSelectedDate(formatDateString(new Date()))
@@ -110,6 +120,7 @@ export default function AppPage() {
           }}
         />
         <ViewTabs
+          locale={locale}
           activeView={activeView}
           onViewChange={setActiveView}
         />
@@ -117,6 +128,7 @@ export default function AppPage() {
 
       {/* Side Drawer */}
       <SideDrawer
+        locale={locale}
         isOpen={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         onLogout={handleLogout}
@@ -131,15 +143,16 @@ export default function AppPage() {
           />
         )}
         {activeView === 'week' && (
-          <WeekView onSelectDate={handleSelectDate} />
+          <WeekView locale={locale} onSelectDate={handleSelectDate} />
         )}
         {activeView === 'month' && (
-          <MonthView onSelectDate={handleSelectDate} />
+          <MonthView locale={locale} onSelectDate={handleSelectDate} />
         )}
       </main>
 
       {/* Bottom Navigation */}
       <BottomNav
+        locale={locale}
         onAddClick={() => {
           setSelectedDate(formatDateString(new Date()))
           setActiveView('day')
@@ -169,7 +182,7 @@ export default function AppPage() {
                 onClick={handleLogout}
                 className="mt-3 w-full bg-red-500 text-white py-2 rounded text-xs hover:bg-red-600"
               >
-                Sign Out
+                {dict.nav.signOut}
               </button>
             </div>
           )}

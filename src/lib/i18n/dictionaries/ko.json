@@ -1,0 +1,101 @@
+{
+  "app": {
+    "title": "하루꾹",
+    "tagline": "매일의 작은 칭찬을 기록하세요",
+    "loading": "로딩 중..."
+  },
+  "nav": {
+    "day": "일간",
+    "week": "주간",
+    "month": "월간",
+    "calendar": "캘린더",
+    "favorites": "즐겨찾기",
+    "insights": "통계",
+    "profile": "프로필",
+    "settings": "설정",
+    "menu": "메뉴",
+    "signOut": "로그아웃"
+  },
+  "onboarding": {
+    "skip": "건너뛰기",
+    "next": "다음",
+    "startJourney": "시작하기",
+    "steps": {
+      "daily": {
+        "title": "매일의 순간을 기록하세요",
+        "description": "폴라로이드 스타일의 아름다운 카드로 일상의 소중한 순간들을 기록하세요. 사진, 스티커, 진심 어린 메모를 추가할 수 있어요."
+      },
+      "weekly": {
+        "title": "한 주를 한눈에",
+        "description": "일주일간의 감사 기록을 한눈에 확인하세요. 매일의 사진과 감정이 담긴 카드들이 보여집니다."
+      },
+      "monthly": {
+        "title": "월간 한눈에 보기",
+        "description": "사진 캘린더로 여정을 되돌아보세요. 연속 기록을 확인하고, 통계를 보고, 성장을 축하하세요."
+      }
+    }
+  },
+  "login": {
+    "title": "로그인",
+    "subtitle": "폴라로이드 추억이 담긴 일일 칭찬 일기",
+    "email": "이메일",
+    "emailPlaceholder": "you@example.com",
+    "password": "비밀번호",
+    "passwordPlaceholder": "••••••••",
+    "confirmPassword": "비밀번호 확인",
+    "confirmPasswordPlaceholder": "비밀번호를 다시 입력하세요",
+    "passwordHint": "최소 6자 이상",
+    "forgotPassword": "비밀번호를 잊으셨나요?",
+    "signIn": "로그인",
+    "signingIn": "로그인 중...",
+    "signUp": "회원가입",
+    "creatingAccount": "계정 생성 중...",
+    "createAccount": "계정 만들기",
+    "backToLogin": "← 로그인으로 돌아가기",
+    "resetPassword": "비밀번호 재설정",
+    "resetPasswordDesc": "이메일을 입력하시면 재설정 링크를 보내드립니다.",
+    "sendResetLink": "재설정 링크 보내기",
+    "sending": "전송 중...",
+    "termsAgreement": "회원가입 시 서비스 이용약관에 동의하게 됩니다.",
+    "errors": {
+      "invalidCredentials": "이메일 또는 비밀번호가 올바르지 않습니다.",
+      "emailNotConfirmed": "이메일 인증을 완료해주세요. 받은 편지함을 확인해주세요.",
+      "userExists": "이미 등록된 이메일입니다. 로그인해주세요.",
+      "weakPassword": "비밀번호가 너무 약합니다. 문자와 숫자를 포함한 6자 이상을 사용하세요.",
+      "passwordMismatch": "비밀번호가 일치하지 않습니다.",
+      "passwordTooShort": "비밀번호는 최소 6자 이상이어야 합니다.",
+      "genericError": "오류가 발생했습니다.",
+      "accessDenied": "접근이 거부되었습니다. 다시 시도해주세요.",
+      "codeExchangeFailed": "로그인을 완료할 수 없습니다. 링크가 만료되었을 수 있습니다.",
+      "invalidLink": "유효하지 않은 인증 링크입니다."
+    },
+    "success": {
+      "checkEmail": "이메일을 확인하여 계정을 인증해주세요! 이 페이지를 닫아도 됩니다.",
+      "resetLinkSent": "비밀번호 재설정 링크를 이메일로 보냈습니다!"
+    }
+  },
+  "calendar": {
+    "today": "오늘",
+    "week": "주",
+    "month": "월",
+    "noEntry": "아직 기록이 없어요",
+    "addReflection": "오늘의 기록 추가하기...",
+    "addEntry": "기록 추가",
+    "justNow": "방금 전",
+    "weekNumber": "{{week}}주차",
+    "highlights": "{{month}} 하이라이트",
+    "totalDays": "총 일수",
+    "dayStreak": "연속 기록",
+    "topMood": "최고 기분",
+    "topMoments": "베스트 순간"
+  },
+  "common": {
+    "add": "추가",
+    "save": "저장",
+    "cancel": "취소",
+    "delete": "삭제",
+    "edit": "수정",
+    "share": "공유",
+    "close": "닫기"
+  }
+}

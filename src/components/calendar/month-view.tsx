@@ -2,18 +2,26 @@
 
 import { useState, useMemo } from 'react'
 import { format, isSameMonth, isToday, startOfMonth, addMonths, subMonths } from 'date-fns'
+import { ko, enUS } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, BarChart3, Star, Heart } from 'lucide-react'
 import { useMonthData } from '@/hooks/use-month-data'
 import { getCalendarDays, formatDateString } from '@/lib/utils'
 import { cn } from '@/lib/utils'
+import { getDictionarySync, type Locale } from '@/lib/i18n'
 
 interface MonthViewProps {
+  locale: Locale
   onSelectDate: (date: string) => void
 }
 
-const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+const WEEKDAYS_KO = ['월', '화', '수', '목', '금', '토', '일']
+const WEEKDAYS_EN = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
-export function MonthView({ onSelectDate }: MonthViewProps) {
+export function MonthView({ locale, onSelectDate }: MonthViewProps) {
+  const dict = getDictionarySync(locale)
+  const dateLocale = locale === 'ko' ? ko : enUS
+  const WEEKDAYS = locale === 'ko' ? WEEKDAYS_KO : WEEKDAYS_EN
+
   const [currentMonth, setCurrentMonth] = useState(new Date())
 
   const year = currentMonth.getFullYear()
@@ -73,18 +81,19 @@ export function MonthView({ onSelectDate }: MonthViewProps) {
 
   // Get top moments
   const topMoments = useMemo(() => {
+    const defaultCaption = locale === 'ko' ? '아름다운 순간' : 'Beautiful moment'
     const moments: { date: string; photoUrl: string; caption: string }[] = []
     monthData.forEach((data, dateStr) => {
       if (data.photoUrl) {
         moments.push({
           date: dateStr,
           photoUrl: data.photoUrl,
-          caption: data.caption || 'Beautiful moment',
+          caption: data.caption || defaultCaption,
         })
       }
     })
     return moments.slice(0, 3)
-  }, [monthData])
+  }, [monthData, locale])
 
   const goToPrevMonth = () => {
     setCurrentMonth(subMonths(currentMonth, 1))
@@ -93,6 +102,11 @@ export function MonthView({ onSelectDate }: MonthViewProps) {
   const goToNextMonth = () => {
     setCurrentMonth(addMonths(currentMonth, 1))
   }
+
+  const monthName = format(currentMonth, 'MMMM', { locale: dateLocale })
+  const highlightsTitle = locale === 'ko'
+    ? `${format(currentMonth, 'M월', { locale: dateLocale })} 하이라이트`
+    : `${monthName} Highlights`
 
   return (
     <div>
@@ -108,7 +122,7 @@ export function MonthView({ onSelectDate }: MonthViewProps) {
 
           <div className="text-center">
             <h2 className="text-xl font-bold text-gray-800">
-              {format(currentMonth, 'MMMM yyyy')}
+              {format(currentMonth, locale === 'ko' ? 'yyyy년 MMMM' : 'MMMM yyyy', { locale: dateLocale })}
             </h2>
           </div>
 
@@ -220,20 +234,20 @@ export function MonthView({ onSelectDate }: MonthViewProps) {
       <div className="bg-gradient-to-br from-[#F2B949] to-[#F27430] rounded-2xl p-6 shadow-xl mb-6">
         <h3 className="text-lg font-bold text-white mb-5 flex items-center gap-2">
           <BarChart3 className="w-5 h-5" />
-          {format(currentMonth, 'MMMM')} Highlights
+          {highlightsTitle}
         </h3>
         <div className="grid grid-cols-3 gap-4">
           <div className="text-center bg-white/20 backdrop-blur-sm rounded-xl p-4">
             <p className="text-4xl font-bold text-white mb-1">{stats.totalEntries}</p>
-            <p className="text-xs text-white/90 font-medium">Total Days</p>
+            <p className="text-xs text-white/90 font-medium">{dict.calendar.totalDays}</p>
           </div>
           <div className="text-center bg-white/20 backdrop-blur-sm rounded-xl p-4">
             <p className="text-4xl font-bold text-white mb-1">{stats.streak}</p>
-            <p className="text-xs text-white/90 font-medium">Day Streak</p>
+            <p className="text-xs text-white/90 font-medium">{dict.calendar.dayStreak}</p>
           </div>
           <div className="text-center bg-white/20 backdrop-blur-sm rounded-xl p-4">
             <p className="text-4xl mb-1">{stats.topMood}</p>
-            <p className="text-xs text-white/90 font-medium">Top Mood</p>
+            <p className="text-xs text-white/90 font-medium">{dict.calendar.topMood}</p>
           </div>
         </div>
       </div>
@@ -243,7 +257,7 @@ export function MonthView({ onSelectDate }: MonthViewProps) {
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-5 shadow-lg">
           <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
             <Star className="w-4 h-4 text-yellow-500" />
-            Top Moments
+            {dict.calendar.topMoments}
           </h3>
           <div className="space-y-3">
             {topMoments.map((moment, index) => {
@@ -268,7 +282,7 @@ export function MonthView({ onSelectDate }: MonthViewProps) {
                   </div>
                   <div className="flex-1 min-w-0 text-left">
                     <p className="text-xs font-semibold text-gray-800 mb-0.5">
-                      {format(momentDate, 'MMM d')} - {moment.caption.split(' ').slice(0, 3).join(' ')}
+                      {format(momentDate, locale === 'ko' ? 'M월 d일' : 'MMM d', { locale: dateLocale })} - {moment.caption.split(' ').slice(0, 3).join(' ')}
                     </p>
                     <p className="text-xs text-gray-600 truncate">
                       {moment.caption}

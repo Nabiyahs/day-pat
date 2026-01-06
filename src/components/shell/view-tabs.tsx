@@ -1,21 +1,25 @@
 'use client'
 
 import { cn } from '@/lib/utils'
+import { getDictionarySync, type Locale } from '@/lib/i18n'
 
 export type ViewType = 'day' | 'week' | 'month'
 
 interface ViewTabsProps {
+  locale: Locale
   activeView: ViewType
   onViewChange: (view: ViewType) => void
 }
 
-const TABS: { id: ViewType; label: string }[] = [
-  { id: 'day', label: 'Day' },
-  { id: 'week', label: 'Week' },
-  { id: 'month', label: 'Month' },
-]
+export function ViewTabs({ locale, activeView, onViewChange }: ViewTabsProps) {
+  const dict = getDictionarySync(locale)
 
-export function ViewTabs({ activeView, onViewChange }: ViewTabsProps) {
+  const TABS: { id: ViewType; label: string }[] = [
+    { id: 'day', label: dict.nav.day },
+    { id: 'week', label: dict.nav.week },
+    { id: 'month', label: dict.nav.month },
+  ]
+
   return (
     <div className="flex items-center justify-center gap-2 px-5 pb-3">
       {TABS.map((tab) => (

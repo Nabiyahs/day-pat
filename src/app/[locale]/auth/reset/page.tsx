@@ -1,11 +1,17 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense, use } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { Lock, Loader2, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react'
+import { getDictionarySync, type Locale, appTitles, isValidLocale, i18n } from '@/lib/i18n'
 
-function ResetPasswordForm() {
+type Props = {
+  params: Promise<{ locale: string }>
+}
+
+function ResetPasswordFormContent({ locale }: { locale: Locale }) {
+  const dict = getDictionarySync(locale)
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -53,14 +59,14 @@ function ResetPasswordForm() {
 
     // Validate passwords match
     if (password !== confirmPassword) {
-      setError('Passwords do not match')
+      setError(dict.login.errors.passwordMismatch)
       setLoading(false)
       return
     }
 
     // Validate password strength
     if (password.length < 6) {
-      setError('Password must be at least 6 characters long')
+      setError(dict.login.errors.passwordTooShort)
       setLoading(false)
       return
     }
@@ -72,7 +78,7 @@ function ResetPasswordForm() {
 
       if (error) {
         if (error.message.includes('should be different')) {
-          throw new Error('New password must be different from your current password.')
+          throw new Error(locale === 'ko' ? '새 비밀번호는 현재 비밀번호와 달라야 합니다.' : 'New password must be different from your current password.')
         }
         throw error
       }
@@ -82,25 +88,43 @@ function ResetPasswordForm() {
 
       // Redirect to app after a short delay
       setTimeout(() => {
-        router.push('/app')
+        router.push(`/${locale}/app`)
       }, 2000)
     } catch (err) {
       console.error('[Auth] Password reset error:', err)
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      setError(err instanceof Error ? err.message : dict.login.errors.genericError)
     } finally {
       setLoading(false)
     }
   }
 
+  const labels = {
+    verifying: locale === 'ko' ? '재설정 링크 확인 중...' : 'Verifying reset link...',
+    invalidTitle: locale === 'ko' ? '유효하지 않거나 만료된 링크' : 'Invalid or Expired Link',
+    invalidDesc: locale === 'ko' ? '이 비밀번호 재설정 링크가 유효하지 않거나 만료되었습니다. 새 링크를 요청해주세요.' : 'This password reset link is invalid or has expired. Please request a new one.',
+    backToLogin: locale === 'ko' ? '로그인으로 돌아가기' : 'Back to Login',
+    successTitle: locale === 'ko' ? '비밀번호가 변경되었습니다!' : 'Password Updated!',
+    successDesc: locale === 'ko' ? '비밀번호가 성공적으로 변경되었습니다.' : 'Your password has been successfully changed.',
+    redirecting: locale === 'ko' ? '일기장으로 이동 중...' : 'Redirecting to your journal...',
+    setNewPassword: locale === 'ko' ? '새 비밀번호 설정' : 'Set New Password',
+    setNewPasswordDesc: locale === 'ko' ? '아래에 새 비밀번호를 입력하세요' : 'Enter your new password below',
+    newPassword: locale === 'ko' ? '새 비밀번호' : 'New Password',
+    confirmNewPassword: locale === 'ko' ? '새 비밀번호 확인' : 'Confirm New Password',
+    minChars: locale === 'ko' ? '최소 6자 이상' : 'Minimum 6 characters',
+    updating: locale === 'ko' ? '비밀번호 변경 중...' : 'Updating password...',
+    updatePassword: locale === 'ko' ? '비밀번호 변경' : 'Update Password',
+    cancelReturn: locale === 'ko' ? '취소하고 로그인으로 돌아가기' : 'Cancel and return to login',
+  }
+
   // Show loading while checking session
   if (isValidSession === null) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="bg-white rounded-2xl shadow-xl p-8">
             <div className="text-center">
-              <Loader2 className="w-8 h-8 animate-spin text-pink-500 mx-auto mb-4" />
-              <p className="text-gray-500">Verifying reset link...</p>
+              <Loader2 className="w-8 h-8 animate-spin text-[#F27430] mx-auto mb-4" />
+              <p className="text-gray-500">{labels.verifying}</p>
             </div>
           </div>
         </div>
@@ -111,22 +135,22 @@ function ResetPasswordForm() {
   // Invalid or expired link
   if (isValidSession === false) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="bg-white rounded-2xl shadow-xl p-8">
             <div className="text-center">
               <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
               <h1 className="text-xl font-bold text-gray-800 mb-2">
-                Invalid or Expired Link
+                {labels.invalidTitle}
               </h1>
               <p className="text-gray-500 text-sm mb-6">
-                This password reset link is invalid or has expired. Please request a new one.
+                {labels.invalidDesc}
               </p>
               <button
-                onClick={() => router.push('/login')}
-                className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-semibold py-3 px-6 rounded-lg transition-all"
+                onClick={() => router.push(`/${locale}/login`)}
+                className="bg-gradient-to-r from-[#F2B949] to-[#F27430] hover:from-[#EDD377] hover:to-[#F2B949] text-white font-semibold py-3 px-6 rounded-lg transition-all"
               >
-                Back to Login
+                {labels.backToLogin}
               </button>
             </div>
           </div>
@@ -138,19 +162,19 @@ function ResetPasswordForm() {
   // Success state
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="bg-white rounded-2xl shadow-xl p-8">
             <div className="text-center">
               <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
               <h1 className="text-xl font-bold text-gray-800 mb-2">
-                Password Updated!
+                {labels.successTitle}
               </h1>
               <p className="text-gray-500 text-sm mb-4">
-                Your password has been successfully changed.
+                {labels.successDesc}
               </p>
               <p className="text-gray-400 text-xs">
-                Redirecting to your journal...
+                {labels.redirecting}
               </p>
             </div>
           </div>
@@ -160,16 +184,16 @@ function ResetPasswordForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           {/* Header */}
           <div className="text-center mb-6">
             <h1 className="text-2xl font-bold text-gray-800 mb-2">
-              Set New Password
+              {labels.setNewPassword}
             </h1>
             <p className="text-gray-500 text-sm">
-              Enter your new password below
+              {labels.setNewPasswordDesc}
             </p>
           </div>
 
@@ -185,7 +209,7 @@ function ResetPasswordForm() {
           <form onSubmit={handleResetPassword} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                New Password
+                {labels.newPassword}
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -193,11 +217,11 @@ function ResetPasswordForm() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="At least 6 characters"
+                  placeholder={labels.minChars}
                   required
                   disabled={loading}
                   autoComplete="new-password"
-                  className="w-full pl-10 pr-12 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-400 focus:border-transparent outline-none transition-all disabled:bg-gray-50"
+                  className="w-full pl-10 pr-12 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-transparent outline-none transition-all disabled:bg-gray-50"
                 />
                 <button
                   type="button"
@@ -207,12 +231,12 @@ function ResetPasswordForm() {
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
-              <p className="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
+              <p className="text-xs text-gray-500 mt-1">{labels.minChars}</p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Confirm New Password
+                {labels.confirmNewPassword}
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -220,11 +244,11 @@ function ResetPasswordForm() {
                   type={showPassword ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm your new password"
+                  placeholder={dict.login.confirmPasswordPlaceholder}
                   required
                   disabled={loading}
                   autoComplete="new-password"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-400 focus:border-transparent outline-none transition-all disabled:bg-gray-50"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-transparent outline-none transition-all disabled:bg-gray-50"
                 />
               </div>
             </div>
@@ -232,25 +256,25 @@ function ResetPasswordForm() {
             <button
               type="submit"
               disabled={loading || !password || !confirmPassword}
-              className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 disabled:opacity-50 text-white font-semibold py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2"
+              className="w-full bg-gradient-to-r from-[#F2B949] to-[#F27430] hover:from-[#EDD377] hover:to-[#F2B949] disabled:opacity-50 text-white font-semibold py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Updating password...
+                  {labels.updating}
                 </>
               ) : (
-                'Update Password'
+                labels.updatePassword
               )}
             </button>
           </form>
 
           <div className="mt-6 text-center">
             <button
-              onClick={() => router.push('/login')}
+              onClick={() => router.push(`/${locale}/login`)}
               className="text-sm text-gray-500 hover:text-gray-700"
             >
-              Cancel and return to login
+              {labels.cancelReturn}
             </button>
           </div>
         </div>
@@ -259,14 +283,14 @@ function ResetPasswordForm() {
   )
 }
 
-function ResetFallback() {
+function ResetFallback({ locale }: { locale: Locale }) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center">
-            <Loader2 className="w-8 h-8 animate-spin text-pink-500 mx-auto mb-4" />
-            <p className="text-gray-500">Loading...</p>
+            <Loader2 className="w-8 h-8 animate-spin text-[#F27430] mx-auto mb-4" />
+            <p className="text-gray-500">{appTitles[locale]}</p>
           </div>
         </div>
       </div>
@@ -274,10 +298,13 @@ function ResetFallback() {
   )
 }
 
-export default function ResetPasswordPage() {
+export default function ResetPasswordPage({ params }: Props) {
+  const { locale: localeParam } = use(params)
+  const locale: Locale = isValidLocale(localeParam) ? localeParam : i18n.defaultLocale
+
   return (
-    <Suspense fallback={<ResetFallback />}>
-      <ResetPasswordForm />
+    <Suspense fallback={<ResetFallback locale={locale} />}>
+      <ResetPasswordFormContent locale={locale} />
     </Suspense>
   )
 }
