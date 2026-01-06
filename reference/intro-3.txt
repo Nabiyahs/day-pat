@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Praise Journal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>window.FontAwesomeConfig = {autoReplaceSvg: 'nest'};</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Nanum+Pen+Script&display=swap" rel="stylesheet">
+    <style>
+        ::-webkit-scrollbar { display: none; }
+        .handwriting {
+            font-family: 'Nanum Pen Script', cursive;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        handwriting: ['Nanum Pen Script', 'cursive'],
+                    },
+                    colors: {
+                        primary: '#F27430',
+                        secondary: '#F2B949',
+                        accent: '#F2E829',
+                        highlight: '#EDD377',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-white font-sans overflow-hidden">
+    <div id="onboardingScreen3" class="w-full h-screen flex flex-col items-center px-8 bg-[#FFF9F0]">
+        <div class="absolute top-12 left-0 right-0 flex justify-center gap-2 z-10">
+            <div class="w-2 h-2 rounded-full bg-gray-300"></div>
+            <div class="w-2 h-2 rounded-full bg-gray-300"></div>
+            <div class="w-2 h-2 rounded-full bg-[#F27430]"></div>
+        </div>
+
+        <div class="flex-1 flex items-center justify-center w-full pt-20">
+            <div class="bg-white rounded-3xl p-8 shadow-lg max-w-[300px]">
+                <div class="flex items-center justify-center gap-8 mb-8">
+                    <div class="w-24 h-24 rounded-full bg-[#F2B949] flex items-center justify-center shadow-lg">
+                        <i class="fa-solid fa-file-pdf text-4xl text-white"></i>
+                    </div>
+                    <div class="w-24 h-24 rounded-full bg-[#F2E829] flex items-center justify-center shadow-lg">
+                        <i class="fa-solid fa-share-nodes text-4xl text-white"></i>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="text-left">
+                        <p class="text-base font-semibold text-gray-800">PDF로 저장하고</p>
+                        <p class="text-sm text-gray-500">한 달 기록을 문서로</p>
+                    </div>
+                    <div class="text-left">
+                        <p class="text-base font-semibold text-gray-800">소중한 순간을 공유해요</p>
+                        <p class="text-sm text-gray-500">친구들과 함께 나눠요</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="pb-8 pt-6 text-center w-full max-w-[320px]">
+            <h1 class="text-2xl font-bold text-gray-800 mb-3">저장하고 공유하기</h1>
+            <p class="text-gray-600 leading-relaxed">
+                소중한 기록을 PDF로 저장하거나<br/>
+                친구들과 함께 나눠보세요
+            </p>
+        </div>
+
+        <div class="pb-12 w-full max-w-[320px]">
+            <button class="w-full bg-[#F27430] text-white font-bold text-lg py-4 rounded-2xl shadow-lg active:scale-95 transition-transform">
+                오늘 꾹 하러가기
+            </button>
+        </div>
+    </div>
+</body>
+</html>

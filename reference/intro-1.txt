@@ -1,0 +1,138 @@
+<html>
+
+  <head>
+    <link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Praise Journal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      window.FontAwesomeConfig = {
+        autoReplaceSvg: 'nest'
+      };
+    </script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"
+      crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=Nanum+Pen+Script&amp;display=swap"
+      rel="stylesheet">
+    <style>
+      ::-webkit-scrollbar
+      {
+        display: none;
+      }
+
+      .handwriting
+      {
+        font-family: 'Nanum Pen Script', cursive;
+      }
+    </style>
+    <script>
+      tailwind.config = {
+        theme:
+        {
+          extend:
+          {
+            fontFamily:
+            {
+              sans: ['Inter', 'sans-serif'],
+              handwriting: ['Nanum Pen Script', 'cursive'],
+            },
+            colors:
+            {
+              primary: '#F27430',
+              secondary: '#F2B949',
+              accent: '#F2E829',
+              highlight: '#EDD377',
+            }
+          }
+        }
+      }
+    </script>
+    <style data-grapesjs-styles="true">
+      *
+      {
+        box-sizing: border-box;
+      }
+
+      body
+      {
+        margin: 0;
+      }
+
+      ::-webkit-scrollbar
+      {
+        display: none;
+      }
+
+      .handwriting
+      {
+        font-family: "Nanum Pen Script", cursive;
+      }
+    </style>
+  </head>
+
+  <body class="bg-[#FFFBF5] font-sans overflow-hidden">
+    <link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Praise Journal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=Nanum+Pen+Script&amp;display=swap"
+      rel="stylesheet">
+    <div id="onboardingScreen"
+      class="w-full h-screen flex flex-col items-center justify-center px-8 relative">
+      <div
+        class="absolute top-12 left-0 right-0 flex justify-center gap-2 z-10">
+        <div class="w-2 h-2 rounded-full bg-[#F27430]"></div>
+        <div class="w-2 h-2 rounded-full bg-gray-300"></div>
+        <div class="w-2 h-2 rounded-full bg-gray-300"></div>
+      </div>
+      <div class="flex-1 flex items-center justify-center w-full">
+        <div class="relative">
+          <div class="bg-white rounded-lg shadow-xl p-4 transform rotate-[-2deg] w-[280px]">
+            <div class="bg-gray-100 rounded-sm mb-4 h-[280px] overflow-hidden relative">
+              <img 
+                class="w-full h-full object-cover" 
+                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/33d75371d3-61acb8225910cf70d90a.png" alt="modern office desk from above view, open laptop computer, steaming coffee cup beside it, clean minimal workspace, warm natural morning light, soft shadows, productive atmosphere, cozy workspace setup" />
+            </div>
+            <div class="bg-white px-4 pb-6 pt-2">
+              <p class="handwriting text-3xl text-gray-700 leading-relaxed text-center">
+                오늘도 무사히<br>출근했어요
+              </p>
+            </div>
+            <div class="absolute bottom-2 right-2 w-28 h-28 transform rotate-12 z-20 pointer-events-none">
+              <img
+                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/0eca8c8041-1434a8064c5582c4d9ff.png"
+                alt="red ink rubber stamp mark circular shape with korean text meaning well done vintage texture isolated on white background"
+                class="w-full h-full object-contain opacity-90 mix-blend-multiply">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pb-12 text-center space-y-4 w-full max-w-[320px]">
+        <h1 class="text-2xl font-bold text-gray-800 mb-2">칭찬 스탬프</h1>
+        <p class="text-gray-600 leading-relaxed px-4">
+          매일의 소중한 순간을 기록하고<br>
+          나에게 칭찬 스탬프를 찍어보세요
+        </p>
+        <div class="pt-6">
+          <button class="w-full bg-[#F27430] text-white font-semibold py-4 rounded-2xl shadow-lg active:scale-95 transition-transform hover:bg-[#d96629]">
+            다음
+          </button>
+          <button class="w-full text-gray-500 font-medium py-3 mt-3 hover:text-gray-700">
+            건너뛰기
+          </button>
+        </div>
+      </div>
+    </div>
+  </body>
+
+</html>
