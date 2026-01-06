@@ -76,6 +76,7 @@ export function SideDrawer({ locale, isOpen, onClose, onLogout }: SideDrawerProp
               onClick={onClose}
               className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
               aria-label={locale === 'ko' ? '메뉴 닫기' : 'Close menu'}
+              data-testid="drawer-close"
             >
               <AppIcon name="x" className="w-5 h-5 text-gray-600" />
             </button>
@@ -83,6 +84,7 @@ export function SideDrawer({ locale, isOpen, onClose, onLogout }: SideDrawerProp
 
           <nav className="space-y-2">
             {MENU_ITEMS.map((item) => {
+              const isDisabled = !item.available && !item.active
               return (
                 <button
                   key={item.id}
@@ -91,8 +93,9 @@ export function SideDrawer({ locale, isOpen, onClose, onLogout }: SideDrawerProp
                       onClose()
                     }
                   }}
-                  disabled={!item.available && !item.active}
-                  title={!item.available && !item.active ? comingSoonText : undefined}
+                  disabled={isDisabled}
+                  aria-disabled={isDisabled}
+                  title={isDisabled ? comingSoonText : undefined}
                   className={cn(
                     'w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-colors relative',
                     item.active
@@ -101,10 +104,11 @@ export function SideDrawer({ locale, isOpen, onClose, onLogout }: SideDrawerProp
                       ? 'hover:bg-gray-50 text-gray-700'
                       : 'text-gray-400 cursor-not-allowed'
                   )}
+                  data-testid={`drawer-item-${item.id}`}
                 >
                   <AppIcon name={item.icon} className="w-5 h-5" />
                   <span className="font-semibold">{item.label}</span>
-                  {!item.available && !item.active && (
+                  {isDisabled && (
                     <span className="ml-auto flex items-center gap-1 text-xs text-gray-400">
                       <AppIcon name="construction" className="w-3 h-3" />
                       {comingSoonText}
@@ -120,6 +124,7 @@ export function SideDrawer({ locale, isOpen, onClose, onLogout }: SideDrawerProp
               <button
                 onClick={onLogout}
                 className="w-full flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-red-50 text-red-600 transition-colors"
+                data-testid="drawer-logout"
               >
                 <AppIcon name="logout" className="w-5 h-5" />
                 <span className="font-semibold">{dict.nav.signOut}</span>
