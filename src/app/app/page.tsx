@@ -100,8 +100,8 @@ export default function AppPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50">
-      {/* Fixed Header with View Tabs */}
-      <div className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-lg border-b border-pink-100 z-50">
+      {/* Fixed Header with View Tabs - matches reference HTML structure */}
+      <header className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-lg border-b border-pink-100 z-50">
         <Header
           onMenuClick={() => setDrawerOpen(true)}
           onAddClick={() => {
@@ -113,7 +113,7 @@ export default function AppPage() {
           activeView={activeView}
           onViewChange={setActiveView}
         />
-      </div>
+      </header>
 
       {/* Side Drawer */}
       <SideDrawer
