@@ -22,8 +22,8 @@
     "startJourney": "Pat My Day",
     "steps": {
       "praise": {
-        "title": "One sentence to pat your day",
-        "description": "It doesn't have to be grand.\nRecord what you did best today and stamp it."
+        "title": "Made it to work today",
+        "description": "It doesn't have to be grand.\nRecord what you did best today\nand stamp it."
       },
       "streak": {
         "title": "Keep the flame of praise alive",

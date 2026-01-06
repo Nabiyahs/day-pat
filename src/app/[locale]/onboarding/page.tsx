@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, ReactNode, use, useRef, TouchEvent, useEffect } from 'react'
+import { useState, ReactNode, use, useRef, TouchEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { getDictionarySync, type Locale, i18n, isValidLocale } from '@/lib/i18n'
@@ -162,9 +162,9 @@ export default function OnboardingPage({ params }: Props) {
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Skip button - always visible in top-right */}
-      <div className="absolute top-0 right-0 z-20 pt-[env(safe-area-inset-top)]">
-        <div className="p-4">
+      {/* Skip button - always visible in top-right, fixed position */}
+      <div className="fixed top-0 right-0 z-20 pt-[env(safe-area-inset-top)]">
+        <div className="p-3">
           <button
             onClick={handleSkip}
             disabled={isCheckingAuth}
@@ -179,28 +179,28 @@ export default function OnboardingPage({ params }: Props) {
         </div>
       </div>
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 pt-16 pb-4">
-        {/* Visual area */}
+      {/* Main content - optimized spacing for mobile */}
+      <div className="flex-1 flex flex-col items-center justify-center px-5 pt-12 pb-2">
+        {/* Visual area - tighter margin */}
         <div
-          className={`mb-10 transition-all duration-300 ${
+          className={`mb-6 transition-all duration-300 ${
             isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
           }`}
         >
           {slide.visual}
         </div>
 
-        {/* Text content */}
+        {/* Text content - compact styling */}
         <div
-          className={`text-center max-w-xs transition-all duration-300 ${
+          className={`text-center max-w-[280px] transition-all duration-300 ${
             isTransitioning ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'
           }`}
         >
-          <h1 className={`text-2xl font-bold mb-4 ${slide.textColor}`}>
+          <h1 className={`text-xl font-bold mb-2 ${slide.textColor}`}>
             {stepData.title}
           </h1>
           <p
-            className={`text-base leading-relaxed whitespace-pre-line ${
+            className={`text-sm leading-relaxed whitespace-pre-line ${
               slide.textColor === 'text-white' ? 'text-white/80' : 'text-gray-600'
             }`}
           >
@@ -209,10 +209,10 @@ export default function OnboardingPage({ params }: Props) {
         </div>
       </div>
 
-      {/* Bottom section */}
-      <div className="flex-shrink-0 px-6 pb-8 pb-[max(2rem,env(safe-area-inset-bottom))]">
+      {/* Bottom section - tighter padding */}
+      <div className="flex-shrink-0 px-5 pb-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
         {/* Progress dots */}
-        <div className="flex justify-center gap-2 mb-6">
+        <div className="flex justify-center gap-2 mb-4">
           {SLIDES.map((_, index) => (
             <button
               key={index}
@@ -229,11 +229,11 @@ export default function OnboardingPage({ params }: Props) {
           ))}
         </div>
 
-        {/* Action button */}
+        {/* Action button - min 44px height for tappability */}
         <button
           onClick={handleNext}
           disabled={isCheckingAuth || isTransitioning}
-          className={`w-full font-semibold py-4 px-6 rounded-2xl transition-all flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] disabled:opacity-70 ${
+          className={`w-full font-semibold py-3.5 px-6 rounded-2xl transition-all flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] disabled:opacity-70 min-h-[44px] ${
             isLastSlide
               ? 'bg-gray-900 text-white hover:bg-gray-800'
               : slide.textColor === 'text-white'
