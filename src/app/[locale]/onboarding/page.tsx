@@ -84,13 +84,23 @@ export default function OnboardingPage({ params }: Props) {
   }
 
   const goToSlide = (index: number) => {
-    if (index < 0 || index >= SLIDES.length || isTransitioning) return
+    // Validate index
+    if (index < 0 || index >= SLIDES.length) return
+    // Skip if already on this slide
+    if (index === currentSlide) return
+    // Skip if already transitioning
+    if (isTransitioning) return
 
+    console.log('[Onboarding] goToSlide:', { from: currentSlide, to: index })
+
+    // Update slide state immediately
+    setCurrentSlide(index)
     setIsTransitioning(true)
+
+    // Reset transitioning flag after animation completes
     setTimeout(() => {
-      setCurrentSlide(index)
       setIsTransitioning(false)
-    }, 150)
+    }, 300)
   }
 
   /**
@@ -101,10 +111,11 @@ export default function OnboardingPage({ params }: Props) {
     addDebugLog('nav', 'Onboarding: Completing onboarding')
 
     try {
-      localStorage.setItem(ONBOARDING_KEY, 'true')
-      addDebugLog('info', 'Onboarding: localStorage set')
+      // Use sessionStorage so intro always shows on fresh visits (new browser session)
+      sessionStorage.setItem(ONBOARDING_KEY, 'true')
+      addDebugLog('info', 'Onboarding: sessionStorage set')
     } catch (e) {
-      addDebugLog('warn', 'Onboarding: localStorage failed', { error: String(e) })
+      addDebugLog('warn', 'Onboarding: sessionStorage failed', { error: String(e) })
     }
 
     try {
@@ -221,7 +232,7 @@ export default function OnboardingPage({ params }: Props) {
         {/* Action button */}
         <button
           onClick={handleNext}
-          disabled={isCheckingAuth}
+          disabled={isCheckingAuth || isTransitioning}
           className={`w-full font-semibold py-4 px-6 rounded-2xl transition-all flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] disabled:opacity-70 ${
             isLastSlide
               ? 'bg-gray-900 text-white hover:bg-gray-800'
