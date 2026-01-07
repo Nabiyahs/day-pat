@@ -135,14 +135,10 @@
     class="bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 font-sans">
     <header id="header"
       class="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-lg border-b border-amber-100 z-50">
-      <div class="flex items-center justify-between px-5 py-4"><button
-          id="menuBtn"
-          class="w-11 h-11 flex items-center justify-center rounded-xl hover:bg-amber-50 transition-colors"><i
-            class="fa-solid fa-bars text-orange-600 text-xl"></i></button>
+      <div class="flex items-center justify-center px-5 py-4">
         <h1 id="ixplt"
-          class="text-base font-bold text-gray-800 absolute left-1/2 transform -translate-x-1/2">
+          class="text-base font-bold text-gray-800">
           DayPat</h1>
-        <div class="w-11"></div>
       </div>
       <div id="viewTabs"
         class="flex items-center justify-center gap-2 px-5 pb-3"><button
@@ -1057,32 +1053,6 @@
     </div>
 
     <script>
-      const menuBtn = document.getElementById('menuBtn');
-      const sideDrawer = document.getElementById('sideDrawer');
-      const drawerContent = document.getElementById('drawerContent');
-      const closeDrawer = document.getElementById('closeDrawer');
-
-      menuBtn.addEventListener('click', () =>
-      {
-        sideDrawer.classList.remove('pointer-events-none', 'opacity-0');
-        drawerContent.classList.remove('-translate-x-full');
-      });
-
-      closeDrawer.addEventListener('click', () =>
-      {
-        sideDrawer.classList.add('pointer-events-none', 'opacity-0');
-        drawerContent.classList.add('-translate-x-full');
-      });
-
-      sideDrawer.addEventListener('click', (e) =>
-      {
-        if (e.target === sideDrawer)
-        {
-          sideDrawer.classList.add('pointer-events-none', 'opacity-0');
-          drawerContent.classList.add('-translate-x-full');
-        }
-      });
-
       const introBtn = document.getElementById('introBtn');
       const introModal = document.getElementById('introModal');
       const introModalContent = document.getElementById('introModalContent');
