@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { AppIcon } from '@/components/ui/app-icon'
 import { useRouter, usePathname } from 'next/navigation'
 import { type Locale } from '@/lib/i18n/config'
@@ -31,8 +32,15 @@ export function Header({ locale }: HeaderProps) {
       {/* Spacer for centering */}
       <div className="w-11" />
 
-      {/* Centered title */}
-      <h1 className="text-lg font-bold text-gray-800">DayPat</h1>
+      {/* Centered logo */}
+      <Image
+        src="/logo.jpg"
+        alt="DayPat"
+        width={100}
+        height={32}
+        className="h-8 w-auto object-contain"
+        priority
+      />
 
       {/* Language Toggle */}
       <button

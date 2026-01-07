@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { getSignedUrl } from '@/lib/image-upload'
 import type { DayCard, StickerState } from '@/types/database'
 
 // Helper to convert database row to DayCard
@@ -11,8 +12,8 @@ function toDayCard(row: any): DayCard {
     id: row.id,
     user_id: row.user_id,
     card_date: row.card_date,
-    photo_url: row.photo_url,
-    thumb_url: row.thumb_url || null, // Thumbnail for calendar views
+    photo_url: row.photo_url, // This stores the path, will be converted to signed URL
+    thumb_url: row.thumb_url || null,
     caption: row.caption,
     sticker_state: (row.sticker_state as StickerState[]) || [],
     updated_at: row.updated_at,
@@ -21,10 +22,21 @@ function toDayCard(row: any): DayCard {
 
 export function useDayCard(date: string) {
   const [dayCard, setDayCard] = useState<DayCard | null>(null)
+  const [photoSignedUrl, setPhotoSignedUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const supabase = createClient()
+
+  // Fetch signed URL when photo_url (path) changes
+  const fetchSignedUrl = useCallback(async (path: string | null) => {
+    if (!path) {
+      setPhotoSignedUrl(null)
+      return
+    }
+    const signedUrl = await getSignedUrl(path)
+    setPhotoSignedUrl(signedUrl)
+  }, [])
 
   const fetchDayCard = useCallback(async () => {
     try {
@@ -36,13 +48,22 @@ export function useDayCard(date: string) {
         .maybeSingle()
 
       if (error) throw error
-      setDayCard(data ? toDayCard(data) : null)
+
+      if (data) {
+        const card = toDayCard(data)
+        setDayCard(card)
+        // Fetch signed URL for the photo path
+        await fetchSignedUrl(card.photo_url)
+      } else {
+        setDayCard(null)
+        setPhotoSignedUrl(null)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch day card')
     } finally {
       setLoading(false)
     }
-  }, [date, supabase])
+  }, [date, supabase, fetchSignedUrl])
 
   useEffect(() => {
     fetchDayCard()
@@ -58,6 +79,7 @@ export function useDayCard(date: string) {
 
     setSaving(true)
     const oldDayCard = dayCard
+    const oldPhotoSignedUrl = photoSignedUrl
 
     // Optimistic update
     if (dayCard) {
@@ -68,11 +90,16 @@ export function useDayCard(date: string) {
         user_id: user.id,
         card_date: date,
         photo_url: updates.photo_url ?? null,
-        thumb_url: null, // Will be generated server-side
+        thumb_url: null,
         caption: updates.caption ?? null,
         sticker_state: updates.sticker_state ?? [],
         updated_at: new Date().toISOString(),
       })
+    }
+
+    // If photo_url is being updated, fetch new signed URL
+    if (updates.photo_url !== undefined) {
+      await fetchSignedUrl(updates.photo_url)
     }
 
     try {
@@ -95,10 +122,14 @@ export function useDayCard(date: string) {
         .single()
 
       if (error) throw error
-      setDayCard(toDayCard(data))
-      return toDayCard(data)
+      const updatedCard = toDayCard(data)
+      setDayCard(updatedCard)
+      // Refresh signed URL after successful save
+      await fetchSignedUrl(updatedCard.photo_url)
+      return updatedCard
     } catch (err) {
       setDayCard(oldDayCard)
+      setPhotoSignedUrl(oldPhotoSignedUrl)
       setError(err instanceof Error ? err.message : 'Failed to save day card')
       return null
     } finally {
@@ -108,6 +139,7 @@ export function useDayCard(date: string) {
 
   return {
     dayCard,
+    photoSignedUrl, // Use this for displaying the image
     loading,
     saving,
     error,

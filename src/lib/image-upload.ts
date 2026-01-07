@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/client'
 const MAX_SIZE_MB = 1
 const MAX_WIDTH = 1200
 const MAX_HEIGHT = 1200
+const BUCKET_NAME = 'entry-photos'
+const SIGNED_URL_EXPIRES_IN = 60 * 60 // 1 hour
 
 export async function compressImage(file: File): Promise<File> {
   const options = {
@@ -22,6 +24,10 @@ export async function compressImage(file: File): Promise<File> {
   }
 }
 
+/**
+ * Upload photo to Supabase Storage
+ * @returns The storage path (not URL) for storing in DB
+ */
 export async function uploadPhoto(
   file: File,
   date: string
@@ -51,13 +57,14 @@ export async function uploadPhoto(
     throw new Error('Failed to process image. Please try a different photo.')
   }
 
-  // Generate file path: {user_id}/{YYYY-MM-DD}.webp
+  // Generate file path: {user_id}/{YYYY-MM-DD}/{uuid}.webp
   const fileExt = 'webp'
-  const filePath = `${user.id}/${date}.${fileExt}`
+  const uuid = crypto.randomUUID()
+  const filePath = `${user.id}/${date}/${uuid}.${fileExt}`
 
   // Upload to Supabase Storage
   const { error: uploadError } = await supabase.storage
-    .from('praise-photos')
+    .from(BUCKET_NAME)
     .upload(filePath, compressedFile, {
       upsert: true,
       contentType: 'image/webp',
@@ -78,18 +85,37 @@ export async function uploadPhoto(
     throw new Error(uploadError.message || 'Upload failed. Please try again.')
   }
 
-  // Get public URL
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from('praise-photos').getPublicUrl(filePath)
-
-  // Add cache-busting query param
-  const urlWithTimestamp = `${publicUrl}?t=${Date.now()}`
-
-  return urlWithTimestamp
+  // Return the path (not URL) for storing in DB
+  return filePath
 }
 
-export async function deletePhoto(date: string): Promise<void> {
+/**
+ * Get a signed URL for a private storage path
+ * @param path The storage path (e.g., "user_id/2026-01-07/uuid.webp")
+ * @returns Signed URL for temporary access
+ */
+export async function getSignedUrl(path: string): Promise<string | null> {
+  if (!path) return null
+
+  const supabase = createClient()
+
+  const { data, error } = await supabase.storage
+    .from(BUCKET_NAME)
+    .createSignedUrl(path, SIGNED_URL_EXPIRES_IN)
+
+  if (error) {
+    console.error('Failed to get signed URL:', error)
+    return null
+  }
+
+  return data.signedUrl
+}
+
+/**
+ * Delete photo from storage
+ * @param path The storage path to delete
+ */
+export async function deletePhoto(path: string): Promise<void> {
   const supabase = createClient()
 
   const {
@@ -100,9 +126,12 @@ export async function deletePhoto(date: string): Promise<void> {
     throw new Error('User not authenticated')
   }
 
-  const filePath = `${user.id}/${date}.webp`
+  // Verify the path belongs to the current user
+  if (!path.startsWith(user.id)) {
+    throw new Error('Permission denied')
+  }
 
-  const { error } = await supabase.storage.from('praise-photos').remove([filePath])
+  const { error } = await supabase.storage.from(BUCKET_NAME).remove([path])
 
   if (error) {
     console.error('Delete error:', error)

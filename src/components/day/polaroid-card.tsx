@@ -8,8 +8,9 @@ import type { DayCard, StickerState } from '@/types/database'
 
 interface PolaroidCardProps {
   dayCard: DayCard | null
+  photoSignedUrl: string | null
   date: string
-  onPhotoChange: (url: string) => Promise<void>
+  onPhotoChange: (path: string) => Promise<void>
   onCaptionChange: (caption: string) => Promise<void>
   onStickersChange: (stickers: StickerState[]) => Promise<void>
   saving?: boolean
@@ -19,6 +20,7 @@ const EMOJI_PALETTE = ['☕', '✨', '💛', '⭐', '🌟', '💖', '🎉', '�
 
 export function PolaroidCard({
   dayCard,
+  photoSignedUrl,
   date,
   onPhotoChange,
   onCaptionChange,
@@ -42,9 +44,9 @@ export function PolaroidCard({
     setUploading(true)
     setUploadError(null)
     try {
-      const url = await uploadPhoto(file, date)
-      if (url) {
-        await onPhotoChange(url)
+      const path = await uploadPhoto(file, date)
+      if (path) {
+        await onPhotoChange(path)
       }
     } catch (error) {
       console.error('Upload failed:', error)
@@ -138,10 +140,10 @@ export function PolaroidCard({
           ref={photoAreaRef}
           className="bg-gray-100 rounded-2xl overflow-hidden mb-4 relative"
         >
-          {dayCard?.photo_url ? (
+          {photoSignedUrl ? (
             <>
               <img
-                src={dayCard.photo_url}
+                src={photoSignedUrl}
                 alt="Day photo"
                 className="w-full h-[340px] object-cover"
               />
