@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { cn } from '@/lib/utils'
 
 interface StampOverlayProps {
@@ -10,6 +10,20 @@ interface StampOverlayProps {
   playAnimation: boolean
   /** Callback when animation completes */
   onAnimationComplete?: () => void
+}
+
+/**
+ * Trigger haptic feedback (vibration) on supported devices.
+ * Fails silently on iOS and unsupported browsers.
+ */
+function triggerHapticFeedback() {
+  try {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      navigator.vibrate(35) // Short "thump" vibration
+    }
+  } catch {
+    // Silently ignore - vibration not supported or blocked
+  }
 }
 
 /**
@@ -24,17 +38,35 @@ export function StampOverlay({
 }: StampOverlayProps) {
   const [isAnimating, setIsAnimating] = useState(false)
 
+  const handleAnimationStart = useCallback(() => {
+    // Trigger haptic at the "land" moment (~200ms into 400ms animation)
+    // This is when scale goes from 1.3 to 0.95 (50% keyframe)
+    const hapticTimer = setTimeout(() => {
+      triggerHapticFeedback()
+    }, 180) // Slightly before 50% for better feel
+
+    return () => clearTimeout(hapticTimer)
+  }, [])
+
   useEffect(() => {
     if (playAnimation && show) {
       setIsAnimating(true)
+
+      // Trigger haptic feedback at landing moment
+      const hapticCleanup = handleAnimationStart()
+
       // Animation duration: 400ms
       const timer = setTimeout(() => {
         setIsAnimating(false)
         onAnimationComplete?.()
       }, 400)
-      return () => clearTimeout(timer)
+
+      return () => {
+        clearTimeout(timer)
+        hapticCleanup()
+      }
     }
-  }, [playAnimation, show, onAnimationComplete])
+  }, [playAnimation, show, onAnimationComplete, handleAnimationStart])
 
   if (!show) return null
 
