@@ -229,14 +229,15 @@ function LoginFormContent() {
   const isDev = process.env.NODE_ENV === 'development'
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          {/* Header */}
-          <div className="text-center mb-6">
-            <h1 className="text-3xl font-bold text-gray-800 mb-2" style={{ fontFamily: 'Caveat, cursive' }}>DayPat</h1>
-            <p className="text-gray-500 text-sm">{dict.subtitle}</p>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 flex flex-col items-center justify-center px-5 py-8">
+      <div className="w-full max-w-sm">
+        {/* Header - outside card */}
+        <div className="text-center mb-12">
+          <h1 className="text-5xl font-bold text-gray-800 mb-3" style={{ fontFamily: 'Caveat, cursive' }}>DayPat</h1>
+          <p className="text-gray-600 text-sm" style={{ fontFamily: 'Caveat, cursive' }}>EVERYDAY DESERVES A PAT.</p>
+        </div>
+
+        <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-xl p-8">
 
           {/* Tabs (only show for login/signup) */}
           {mode !== 'forgot' && (
@@ -365,7 +366,7 @@ function LoginFormContent() {
               <button
                 type="submit"
                 disabled={loading || !email || !password}
-                className="w-full bg-gradient-to-r from-[#F2B949] to-[#F27430] hover:from-[#EDD377] hover:to-[#F2B949] disabled:opacity-50 text-white font-semibold py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2"
+                className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-semibold py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <>
@@ -450,7 +451,7 @@ function LoginFormContent() {
               <button
                 type="submit"
                 disabled={loading || !email || !password || !confirmPassword}
-                className="w-full bg-gradient-to-r from-[#F2B949] to-[#F27430] hover:from-[#EDD377] hover:to-[#F2B949] disabled:opacity-50 text-white font-semibold py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2"
+                className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-semibold py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <>
@@ -491,7 +492,7 @@ function LoginFormContent() {
               <button
                 type="submit"
                 disabled={loading || !email}
-                className="w-full bg-gradient-to-r from-[#F2B949] to-[#F27430] hover:from-[#EDD377] hover:to-[#F2B949] disabled:opacity-50 text-white font-semibold py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2"
+                className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-semibold py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <>
@@ -554,12 +555,15 @@ function LoginFormContent() {
 
 function LoginFallback() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 flex flex-col items-center justify-center px-5 py-8">
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-12">
+          <h1 className="text-5xl font-bold text-gray-800 mb-3" style={{ fontFamily: 'Caveat, cursive' }}>DayPat</h1>
+          <p className="text-gray-600 text-sm" style={{ fontFamily: 'Caveat, cursive' }}>EVERYDAY DESERVES A PAT.</p>
+        </div>
+        <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-xl p-8">
           <div className="text-center">
-            <AppIcon name="spinner" className="w-8 h-8 animate-spin text-[#F27430] mx-auto mb-4" />
-            <p className="text-xl font-bold text-gray-800" style={{ fontFamily: 'Caveat, cursive' }}>DayPat</p>
+            <AppIcon name="spinner" className="w-8 h-8 animate-spin text-orange-500 mx-auto" />
           </div>
         </div>
       </div>
