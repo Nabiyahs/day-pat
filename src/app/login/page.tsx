@@ -1,22 +1,55 @@
 'use client'
 
-import { useState, useEffect, Suspense, use } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { AppIcon } from '@/components/ui/app-icon'
-import { getDictionarySync, type Locale, appTitles, isValidLocale, i18n } from '@/lib/i18n'
 import { getRememberMe, setRememberMe } from '@/lib/auth/session-persistence'
 
 type AuthMode = 'login' | 'signup' | 'forgot'
 
-type Props = {
-  params: Promise<{ locale: string }>
+// Dictionary for UI text (single language - English)
+const dict = {
+  subtitle: 'Record your daily moments of gratitude',
+  signIn: 'Sign In',
+  signUp: 'Sign Up',
+  email: 'Email',
+  emailPlaceholder: 'your@email.com',
+  password: 'Password',
+  passwordPlaceholder: '••••••••',
+  passwordHint: 'At least 6 characters',
+  confirmPassword: 'Confirm Password',
+  confirmPasswordPlaceholder: '••••••••',
+  keepLoggedIn: 'Keep me logged in',
+  forgotPassword: 'Forgot password?',
+  backToLogin: '← Back to login',
+  resetPassword: 'Reset Password',
+  resetPasswordDesc: "Enter your email and we'll send you a reset link",
+  signingIn: 'Signing in...',
+  creatingAccount: 'Creating account...',
+  createAccount: 'Create Account',
+  sending: 'Sending...',
+  sendResetLink: 'Send Reset Link',
+  termsAgreement: 'By signing up, you agree to our Terms of Service',
+  errors: {
+    accessDenied: 'Access denied. Please try again.',
+    codeExchangeFailed: 'Login failed. Please try again.',
+    invalidLink: 'Invalid or expired link. Please try again.',
+    invalidCredentials: 'Invalid email or password',
+    emailNotConfirmed: 'Please verify your email first',
+    passwordMismatch: 'Passwords do not match',
+    passwordTooShort: 'Password must be at least 6 characters',
+    userExists: 'An account with this email already exists',
+    weakPassword: 'Please use a stronger password',
+    genericError: 'An error occurred. Please try again.',
+  },
+  success: {
+    checkEmail: 'Check your email to confirm your account!',
+    resetLinkSent: 'Reset link sent! Check your email.',
+  },
 }
 
-const ONBOARDING_KEY = 'onboarding_completed'
-
-function LoginFormContent({ locale }: { locale: Locale }) {
-  const dict = getDictionarySync(locale)
+function LoginFormContent() {
   const [mode, setMode] = useState<AuthMode>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -27,29 +60,9 @@ function LoginFormContent({ locale }: { locale: Locale }) {
   const [message, setMessage] = useState<string | null>(null)
   const [showDebug, setShowDebug] = useState(false)
   const [rememberMe, setRememberMeState] = useState(true)
-  const [checkingOnboarding, setCheckingOnboarding] = useState(true)
 
   const searchParams = useSearchParams()
   const router = useRouter()
-
-  // Check if onboarding is completed this session - if not, redirect to onboarding
-  // Uses sessionStorage so intro always shows on fresh visits (new browser session)
-  useEffect(() => {
-    try {
-      const completed = sessionStorage.getItem(ONBOARDING_KEY) === 'true'
-      if (!completed) {
-        console.log('[Login] Onboarding not completed this session, redirecting to onboarding')
-        router.replace(`/${locale}/onboarding`)
-        return
-      }
-    } catch (e) {
-      // sessionStorage not available, redirect to onboarding to be safe
-      console.log('[Login] sessionStorage error, redirecting to onboarding')
-      router.replace(`/${locale}/onboarding`)
-      return
-    }
-    setCheckingOnboarding(false)
-  }, [locale, router])
 
   // Load saved "remember me" preference on mount
   useEffect(() => {
@@ -65,11 +78,11 @@ function LoginFormContent({ locale }: { locale: Locale }) {
       let errorMessage = errorDesc || `Authentication error: ${errorParam}`
 
       if (errorParam === 'access_denied') {
-        errorMessage = dict.login.errors.accessDenied
+        errorMessage = dict.errors.accessDenied
       } else if (errorParam === 'code_exchange_failed') {
-        errorMessage = dict.login.errors.codeExchangeFailed
+        errorMessage = dict.errors.codeExchangeFailed
       } else if (errorParam === 'no_code') {
-        errorMessage = dict.login.errors.invalidLink
+        errorMessage = dict.errors.invalidLink
       }
 
       setError(errorMessage)
@@ -79,7 +92,7 @@ function LoginFormContent({ locale }: { locale: Locale }) {
     if (successParam) {
       setMessage(decodeURIComponent(successParam))
     }
-  }, [searchParams, dict])
+  }, [searchParams])
 
   const resetForm = () => {
     setError(null)
@@ -113,19 +126,19 @@ function LoginFormContent({ locale }: { locale: Locale }) {
       if (error) {
         // Provide user-friendly error messages
         if (error.message.includes('Invalid login credentials')) {
-          throw new Error(dict.login.errors.invalidCredentials)
+          throw new Error(dict.errors.invalidCredentials)
         }
         if (error.message.includes('Email not confirmed')) {
-          throw new Error(dict.login.errors.emailNotConfirmed)
+          throw new Error(dict.errors.emailNotConfirmed)
         }
         throw error
       }
 
       // Success - redirect to app
-      router.push(`/${locale}/app`)
+      router.push('/app')
     } catch (err) {
       console.error('[Auth] Login error:', err)
-      setError(err instanceof Error ? err.message : dict.login.errors.genericError)
+      setError(err instanceof Error ? err.message : dict.errors.genericError)
     } finally {
       setLoading(false)
     }
@@ -139,20 +152,20 @@ function LoginFormContent({ locale }: { locale: Locale }) {
 
     // Validate passwords match
     if (password !== confirmPassword) {
-      setError(dict.login.errors.passwordMismatch)
+      setError(dict.errors.passwordMismatch)
       setLoading(false)
       return
     }
 
     // Validate password strength
     if (password.length < 6) {
-      setError(dict.login.errors.passwordTooShort)
+      setError(dict.errors.passwordTooShort)
       setLoading(false)
       return
     }
 
     const supabase = createClient()
-    const emailRedirectTo = `${window.location.origin}/${locale}/auth/callback`
+    const emailRedirectTo = `${window.location.origin}/auth/callback`
 
     try {
       const { error } = await supabase.auth.signUp({
@@ -166,22 +179,22 @@ function LoginFormContent({ locale }: { locale: Locale }) {
       if (error) {
         // Provide user-friendly error messages
         if (error.message.includes('User already registered')) {
-          throw new Error(dict.login.errors.userExists)
+          throw new Error(dict.errors.userExists)
         }
         if (error.message.includes('Password should be')) {
-          throw new Error(dict.login.errors.weakPassword)
+          throw new Error(dict.errors.weakPassword)
         }
         throw error
       }
 
       // Success - show confirmation message
-      setMessage(dict.login.success.checkEmail)
+      setMessage(dict.success.checkEmail)
       setEmail('')
       setPassword('')
       setConfirmPassword('')
     } catch (err) {
       console.error('[Auth] Signup error:', err)
-      setError(err instanceof Error ? err.message : dict.login.errors.genericError)
+      setError(err instanceof Error ? err.message : dict.errors.genericError)
     } finally {
       setLoading(false)
     }
@@ -194,7 +207,7 @@ function LoginFormContent({ locale }: { locale: Locale }) {
     setMessage(null)
 
     const supabase = createClient()
-    const redirectTo = `${window.location.origin}/${locale}/auth/reset`
+    const redirectTo = `${window.location.origin}/auth/reset`
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -203,11 +216,11 @@ function LoginFormContent({ locale }: { locale: Locale }) {
 
       if (error) throw error
 
-      setMessage(dict.login.success.resetLinkSent)
+      setMessage(dict.success.resetLinkSent)
       setEmail('')
     } catch (err) {
       console.error('[Auth] Reset password error:', err)
-      setError(err instanceof Error ? err.message : dict.login.errors.genericError)
+      setError(err instanceof Error ? err.message : dict.errors.genericError)
     } finally {
       setLoading(false)
     }
@@ -215,34 +228,14 @@ function LoginFormContent({ locale }: { locale: Locale }) {
 
   const isDev = process.env.NODE_ENV === 'development'
 
-  // Show loading while checking onboarding status
-  if (checkingOnboarding) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
-          <div className="bg-white rounded-2xl shadow-xl p-8">
-            <div className="text-center">
-              <AppIcon name="spinner" className="w-8 h-8 animate-spin text-[#F27430] mx-auto mb-4" />
-              <p className="text-gray-500">{appTitles[locale]}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           {/* Header */}
           <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold text-gray-800 mb-2">
-              {appTitles[locale]}
-            </h1>
-            <p className="text-gray-500 text-sm">
-              {dict.login.subtitle}
-            </p>
+            <h1 className="text-2xl font-bold text-gray-800 mb-2">DayPat</h1>
+            <p className="text-gray-500 text-sm">{dict.subtitle}</p>
           </div>
 
           {/* Tabs (only show for login/signup) */}
@@ -256,7 +249,7 @@ function LoginFormContent({ locale }: { locale: Locale }) {
                     : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
-                {dict.login.signIn}
+                {dict.signIn}
               </button>
               <button
                 onClick={() => { setMode('signup'); resetForm(); }}
@@ -266,7 +259,7 @@ function LoginFormContent({ locale }: { locale: Locale }) {
                     : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
-                {dict.login.signUp}
+                {dict.signUp}
               </button>
             </div>
           )}
@@ -278,12 +271,10 @@ function LoginFormContent({ locale }: { locale: Locale }) {
                 onClick={() => { setMode('login'); resetForm(); }}
                 className="text-sm text-[#F27430] hover:text-[#F2B949] mb-4"
               >
-                {dict.login.backToLogin}
+                {dict.backToLogin}
               </button>
-              <h2 className="text-lg font-semibold text-gray-800">{dict.login.resetPassword}</h2>
-              <p className="text-gray-500 text-sm mt-1">
-                {dict.login.resetPasswordDesc}
-              </p>
+              <h2 className="text-lg font-semibold text-gray-800">{dict.resetPassword}</h2>
+              <p className="text-gray-500 text-sm mt-1">{dict.resetPasswordDesc}</p>
             </div>
           )}
 
@@ -308,7 +299,7 @@ function LoginFormContent({ locale }: { locale: Locale }) {
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {dict.login.email}
+                  {dict.email}
                 </label>
                 <div className="relative">
                   <AppIcon name="mail" className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -316,7 +307,7 @@ function LoginFormContent({ locale }: { locale: Locale }) {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder={dict.login.emailPlaceholder}
+                    placeholder={dict.emailPlaceholder}
                     required
                     disabled={loading}
                     autoComplete="email"
@@ -327,7 +318,7 @@ function LoginFormContent({ locale }: { locale: Locale }) {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {dict.login.password}
+                  {dict.password}
                 </label>
                 <div className="relative">
                   <AppIcon name="lock" className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -335,7 +326,7 @@ function LoginFormContent({ locale }: { locale: Locale }) {
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder={dict.login.passwordPlaceholder}
+                    placeholder={dict.passwordPlaceholder}
                     required
                     disabled={loading}
                     autoComplete="current-password"
@@ -360,14 +351,14 @@ function LoginFormContent({ locale }: { locale: Locale }) {
                     onChange={(e) => handleRememberMeChange(e.target.checked)}
                     className="w-4 h-4 rounded border-gray-300 text-[#F27430] focus:ring-amber-400 cursor-pointer"
                   />
-                  <span className="text-sm text-gray-600">{dict.login.keepLoggedIn}</span>
+                  <span className="text-sm text-gray-600">{dict.keepLoggedIn}</span>
                 </label>
                 <button
                   type="button"
                   onClick={() => { setMode('forgot'); resetForm(); }}
                   className="text-sm text-[#F27430] hover:text-[#F2B949]"
                 >
-                  {dict.login.forgotPassword}
+                  {dict.forgotPassword}
                 </button>
               </div>
 
@@ -379,10 +370,10 @@ function LoginFormContent({ locale }: { locale: Locale }) {
                 {loading ? (
                   <>
                     <AppIcon name="spinner" className="w-5 h-5 animate-spin" />
-                    {dict.login.signingIn}
+                    {dict.signingIn}
                   </>
                 ) : (
-                  dict.login.signIn
+                  dict.signIn
                 )}
               </button>
             </form>
@@ -393,7 +384,7 @@ function LoginFormContent({ locale }: { locale: Locale }) {
             <form onSubmit={handleSignup} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {dict.login.email}
+                  {dict.email}
                 </label>
                 <div className="relative">
                   <AppIcon name="mail" className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -401,7 +392,7 @@ function LoginFormContent({ locale }: { locale: Locale }) {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder={dict.login.emailPlaceholder}
+                    placeholder={dict.emailPlaceholder}
                     required
                     disabled={loading}
                     autoComplete="email"
@@ -412,7 +403,7 @@ function LoginFormContent({ locale }: { locale: Locale }) {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {dict.login.password}
+                  {dict.password}
                 </label>
                 <div className="relative">
                   <AppIcon name="lock" className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -420,7 +411,7 @@ function LoginFormContent({ locale }: { locale: Locale }) {
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder={dict.login.passwordHint}
+                    placeholder={dict.passwordHint}
                     required
                     disabled={loading}
                     autoComplete="new-password"
@@ -434,12 +425,12 @@ function LoginFormContent({ locale }: { locale: Locale }) {
                     {showPassword ? <AppIcon name="eye-off" className="w-5 h-5" /> : <AppIcon name="eye" className="w-5 h-5" />}
                   </button>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">{dict.login.passwordHint}</p>
+                <p className="text-xs text-gray-500 mt-1">{dict.passwordHint}</p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {dict.login.confirmPassword}
+                  {dict.confirmPassword}
                 </label>
                 <div className="relative">
                   <AppIcon name="lock" className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -447,7 +438,7 @@ function LoginFormContent({ locale }: { locale: Locale }) {
                     type={showPassword ? 'text' : 'password'}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder={dict.login.confirmPasswordPlaceholder}
+                    placeholder={dict.confirmPasswordPlaceholder}
                     required
                     disabled={loading}
                     autoComplete="new-password"
@@ -464,16 +455,14 @@ function LoginFormContent({ locale }: { locale: Locale }) {
                 {loading ? (
                   <>
                     <AppIcon name="spinner" className="w-5 h-5 animate-spin" />
-                    {dict.login.creatingAccount}
+                    {dict.creatingAccount}
                   </>
                 ) : (
-                  dict.login.createAccount
+                  dict.createAccount
                 )}
               </button>
 
-              <p className="text-center text-gray-500 text-xs">
-                {dict.login.termsAgreement}
-              </p>
+              <p className="text-center text-gray-500 text-xs">{dict.termsAgreement}</p>
             </form>
           )}
 
@@ -482,7 +471,7 @@ function LoginFormContent({ locale }: { locale: Locale }) {
             <form onSubmit={handleForgotPassword} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {dict.login.email}
+                  {dict.email}
                 </label>
                 <div className="relative">
                   <AppIcon name="mail" className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -490,7 +479,7 @@ function LoginFormContent({ locale }: { locale: Locale }) {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder={dict.login.emailPlaceholder}
+                    placeholder={dict.emailPlaceholder}
                     required
                     disabled={loading}
                     autoComplete="email"
@@ -507,10 +496,10 @@ function LoginFormContent({ locale }: { locale: Locale }) {
                 {loading ? (
                   <>
                     <AppIcon name="spinner" className="w-5 h-5 animate-spin" />
-                    {dict.login.sending}
+                    {dict.sending}
                   </>
                 ) : (
-                  dict.login.sendResetLink
+                  dict.sendResetLink
                 )}
               </button>
             </form>
@@ -536,13 +525,13 @@ function LoginFormContent({ locale }: { locale: Locale }) {
                   <p>
                     <span className="text-gray-500">Callback:</span>{' '}
                     {typeof window !== 'undefined'
-                      ? `${window.location.origin}/${locale}/auth/callback`
+                      ? `${window.location.origin}/auth/callback`
                       : 'N/A'}
                   </p>
                   <p>
                     <span className="text-gray-500">Reset URL:</span>{' '}
                     {typeof window !== 'undefined'
-                      ? `${window.location.origin}/${locale}/auth/reset`
+                      ? `${window.location.origin}/auth/reset`
                       : 'N/A'}
                   </p>
                   <p>
@@ -563,14 +552,14 @@ function LoginFormContent({ locale }: { locale: Locale }) {
   )
 }
 
-function LoginFallback({ locale }: { locale: Locale }) {
+function LoginFallback() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center">
             <AppIcon name="spinner" className="w-8 h-8 animate-spin text-[#F27430] mx-auto mb-4" />
-            <p className="text-gray-500">{appTitles[locale]}</p>
+            <p className="text-gray-500">DayPat</p>
           </div>
         </div>
       </div>
@@ -578,13 +567,10 @@ function LoginFallback({ locale }: { locale: Locale }) {
   )
 }
 
-export default function LoginPage({ params }: Props) {
-  const { locale: localeParam } = use(params)
-  const locale: Locale = isValidLocale(localeParam) ? localeParam : i18n.defaultLocale
-
+export default function LoginPage() {
   return (
-    <Suspense fallback={<LoginFallback locale={locale} />}>
-      <LoginFormContent locale={locale} />
+    <Suspense fallback={<LoginFallback />}>
+      <LoginFormContent />
     </Suspense>
   )
 }

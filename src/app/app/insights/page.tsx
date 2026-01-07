@@ -1,11 +1,13 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { AppIcon } from '@/components/ui/app-icon'
 import { useSupabase } from '@/lib/supabase/client'
 import type { User, Session } from '@supabase/supabase-js'
-import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns'
+import { format, startOfMonth, endOfMonth } from 'date-fns'
 
 interface MonthStats {
   entries: number
@@ -27,7 +29,7 @@ export default function InsightsPage() {
         setUser(session.user)
         fetchStats()
       } else {
-        router.replace('/en/login')
+        router.replace('/login')
       }
       setInitializing(false)
     })
@@ -91,7 +93,7 @@ export default function InsightsPage() {
   }
 
   const handleBack = () => {
-    router.push('/en/app')
+    router.push('/app')
   }
 
   if (initializing) {

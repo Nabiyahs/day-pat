@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { AppIcon } from '@/components/ui/app-icon'
@@ -20,18 +22,18 @@ export default function FavoritesPage() {
       if (session?.user) {
         setUser(session.user)
       } else {
-        router.replace('/en/login')
+        router.replace('/login')
       }
       setInitializing(false)
     })
   }, [supabase, router])
 
   const handleBack = () => {
-    router.push('/en/app')
+    router.push('/app')
   }
 
   const handleEntryClick = (date: string) => {
-    router.push(`/en/app?date=${date}`)
+    router.push(`/app?date=${date}`)
   }
 
   if (initializing) {

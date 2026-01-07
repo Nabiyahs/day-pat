@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { AppIcon } from '@/components/ui/app-icon'
@@ -21,7 +23,7 @@ export default function ProfilePage() {
         setUser(session.user)
         fetchTotalEntries()
       } else {
-        router.replace('/en/login')
+        router.replace('/login')
       }
       setInitializing(false)
     })
@@ -35,14 +37,14 @@ export default function ProfilePage() {
   }
 
   const handleBack = () => {
-    router.push('/en/app')
+    router.push('/app')
   }
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
     resetSupabaseClient()
     clearSessionTracking()
-    router.replace('/en/login')
+    router.replace('/login')
   }
 
   if (initializing) {
@@ -108,7 +110,7 @@ export default function ProfilePage() {
           {/* Quick Links */}
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl overflow-hidden">
             <button
-              onClick={() => router.push('/en/app/favorites')}
+              onClick={() => router.push('/app/favorites')}
               className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
             >
               <div className="flex items-center gap-3">
@@ -119,7 +121,7 @@ export default function ProfilePage() {
             </button>
             <div className="border-t border-gray-100" />
             <button
-              onClick={() => router.push('/en/app/settings')}
+              onClick={() => router.push('/app/settings')}
               className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
             >
               <div className="flex items-center gap-3">

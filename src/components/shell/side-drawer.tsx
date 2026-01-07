@@ -19,10 +19,10 @@ interface MenuItem {
 }
 
 const MENU_ITEMS: MenuItem[] = [
-  { id: 'calendar', label: 'Calendar', icon: 'calendar', href: '/en/app' },
-  { id: 'favorites', label: 'Favorites', icon: 'heart', href: '/en/app/favorites' },
-  { id: 'insights', label: 'Insights', icon: 'trending-up', href: '/en/app/insights' },
-  { id: 'settings', label: 'Settings', icon: 'settings', href: '/en/app/settings' },
+  { id: 'calendar', label: 'Calendar', icon: 'calendar', href: '/app' },
+  { id: 'favorites', label: 'Favorites', icon: 'heart', href: '/app/favorites' },
+  { id: 'insights', label: 'Insights', icon: 'trending-up', href: '/app/insights' },
+  { id: 'settings', label: 'Settings', icon: 'settings', href: '/app/settings' },
 ]
 
 export function SideDrawer({ isOpen, onClose, onLogout }: SideDrawerProps) {
@@ -48,8 +48,8 @@ export function SideDrawer({ isOpen, onClose, onLogout }: SideDrawerProps) {
   }, [isOpen, onClose])
 
   const isActive = (href: string) => {
-    if (href === '/en/app') {
-      return pathname === '/en/app'
+    if (href === '/app') {
+      return pathname === '/app'
     }
     return pathname.startsWith(href)
   }

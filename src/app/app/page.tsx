@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSupabase, resetSupabaseClient } from '@/lib/supabase/client'
@@ -44,7 +46,7 @@ export default function AppPage() {
 
         if (event === 'SIGNED_OUT') {
           setUser(null)
-          router.replace('/en/login')
+          router.replace('/login')
         } else if (event === 'SIGNED_IN' && session?.user) {
           setUser(session.user)
         } else if (event === 'TOKEN_REFRESHED' && session?.user) {
@@ -68,7 +70,7 @@ export default function AppPage() {
     await supabase.auth.signOut()
     resetSupabaseClient()
     clearSessionTracking()
-    router.replace('/en/login')
+    router.replace('/login')
   }
 
   if (initializing) {

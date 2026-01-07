@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { AppIcon } from '@/components/ui/app-icon'
@@ -18,21 +20,21 @@ export default function SettingsPage() {
       if (session?.user) {
         setUser(session.user)
       } else {
-        router.replace('/en/login')
+        router.replace('/login')
       }
       setInitializing(false)
     })
   }, [supabase, router])
 
   const handleBack = () => {
-    router.push('/en/app')
+    router.push('/app')
   }
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
     resetSupabaseClient()
     clearSessionTracking()
-    router.replace('/en/login')
+    router.replace('/login')
   }
 
   if (initializing) {
