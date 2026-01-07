@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
+import { startOfDay } from 'date-fns'
 import { AppIcon } from '@/components/ui/app-icon'
-import { cn } from '@/lib/utils'
+import { cn, parseDateString } from '@/lib/utils'
 import { uploadPhoto } from '@/lib/image-upload'
 import type { DayCard, StickerState } from '@/types/database'
 
@@ -36,6 +37,14 @@ export function PolaroidCard({
   onEditingChange,
 }: PolaroidCardProps) {
   const placeholder = PLACEHOLDER_TEXT
+
+  // Check if the selected date is in the future (no editing allowed)
+  const isFutureDate = useMemo(() => {
+    const selectedDate = startOfDay(parseDateString(date))
+    const today = startOfDay(new Date())
+    return selectedDate > today
+  }, [date])
+
   // Edit mode state
   const [isEditing, setIsEditing] = useState(false)
 
@@ -125,6 +134,9 @@ export function PolaroidCard({
   }
 
   const handleEditClick = () => {
+    // Block editing for future dates
+    if (isFutureDate) return
+
     if (!isEditing) {
       // Enter edit mode
       if (DEBUG) console.log('[PolaroidCard] Entering edit mode')
@@ -397,18 +409,20 @@ export function PolaroidCard({
           <div className="flex items-center justify-between text-xs text-gray-400">
             <span>{dayCard?.created_at ? new Date(dayCard.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
             <div className="flex gap-3">
-              {/* Edit (pencil) button */}
-              <button
-                onClick={handleEditClick}
-                className={cn(
-                  'transition-colors p-1',
-                  isEditing ? 'text-[#F27430]' : 'hover:text-[#F27430]'
-                )}
-                aria-label="Edit"
-                title="Edit"
-              >
-                <AppIcon name="edit" className="w-3.5 h-3.5" />
-              </button>
+              {/* Edit (pencil) button - hidden for future dates */}
+              {!isFutureDate && (
+                <button
+                  onClick={handleEditClick}
+                  className={cn(
+                    'transition-colors p-1',
+                    isEditing ? 'text-[#F27430]' : 'hover:text-[#F27430]'
+                  )}
+                  aria-label="Edit"
+                  title="Edit"
+                >
+                  <AppIcon name="edit" className="w-3.5 h-3.5" />
+                </button>
+              )}
 
               {/* Heart (like) button - only show if entry exists */}
               {dayCard?.id && onToggleLike && (
