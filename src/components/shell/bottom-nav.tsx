@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter, usePathname } from 'next/navigation'
 import { AppIcon, type IconName } from '@/components/ui/app-icon'
 import { cn } from '@/lib/utils'
 
@@ -7,34 +8,47 @@ interface BottomNavProps {
   onAddClick?: () => void
 }
 
-const NAV_ITEMS: { id: string; icon: IconName; active: boolean; available: boolean }[] = [
-  { id: 'calendar', icon: 'calendar', active: true, available: true },
-  { id: 'favorites', icon: 'heart', active: false, available: false },
-  { id: 'insights', icon: 'flame', active: false, available: false },
-  { id: 'profile', icon: 'user', active: false, available: false },
+interface NavItem {
+  id: string
+  icon: IconName
+  href: string
+  label: string
+}
+
+const NAV_ITEMS: NavItem[] = [
+  { id: 'calendar', icon: 'calendar', href: '/en/app', label: 'Calendar' },
+  { id: 'favorites', icon: 'heart', href: '/en/app/favorites', label: 'Favorites' },
+  { id: 'insights', icon: 'flame', href: '/en/app/insights', label: 'Insights' },
+  { id: 'profile', icon: 'user', href: '/en/app/profile', label: 'Profile' },
 ]
 
 export function BottomNav({ onAddClick }: BottomNavProps) {
+  const router = useRouter()
+  const pathname = usePathname()
+
+  const isActive = (href: string) => {
+    if (href === '/en/app') {
+      return pathname === '/en/app'
+    }
+    return pathname.startsWith(href)
+  }
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 pb-[env(safe-area-inset-bottom)]">
       <div className="flex items-center justify-around px-5 py-3">
         {NAV_ITEMS.slice(0, 2).map((item) => {
-          const isDisabled = !item.available && !item.active
+          const active = isActive(item.href)
           return (
             <button
               key={item.id}
-              disabled={isDisabled}
-              aria-disabled={isDisabled}
-              title={!item.available ? 'Coming soon' : undefined}
+              onClick={() => router.push(item.href)}
               className={cn(
                 'flex items-center justify-center transition-colors min-w-[48px] min-h-[48px]',
-                item.active
+                active
                   ? 'text-orange-600'
-                  : item.available
-                  ? 'text-gray-400 hover:text-gray-600'
-                  : 'text-gray-400 cursor-not-allowed'
+                  : 'text-gray-400 hover:text-gray-600'
               )}
-              aria-label={item.id}
+              aria-label={item.label}
               data-testid={`nav-bottom-${item.id}`}
             >
               <AppIcon name={item.icon} className="w-5 h-5" />
@@ -53,22 +67,18 @@ export function BottomNav({ onAddClick }: BottomNavProps) {
         </button>
 
         {NAV_ITEMS.slice(2).map((item) => {
-          const isDisabled = !item.available && !item.active
+          const active = isActive(item.href)
           return (
             <button
               key={item.id}
-              disabled={isDisabled}
-              aria-disabled={isDisabled}
-              title={!item.available ? 'Coming soon' : undefined}
+              onClick={() => router.push(item.href)}
               className={cn(
                 'flex items-center justify-center transition-colors min-w-[48px] min-h-[48px]',
-                item.active
+                active
                   ? 'text-orange-600'
-                  : item.available
-                  ? 'text-gray-400 hover:text-gray-600'
-                  : 'text-gray-400 cursor-not-allowed'
+                  : 'text-gray-400 hover:text-gray-600'
               )}
-              aria-label={item.id}
+              aria-label={item.label}
               data-testid={`nav-bottom-${item.id}`}
             >
               <AppIcon name={item.icon} className="w-5 h-5" />

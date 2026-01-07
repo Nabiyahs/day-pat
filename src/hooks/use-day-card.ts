@@ -10,7 +10,7 @@ const DEBUG = process.env.NODE_ENV === 'development'
 // Helper to convert entries table row to DayCard (for UI compatibility)
 // Maps: entry_date → card_date, photo_path → photo_url, praise → caption
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function toDayCard(row: any): DayCard {
+function toDayCard(row: any): DayCard & { is_liked: boolean } {
   return {
     id: row.id,
     user_id: row.user_id,
@@ -20,11 +20,12 @@ function toDayCard(row: any): DayCard {
     caption: row.praise, // Map praise to caption
     sticker_state: [], // Not used in entries table
     updated_at: row.created_at, // Map created_at to updated_at
+    is_liked: row.is_liked || false, // Favorites flag
   }
 }
 
 export function useDayCard(date: string) {
-  const [dayCard, setDayCard] = useState<DayCard | null>(null)
+  const [dayCard, setDayCard] = useState<(DayCard & { is_liked: boolean }) | null>(null)
   const [photoSignedUrl, setPhotoSignedUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -71,7 +72,7 @@ export function useDayCard(date: string) {
       // Query from 'entries' table with correct column names
       const { data, error: fetchError } = await supabase
         .from('entries')
-        .select('id, user_id, entry_date, praise, photo_path, created_at')
+        .select('id, user_id, entry_date, praise, photo_path, is_liked, created_at')
         .eq('entry_date', date)
         .maybeSingle()
 
@@ -169,7 +170,7 @@ export function useDayCard(date: string) {
       const { data, error: dbError } = await supabase
         .from('entries')
         .upsert(payload, { onConflict: 'user_id,entry_date' })
-        .select('id, user_id, entry_date, praise, photo_path, created_at')
+        .select('id, user_id, entry_date, praise, photo_path, is_liked, created_at')
         .single()
 
       if (dbError) {
@@ -229,6 +230,40 @@ export function useDayCard(date: string) {
     }
   }
 
+  // Toggle the is_liked flag for the current entry
+  const toggleLike = async (): Promise<{ success: boolean; error?: string }> => {
+    if (!dayCard?.id) {
+      return { success: false, error: 'No entry to like' }
+    }
+
+    const newLikedState = !dayCard.is_liked
+
+    // Optimistic update
+    setDayCard({ ...dayCard, is_liked: newLikedState })
+
+    try {
+      const { error: updateError } = await supabase
+        .from('entries')
+        .update({ is_liked: newLikedState })
+        .eq('id', dayCard.id)
+
+      if (updateError) {
+        // Rollback on error
+        setDayCard({ ...dayCard, is_liked: !newLikedState })
+        console.error('[useDayCard] Toggle like error:', updateError)
+        return { success: false, error: 'Failed to update favorite' }
+      }
+
+      if (DEBUG) console.log('[useDayCard] Like toggled:', newLikedState)
+      return { success: true }
+    } catch (err) {
+      // Rollback on error
+      setDayCard({ ...dayCard, is_liked: !newLikedState })
+      console.error('[useDayCard] Toggle like error:', err)
+      return { success: false, error: 'Failed to update favorite' }
+    }
+  }
+
   return {
     dayCard,
     photoSignedUrl, // Use this for displaying the image
@@ -236,6 +271,7 @@ export function useDayCard(date: string) {
     saving,
     error,
     upsertDayCard,
+    toggleLike, // Toggle is_liked for Favorites
     refetch: fetchDayCard,
     setEditingState, // Call this when entering/exiting edit mode
   }

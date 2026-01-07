@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS entries (
     entry_date DATE NOT NULL,
     praise TEXT NOT NULL, -- Required: praise/caption text
     photo_path TEXT NOT NULL, -- Required: Storage path in entry-photos bucket (e.g., "uid/2026-01-07/uuid.webp")
+    is_liked BOOLEAN NOT NULL DEFAULT FALSE, -- Favorites flag for Favorites page
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE(user_id, entry_date)
@@ -21,6 +22,9 @@ CREATE TABLE IF NOT EXISTS entries (
 
 -- Index for efficient querying by user and date
 CREATE INDEX IF NOT EXISTS idx_entries_user_date ON entries(user_id, entry_date);
+
+-- Index for efficient Favorites queries
+CREATE INDEX IF NOT EXISTS idx_entries_user_liked ON entries(user_id, is_liked) WHERE is_liked = TRUE;
 
 -- ============================================
 -- ENABLE ROW LEVEL SECURITY
