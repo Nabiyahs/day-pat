@@ -3,6 +3,10 @@
 import { createBrowserClient } from '@supabase/ssr'
 import { useMemo } from 'react'
 
+// Placeholder values for build-time (when env vars aren't available)
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
+
 /**
  * Create a Supabase browser client using cookie-based storage.
  * This is the proper way to use Supabase with Next.js App Router SSR.
@@ -13,8 +17,8 @@ import { useMemo } from 'react'
  */
 export function createClient() {
   return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
   )
 }
 

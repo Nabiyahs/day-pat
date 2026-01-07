@@ -48,7 +48,7 @@ export function WeeklyPreview() {
                 <div className="w-16 h-12 rounded-lg overflow-hidden flex-shrink-0">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src="https://storage.googleapis.com/uxpilot-auth.appspot.com/df82fafb81-e691c7ae868ff48609ca.png"
+                    src="/image/df82fafb81-e691c7ae868ff48609ca.png"
                     alt="Yoga"
                     className="w-full h-full object-cover"
                   />
@@ -72,7 +72,7 @@ export function WeeklyPreview() {
                 <div className="w-16 h-12 rounded-lg overflow-hidden flex-shrink-0 relative">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src="https://storage.googleapis.com/uxpilot-auth.appspot.com/085a115998-cbb43d62b37ed7285cf1.png"
+                    src="/image/085a115998-cbb43d62b37ed7285cf1.png"
                     alt="Coffee"
                     className="w-full h-full object-cover"
                   />
