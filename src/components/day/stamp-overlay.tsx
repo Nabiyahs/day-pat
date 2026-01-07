@@ -3,6 +3,10 @@
 import { useEffect, useState, useCallback } from 'react'
 import { cn } from '@/lib/utils'
 
+// Animation timing constants (must match globals.css)
+const ANIMATION_DURATION = 550 // Total animation duration in ms
+const IMPACT_TIMING = 200 // When impact happens (38% of 550ms ≈ 209ms)
+
 interface StampOverlayProps {
   /** Whether to show the stamp (entry exists) */
   show: boolean
@@ -10,6 +14,8 @@ interface StampOverlayProps {
   playAnimation: boolean
   /** Callback when animation completes */
   onAnimationComplete?: () => void
+  /** Callback when stamp impacts (for polaroid shake sync) */
+  onImpact?: () => void
 }
 
 /**
@@ -35,35 +41,36 @@ export function StampOverlay({
   show,
   playAnimation,
   onAnimationComplete,
+  onImpact,
 }: StampOverlayProps) {
   const [isAnimating, setIsAnimating] = useState(false)
 
   const handleAnimationStart = useCallback(() => {
-    // Trigger haptic at the "land" moment (~200ms into 400ms animation)
-    // This is when scale goes from 1.3 to 0.95 (50% keyframe)
-    const hapticTimer = setTimeout(() => {
+    // Trigger haptic + impact callback at the "squash" moment
+    const impactTimer = setTimeout(() => {
       triggerHapticFeedback()
-    }, 180) // Slightly before 50% for better feel
+      onImpact?.()
+    }, IMPACT_TIMING)
 
-    return () => clearTimeout(hapticTimer)
-  }, [])
+    return () => clearTimeout(impactTimer)
+  }, [onImpact])
 
   useEffect(() => {
     if (playAnimation && show) {
       setIsAnimating(true)
 
-      // Trigger haptic feedback at landing moment
-      const hapticCleanup = handleAnimationStart()
+      // Trigger haptic feedback at impact moment
+      const impactCleanup = handleAnimationStart()
 
-      // Animation duration: 400ms
+      // Animation complete
       const timer = setTimeout(() => {
         setIsAnimating(false)
         onAnimationComplete?.()
-      }, 400)
+      }, ANIMATION_DURATION)
 
       return () => {
         clearTimeout(timer)
-        hapticCleanup()
+        impactCleanup()
       }
     }
   }, [playAnimation, show, onAnimationComplete, handleAnimationStart])
@@ -74,7 +81,7 @@ export function StampOverlay({
     <div
       className={cn(
         'absolute bottom-6 right-2 z-30 pointer-events-none',
-        isAnimating ? 'animate-stamp-thump' : 'opacity-90'
+        isAnimating && 'animate-stamp-thump'
       )}
     >
       <img

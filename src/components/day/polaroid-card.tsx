@@ -61,13 +61,15 @@ export function PolaroidCard({
   // UI state
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [playStampAnimation, setPlayStampAnimation] = useState(false)
+  const [isPolaroidShaking, setIsPolaroidShaking] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const photoAreaRef = useRef<HTMLDivElement>(null)
 
   const stickers = dayCard?.sticker_state || []
 
-  // Show stamp if entry has a photo (saved entry)
-  const showStamp = Boolean(dayCard?.photo_path)
+  // Show stamp if entry has a photo (saved entry) AND not in edit mode
+  // Stamp hides when editing, reappears with animation on save success
+  const showStamp = Boolean(dayCard?.photo_path) && !isEditing
 
   // Sync praise draft when dayCard changes (e.g., date navigation)
   useEffect(() => {
@@ -297,7 +299,10 @@ export function PolaroidCard({
     <div className="w-full max-w-[340px] mx-auto relative">
       {/* Polaroid frame - constrained width with balanced padding */}
       <div
-        className="bg-white rounded-2xl shadow-xl p-4 mb-4 relative"
+        className={cn(
+          'bg-white rounded-2xl shadow-xl p-4 mb-4 relative',
+          isPolaroidShaking && 'animate-polaroid-shake'
+        )}
         style={{ transform: 'rotate(-1deg)' }}
       >
         {/* Photo area - slightly reduced height */}
@@ -486,6 +491,11 @@ export function PolaroidCard({
           show={showStamp}
           playAnimation={playStampAnimation}
           onAnimationComplete={() => setPlayStampAnimation(false)}
+          onImpact={() => {
+            // Trigger polaroid micro-shake at stamp impact
+            setIsPolaroidShaking(true)
+            setTimeout(() => setIsPolaroidShaking(false), 180)
+          }}
         />
       </div>
 
