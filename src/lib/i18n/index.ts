@@ -48,4 +48,69 @@ export function getLocaleFromCookie(cookieValue: string | undefined): Locale {
   return i18n.defaultLocale
 }
 
+// =============================================
+// Date formatting utilities
+// =============================================
+
+/**
+ * Format date for day view header
+ * KR: "1월 7일"
+ * EN: "Jan 7"
+ */
+export function formatDateDisplay(date: Date, locale: Locale): string {
+  const dict = getDictionarySync(locale)
+  const month = dict.date.months[date.getMonth()]
+  const day = date.getDate()
+
+  if (locale === 'ko') {
+    return `${month} ${day}일`
+  }
+  return `${month} ${day}`
+}
+
+/**
+ * Format weekday and year for day view subheader
+ * KR: "수요일, 2026"
+ * EN: "Wed, 2026"
+ */
+export function formatWeekdayYear(date: Date, locale: Locale): string {
+  const dict = getDictionarySync(locale)
+  const year = date.getFullYear()
+
+  if (locale === 'ko') {
+    const weekday = dict.date.weekdays[date.getDay()]
+    return `${weekday}, ${year}`
+  }
+  // EN uses short weekday names
+  const weekdayShort = dict.date.weekdaysShort[date.getDay()]
+  return `${weekdayShort}, ${year}`
+}
+
+/**
+ * Get month name by locale
+ */
+export function getMonthName(monthIndex: number, locale: Locale): string {
+  const dict = getDictionarySync(locale)
+  return dict.date.months[monthIndex]
+}
+
+/**
+ * Get weekday name by locale (full name)
+ */
+export function getWeekdayName(dayIndex: number, locale: Locale): string {
+  const dict = getDictionarySync(locale)
+  return dict.date.weekdays[dayIndex]
+}
+
+/**
+ * Get weekday name by locale (short name)
+ */
+export function getWeekdayShort(dayIndex: number, locale: Locale): string {
+  const dict = getDictionarySync(locale)
+  return dict.date.weekdaysShort[dayIndex]
+}
+
+// Default app start date: 2025-01-01
+export const DEFAULT_START_DATE = '2025-01-01'
+
 export { i18n, appTitles, type Locale, isValidLocale } from './config'

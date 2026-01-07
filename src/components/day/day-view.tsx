@@ -1,18 +1,19 @@
 'use client'
 
-import { format } from 'date-fns'
 import { AppIcon } from '@/components/ui/app-icon'
 import { useDayCard } from '@/hooks/use-day-card'
 import { formatDateString, parseDateString } from '@/lib/utils'
+import { formatDateDisplay, formatWeekdayYear, type Locale } from '@/lib/i18n'
 import { PolaroidCard } from './polaroid-card'
 
 interface DayViewProps {
   selectedDate: string
   onDateChange: (date: string) => void
+  locale: Locale
   onClose?: () => void
 }
 
-export function DayView({ selectedDate, onDateChange }: DayViewProps) {
+export function DayView({ selectedDate, onDateChange, locale }: DayViewProps) {
   const date = parseDateString(selectedDate)
   const dateStr = formatDateString(date)
 
@@ -51,10 +52,10 @@ export function DayView({ selectedDate, onDateChange }: DayViewProps) {
 
           <div className="text-center">
             <h2 className="text-2xl font-bold text-gray-800">
-              {format(date, 'MMMM d')}
+              {formatDateDisplay(date, locale)}
             </h2>
             <p className="text-sm text-gray-500">
-              {format(date, 'EEEE')}, {format(date, 'yyyy')}
+              {formatWeekdayYear(date, locale)}
             </p>
           </div>
 
@@ -72,6 +73,7 @@ export function DayView({ selectedDate, onDateChange }: DayViewProps) {
         dayCard={dayCard}
         photoSignedUrl={photoSignedUrl}
         date={dateStr}
+        locale={locale}
         onSave={handleSave}
         onStickersChange={async (stickers) => {
           await upsertDayCard({ sticker_state: stickers })

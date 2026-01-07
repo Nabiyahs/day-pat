@@ -10,7 +10,7 @@ import { MonthView } from '@/components/calendar/month-view'
 import { WeekView } from '@/components/calendar/week-view'
 import { DayView } from '@/components/day/day-view'
 import { formatDateString } from '@/lib/utils'
-import { getDictionarySync, type Locale, appTitles, isValidLocale, i18n } from '@/lib/i18n'
+import { getDictionarySync, DEFAULT_START_DATE, type Locale, appTitles, isValidLocale, i18n } from '@/lib/i18n'
 import { clearSessionTracking } from '@/lib/auth/session-persistence'
 
 type Props = {
@@ -27,7 +27,7 @@ export default function AppPage({ params }: Props) {
   const [user, setUser] = useState<User | null>(null)
   const [initializing, setInitializing] = useState(true)
   const [activeView, setActiveView] = useState<ViewType>('day') // Day is the main/default view
-  const [selectedDate, setSelectedDate] = useState(formatDateString(new Date()))
+  const [selectedDate, setSelectedDate] = useState(DEFAULT_START_DATE)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [showDebug, setShowDebug] = useState(false)
   const router = useRouter()
@@ -117,6 +117,7 @@ export default function AppPage({ params }: Props) {
           <DayView
             selectedDate={selectedDate}
             onDateChange={setSelectedDate}
+            locale={locale}
           />
         )}
         {activeView === 'week' && (
@@ -131,7 +132,7 @@ export default function AppPage({ params }: Props) {
       <BottomNav
         locale={locale}
         onAddClick={() => {
-          setSelectedDate(formatDateString(new Date()))
+          setSelectedDate(DEFAULT_START_DATE)
           setActiveView('day')
         }}
       />

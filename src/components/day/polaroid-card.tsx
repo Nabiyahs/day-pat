@@ -4,12 +4,14 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { AppIcon } from '@/components/ui/app-icon'
 import { cn } from '@/lib/utils'
 import { uploadPhoto } from '@/lib/image-upload'
+import { getDictionarySync, type Locale } from '@/lib/i18n'
 import type { DayCard, StickerState } from '@/types/database'
 
 interface PolaroidCardProps {
   dayCard: DayCard | null
   photoSignedUrl: string | null
   date: string
+  locale: Locale
   onSave: (updates: { photo_url?: string | null; caption?: string | null }) => Promise<{ success: boolean; error?: string }>
   onStickersChange: (stickers: StickerState[]) => Promise<void>
   saving?: boolean
@@ -22,11 +24,14 @@ export function PolaroidCard({
   dayCard,
   photoSignedUrl,
   date,
+  locale,
   onSave,
   onStickersChange,
   saving,
   saveError,
 }: PolaroidCardProps) {
+  const dict = getDictionarySync(locale)
+  const placeholder = dict.dayView.placeholder
   // Edit mode state
   const [isEditing, setIsEditing] = useState(false)
 
@@ -309,7 +314,7 @@ export function PolaroidCard({
               type="text"
               value={captionDraft}
               onChange={(e) => setCaptionDraft(e.target.value)}
-              placeholder="오늘의 칭찬 하나"
+              placeholder={placeholder}
               className="w-full text-center text-gray-700 font-medium leading-relaxed mb-3 bg-transparent border-b border-gray-200 focus:border-pink-400 outline-none py-1"
               maxLength={150}
             />
@@ -320,7 +325,7 @@ export function PolaroidCard({
                 dayCard?.caption ? 'text-gray-700' : 'text-gray-400'
               )}
             >
-              {dayCard?.caption || '오늘의 칭찬 하나'}
+              {dayCard?.caption || placeholder}
             </p>
           )}
 
