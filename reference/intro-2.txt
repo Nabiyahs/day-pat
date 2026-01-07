@@ -101,7 +101,7 @@
             <div class="bg-gray-100 rounded-sm mb-4 h-[280px] overflow-hidden relative">
               <img 
                 class="w-full h-full object-cover" 
-                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/33d75371d3-61acb8225910cf70d90a.png" alt="modern office desk from above view, open laptop computer, steaming coffee cup beside it, clean minimal workspace, warm natural morning light, soft shadows, productive atmosphere, cozy workspace setup" />
+                src="/image/33d75371d3-61acb8225910cf70d90a.png" alt="modern office desk from above view, open laptop computer, steaming coffee cup beside it, clean minimal workspace, warm natural morning light, soft shadows, productive atmosphere, cozy workspace setup" />
             </div>
             <div class="bg-white px-4 pb-6 pt-2">
               <p class="handwriting text-3xl text-gray-700 leading-relaxed text-center">
@@ -110,7 +110,7 @@
             </div>
             <div class="absolute bottom-2 right-2 w-28 h-28 transform rotate-12 z-20 pointer-events-none">
               <img
-                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/0eca8c8041-1434a8064c5582c4d9ff.png"
+                src="/image/0eca8c8041-1434a8064c5582c4d9ff.png"
                 alt="red ink rubber stamp mark circular shape with korean text meaning well done vintage texture isolated on white background"
                 class="w-full h-full object-contain opacity-90 mix-blend-multiply">
             </div>

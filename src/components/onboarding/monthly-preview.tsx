@@ -56,14 +56,14 @@ export function MonthlyPreview() {
               const isToday = day === 15
 
               const imageUrls: Record<number, string> = {
-                4: 'https://storage.googleapis.com/uxpilot-auth.appspot.com/06c4d59883-ce5ce94d6ad46c42ee8e.png',
-                6: 'https://storage.googleapis.com/uxpilot-auth.appspot.com/5ec6adb291-19a4f27becd9bf81891a.png',
-                8: 'https://storage.googleapis.com/uxpilot-auth.appspot.com/7d5f2711ea-308301cb34fc01259450.png',
-                10: 'https://storage.googleapis.com/uxpilot-auth.appspot.com/bbd9a37480-db910cb1c5c32661b40c.png',
-                12: 'https://storage.googleapis.com/uxpilot-auth.appspot.com/3fef0312cc-ac35f49b2c70e143e772.png',
-                13: 'https://storage.googleapis.com/uxpilot-auth.appspot.com/ea32fb5053-f4123dab51535d78b2ac.png',
-                14: 'https://storage.googleapis.com/uxpilot-auth.appspot.com/011a105c86-64ea07166049e1017e9a.png',
-                15: 'https://storage.googleapis.com/uxpilot-auth.appspot.com/13dfd0edd7-1248a08cd0625d7d2cb8.png',
+                4: '/image/06c4d59883-ce5ce94d6ad46c42ee8e.png',
+                6: '/image/5ec6adb291-19a4f27becd9bf81891a.png',
+                8: '/image/7d5f2711ea-308301cb34fc01259450.png',
+                10: '/image/bbd9a37480-db910cb1c5c32661b40c.png',
+                12: '/image/3fef0312cc-ac35f49b2c70e143e772.png',
+                13: '/image/ea32fb5053-f4123dab51535d78b2ac.png',
+                14: '/image/011a105c86-64ea07166049e1017e9a.png',
+                15: '/image/13dfd0edd7-1248a08cd0625d7d2cb8.png',
               }
 
               return (

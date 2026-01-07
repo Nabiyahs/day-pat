@@ -40,7 +40,7 @@ export function DailyPreview() {
           <div className="bg-gray-100 rounded-lg overflow-hidden mb-2 relative">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="https://storage.googleapis.com/uxpilot-auth.appspot.com/9848b97d68-29d8f31e7e5b8dcb9f5d.png"
+              src="/image/9848b97d68-29d8f31e7e5b8dcb9f5d.png"
               alt="Morning coffee"
               className="w-full h-[140px] object-cover"
             />
