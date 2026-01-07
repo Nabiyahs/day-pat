@@ -136,9 +136,12 @@ export function PolaroidCard({
   }
 
   const handleSaveClick = async () => {
-    if (!isEditing || saving) return
+    if (!isEditing || saving) {
+      if (DEBUG) console.log('[PolaroidCard] Save blocked - isEditing:', isEditing, 'saving:', saving)
+      return
+    }
 
-    if (DEBUG) console.log('[PolaroidCard] Save clicked')
+    if (DEBUG) console.log('[PolaroidCard] Save clicked - starting save flow')
 
     // Determine the effective photo path (pending new photo or existing photo)
     const effectivePhotoPath = pendingPhotoPath || dayCard?.photo_url
@@ -176,7 +179,14 @@ export function PolaroidCard({
       return
     }
 
+    if (DEBUG) console.log('[PolaroidCard] Calling onSave with updates:', {
+      photo_url: updates.photo_url ? `${updates.photo_url.substring(0, 40)}...` : undefined,
+      caption: updates.caption !== undefined ? `(${updates.caption?.length || 0} chars)` : undefined,
+    })
+
     const result = await onSave(updates)
+
+    if (DEBUG) console.log('[PolaroidCard] onSave result:', result)
 
     if (result.success) {
       if (DEBUG) console.log('[PolaroidCard] Save successful, exiting edit mode')

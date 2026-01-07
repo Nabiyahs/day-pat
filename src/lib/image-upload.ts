@@ -1,5 +1,5 @@
 import imageCompression from 'browser-image-compression'
-import { createClient } from '@/lib/supabase/client'
+import { getSupabaseClient } from '@/lib/supabase/client'
 
 const MAX_SIZE_MB = 1
 const MAX_WIDTH = 1200
@@ -32,7 +32,7 @@ export async function uploadPhoto(
   file: File,
   date: string
 ): Promise<string | null> {
-  const supabase = createClient()
+  const supabase = getSupabaseClient()
 
   const {
     data: { user },
@@ -71,7 +71,13 @@ export async function uploadPhoto(
     })
 
   if (uploadError) {
-    console.error('Upload error:', uploadError)
+    // Log detailed error info for debugging (dev console only)
+    console.error('[uploadPhoto] Storage upload FAILED')
+    console.error('[uploadPhoto] Error name:', uploadError.name)
+    console.error('[uploadPhoto] Error message:', uploadError.message)
+    console.error('[uploadPhoto] Upload path attempted:', filePath)
+    console.error('[uploadPhoto] User ID:', user.id)
+    console.error('[uploadPhoto] File size:', compressedFile.size)
     // Map all errors to user-friendly messages - never expose raw Supabase errors
     const errMsg = (uploadError.message || '').toLowerCase()
     if (errMsg.includes('bucket not found') || errMsg.includes('bucket')) {
@@ -105,7 +111,7 @@ export async function uploadPhoto(
 export async function getSignedUrl(path: string): Promise<string | null> {
   if (!path) return null
 
-  const supabase = createClient()
+  const supabase = getSupabaseClient()
 
   const { data, error } = await supabase.storage
     .from(BUCKET_NAME)
@@ -124,7 +130,7 @@ export async function getSignedUrl(path: string): Promise<string | null> {
  * @param path The storage path to delete
  */
 export async function deletePhoto(path: string): Promise<void> {
-  const supabase = createClient()
+  const supabase = getSupabaseClient()
 
   const {
     data: { user },

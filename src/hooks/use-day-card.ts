@@ -137,6 +137,13 @@ export function useDayCard(date: string) {
       return { success: false, error: 'Please add a photo first.' }
     }
 
+    // Validate entry_date format (YYYY-MM-DD)
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/
+    if (!dateRegex.test(date)) {
+      console.error('[useDayCard] Save blocked - invalid date format:', date)
+      return { success: false, error: 'Invalid date. Please try again.' }
+    }
+
     if (DEBUG) console.log('[useDayCard] Saving entry for user:', user.id, 'date:', date)
 
     setSaving(true)
@@ -174,7 +181,18 @@ export function useDayCard(date: string) {
         .single()
 
       if (dbError) {
-        console.error('[useDayCard] DB upsert error:', dbError)
+        // Log detailed error info for debugging (dev console only)
+        console.error('[useDayCard] DB upsert FAILED')
+        console.error('[useDayCard] Error code:', dbError.code)
+        console.error('[useDayCard] Error message:', dbError.message)
+        console.error('[useDayCard] Error details:', dbError.details)
+        console.error('[useDayCard] Error hint:', dbError.hint)
+        console.error('[useDayCard] Payload attempted:', {
+          user_id: payload.user_id,
+          entry_date: payload.entry_date,
+          photo_path: payload.photo_path ? `${payload.photo_path.substring(0, 50)}...` : 'NULL',
+          praise_length: payload.praise?.length || 0,
+        })
         throw dbError
       }
 
