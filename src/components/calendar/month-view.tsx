@@ -143,11 +143,15 @@ export function MonthView({ onSelectDate }: MonthViewProps) {
                   'aspect-square rounded-lg p-0.5 relative overflow-hidden transition-all',
                   cellHeight,
                   hasPhoto ? '' : 'bg-gray-50',
-                  isCurrentDay && 'border-2 border-orange-400',
                   !isCurrentDay && 'hover:ring-1 hover:ring-amber-200'
                 )}
                 aria-label={format(date, 'MMMM d')}
               >
+                {/* Today indicator - inset ring that doesn't overlap content */}
+                {isCurrentDay && (
+                  <div className="absolute inset-[1px] rounded-md border-[1.5px] border-orange-400 z-20 pointer-events-none" />
+                )}
+
                 {/* Date number */}
                 <span
                   className={cn(
