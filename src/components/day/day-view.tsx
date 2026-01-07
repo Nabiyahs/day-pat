@@ -16,7 +16,7 @@ export function DayView({ selectedDate, onDateChange }: DayViewProps) {
   const date = parseDateString(selectedDate)
   const dateStr = formatDateString(date)
 
-  const { dayCard, photoSignedUrl, saving: cardSaving, upsertDayCard } = useDayCard(dateStr)
+  const { dayCard, photoSignedUrl, saving: cardSaving, error, upsertDayCard } = useDayCard(dateStr)
 
   const goToPrevDay = () => {
     const prev = new Date(date)
@@ -28,6 +28,13 @@ export function DayView({ selectedDate, onDateChange }: DayViewProps) {
     const next = new Date(date)
     next.setDate(next.getDate() + 1)
     onDateChange(formatDateString(next))
+  }
+
+  const handleSave = async (updates: {
+    photo_url?: string | null
+    caption?: string | null
+  }): Promise<{ success: boolean; error?: string }> => {
+    return await upsertDayCard(updates)
   }
 
   return (
@@ -65,16 +72,12 @@ export function DayView({ selectedDate, onDateChange }: DayViewProps) {
         dayCard={dayCard}
         photoSignedUrl={photoSignedUrl}
         date={dateStr}
-        onPhotoChange={async (path) => {
-          await upsertDayCard({ photo_url: path })
-        }}
-        onCaptionChange={async (caption) => {
-          await upsertDayCard({ caption })
-        }}
+        onSave={handleSave}
         onStickersChange={async (stickers) => {
           await upsertDayCard({ sticker_state: stickers })
         }}
         saving={cardSaving}
+        saveError={error}
       />
     </div>
   )
