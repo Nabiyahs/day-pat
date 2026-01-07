@@ -83,3 +83,40 @@ body {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* Swipe hint animation for GuideModal */
+@keyframes swipe-hint-right {
+  0% {
+    opacity: 0;
+    transform: translateY(-50%) translateX(0);
+  }
+  20% {
+    opacity: 0.5;
+    transform: translateY(-50%) translateX(0);
+  }
+  50% {
+    opacity: 0.5;
+    transform: translateY(-50%) translateX(-8px);
+  }
+  80% {
+    opacity: 0.5;
+    transform: translateY(-50%) translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-50%) translateX(0);
+  }
+}
+
+.animate-swipe-hint-right {
+  animation: swipe-hint-right 1.2s ease-in-out;
+  animation-fill-mode: forwards;
+}
+
+/* Disable swipe hint animation for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-swipe-hint-right {
+    animation: none;
+    opacity: 0;
+  }
+}

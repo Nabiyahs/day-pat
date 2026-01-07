@@ -3,11 +3,14 @@
 import { AppIcon, type IconName } from '@/components/ui/app-icon'
 
 // Bottom nav matches main.html exactly:
-// compass (intro) | heart (favorites) | plus (FAB) | fire (streak) | user (profile)
+// compass (guide) | heart (favorites) | plus (FAB) | fire (streak) | user (profile)
 // All buttons open MODALS, not pages
+//
+// NOTE: onGuideClick opens GuideModal (fullscreen swipeable guide)
+//       This is SEPARATE from IntroModal (onboarding)
 
 interface BottomNavProps {
-  onIntroClick?: () => void
+  onGuideClick?: () => void  // Opens GuideModal (NOT IntroModal for onboarding)
   onFavoritesClick?: () => void
   onAddClick?: () => void
   onStreakClick?: () => void
@@ -15,7 +18,7 @@ interface BottomNavProps {
 }
 
 export function BottomNav({
-  onIntroClick,
+  onGuideClick,
   onFavoritesClick,
   onAddClick,
   onStreakClick,
@@ -24,11 +27,11 @@ export function BottomNav({
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
       <div className="flex items-center justify-around px-5 py-3">
-        {/* Intro (Guide) - compass icon */}
+        {/* Guide - compass icon (opens GuideModal, NOT IntroModal) */}
         <button
-          onClick={onIntroClick}
+          onClick={onGuideClick}
           className="flex flex-col items-center gap-1 text-gray-400"
-          data-testid="nav-bottom-intro"
+          data-testid="nav-bottom-guide"
         >
           <AppIcon name="compass" className="w-5 h-5" />
         </button>

@@ -8,7 +8,7 @@ import { useSupabase, resetSupabaseClient } from '@/lib/supabase/client'
 import { AppIcon } from '@/components/ui/app-icon'
 import type { User, AuthChangeEvent, Session } from '@supabase/supabase-js'
 import { Header, ViewTabs, BottomNav, type ViewType } from '@/components/shell'
-import { IntroModal, FavoritesModal, StreakModal, ProfileModal, ExportModal } from '@/components/modals'
+import { IntroModal, FavoritesModal, StreakModal, ProfileModal, ExportModal, GuideModal } from '@/components/modals'
 import { MonthView } from '@/components/calendar/month-view'
 import { WeekView } from '@/components/calendar/week-view'
 import { DayView } from '@/components/day/day-view'
@@ -22,7 +22,8 @@ export default function AppPage() {
   const [selectedDate, setSelectedDate] = useState(() => formatDateString(new Date()))
 
   // Modal states (matches main.html modal structure)
-  const [introOpen, setIntroOpen] = useState(false)
+  const [introOpen, setIntroOpen] = useState(false)  // Onboarding intro modal
+  const [guideOpen, setGuideOpen] = useState(false)  // Guide modal (from bottom nav compass icon)
   const [favoritesOpen, setFavoritesOpen] = useState(false)
   const [streakOpen, setStreakOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
@@ -204,7 +205,7 @@ export default function AppPage() {
 
       {/* Bottom Navigation - opens modals, not pages */}
       <BottomNav
-        onIntroClick={() => setIntroOpen(true)}
+        onGuideClick={() => setGuideOpen(true)}  // Opens GuideModal (separate from IntroModal)
         onFavoritesClick={() => {
           fetchFavorites()
           setFavoritesOpen(true)
@@ -218,9 +219,15 @@ export default function AppPage() {
       />
 
       {/* Modals - match main.html modal structure */}
+      {/* IntroModal is for onboarding (shown to new users) */}
       <IntroModal
         isOpen={introOpen}
         onClose={() => setIntroOpen(false)}
+      />
+      {/* GuideModal is for the compass/info icon in bottom nav (fullscreen swipeable) */}
+      <GuideModal
+        isOpen={guideOpen}
+        onClose={() => setGuideOpen(false)}
       />
       <FavoritesModal
         isOpen={favoritesOpen}
