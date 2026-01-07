@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ClientProviders } from '@/components/providers/client-providers'
+import { AppShell } from '@/components/shell'
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -57,7 +58,9 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased font-sans" style={{ fontFamily: "'Noto Sans', 'Inter', sans-serif" }}>
-        <ClientProviders>{children}</ClientProviders>
+        <ClientProviders>
+          <AppShell>{children}</AppShell>
+        </ClientProviders>
       </body>
     </html>
   );

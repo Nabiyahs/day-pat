@@ -120,3 +120,55 @@ body {
     opacity: 0;
   }
 }
+
+/* ============================================
+   Desktop Letterboxing (AppShell)
+   Mobile UI centered on larger screens
+   ============================================ */
+
+/* Outer shell - fills viewport, provides letterbox background */
+.app-shell {
+  min-height: 100vh;
+  min-height: 100dvh; /* Dynamic viewport height for mobile browsers */
+  width: 100%;
+  background: var(--background);
+}
+
+/* Inner container - holds the actual app content */
+.app-container {
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0 auto;
+  position: relative;
+  background: var(--background);
+}
+
+/* Desktop/Tablet: Center the mobile app with letterboxing */
+@media (min-width: 768px) {
+  /* Body background becomes letterbox */
+  body {
+    background: #e5e5e5;
+  }
+
+  .app-shell {
+    /* Letterbox background - neutral gray */
+    background: #e5e5e5;
+  }
+
+  .app-container {
+    /* Mobile width: 390px (iPhone 14/15 baseline) */
+    max-width: 390px;
+    /* Add subtle shadow to separate from letterbox */
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Constrain fixed bottom nav to mobile width, centered */
+  nav.fixed.bottom-0 {
+    width: 100%;
+    max-width: 390px;
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%);
+  }
+}
