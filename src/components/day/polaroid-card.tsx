@@ -4,7 +4,6 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { AppIcon } from '@/components/ui/app-icon'
 import { cn } from '@/lib/utils'
 import { uploadPhoto } from '@/lib/image-upload'
-import { getDictionarySync, type Locale } from '@/lib/i18n'
 import type { DayCard, StickerState } from '@/types/database'
 
 const DEBUG = process.env.NODE_ENV === 'development'
@@ -13,7 +12,6 @@ interface PolaroidCardProps {
   dayCard: DayCard | null
   photoSignedUrl: string | null
   date: string
-  locale: Locale
   onSave: (updates: { photo_url?: string | null; caption?: string | null }) => Promise<{ success: boolean; error?: string }>
   onStickersChange: (stickers: StickerState[]) => Promise<void>
   saving?: boolean
@@ -23,19 +21,19 @@ interface PolaroidCardProps {
 
 const EMOJI_PALETTE = ['☕', '✨', '💛', '⭐', '🌟', '💖', '🎉', '🌸', '🍀', '🔥', '💪', '🧘‍♀️', '🥗', '💚', '😊', '🥰']
 
+const PLACEHOLDER_TEXT = "What made today special?"
+
 export function PolaroidCard({
   dayCard,
   photoSignedUrl,
   date,
-  locale,
   onSave,
   onStickersChange,
   saving,
   saveError,
   onEditingChange,
 }: PolaroidCardProps) {
-  const dict = getDictionarySync(locale)
-  const placeholder = dict.dayView.placeholder
+  const placeholder = PLACEHOLDER_TEXT
   // Edit mode state
   const [isEditing, setIsEditing] = useState(false)
 

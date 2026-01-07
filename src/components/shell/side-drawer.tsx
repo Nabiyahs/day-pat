@@ -3,26 +3,21 @@
 import { useEffect } from 'react'
 import { AppIcon } from '@/components/ui/app-icon'
 import { cn } from '@/lib/utils'
-import { getDictionarySync, type Locale } from '@/lib/i18n'
 
 interface SideDrawerProps {
-  locale: Locale
   isOpen: boolean
   onClose: () => void
   onLogout?: () => void
 }
 
-const ICON_MAP = {
-  calendar: 'calendar' as const,
-  favorites: 'heart' as const,
-  insights: 'trending-up' as const,
-  settings: 'settings' as const,
-}
+const MENU_ITEMS = [
+  { id: 'calendar', label: 'Calendar', icon: 'calendar' as const, active: true, available: true },
+  { id: 'favorites', label: 'Favorites', icon: 'heart' as const, active: false, available: false },
+  { id: 'insights', label: 'Insights', icon: 'trending-up' as const, active: false, available: false },
+  { id: 'settings', label: 'Settings', icon: 'settings' as const, active: false, available: false },
+]
 
-export function SideDrawer({ locale, isOpen, onClose, onLogout }: SideDrawerProps) {
-  const dict = getDictionarySync(locale)
-
-  // ESC key handler
+export function SideDrawer({ isOpen, onClose, onLogout }: SideDrawerProps) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -32,7 +27,6 @@ export function SideDrawer({ locale, isOpen, onClose, onLogout }: SideDrawerProp
 
     if (isOpen) {
       document.addEventListener('keydown', handleKeyDown)
-      // Prevent body scroll when drawer is open
       document.body.style.overflow = 'hidden'
     }
 
@@ -41,15 +35,6 @@ export function SideDrawer({ locale, isOpen, onClose, onLogout }: SideDrawerProp
       document.body.style.overflow = ''
     }
   }, [isOpen, onClose])
-
-  const MENU_ITEMS = [
-    { id: 'calendar', label: dict.nav.calendar, icon: ICON_MAP.calendar, active: true, available: true },
-    { id: 'favorites', label: dict.nav.favorites, icon: ICON_MAP.favorites, active: false, available: false },
-    { id: 'insights', label: dict.nav.insights, icon: ICON_MAP.insights, active: false, available: false },
-    { id: 'settings', label: dict.nav.settings, icon: ICON_MAP.settings, active: false, available: false },
-  ]
-
-  const comingSoonText = locale === 'ko' ? '준비 중' : 'Coming soon'
 
   return (
     <div
@@ -60,7 +45,7 @@ export function SideDrawer({ locale, isOpen, onClose, onLogout }: SideDrawerProp
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      aria-label={dict.nav.menu}
+      aria-label="Menu"
     >
       <div
         className={cn(
@@ -71,11 +56,11 @@ export function SideDrawer({ locale, isOpen, onClose, onLogout }: SideDrawerProp
       >
         <div className="p-6">
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-xl font-bold text-gray-800">{dict.nav.menu}</h2>
+            <h2 className="text-xl font-bold text-gray-800">Menu</h2>
             <button
               onClick={onClose}
               className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
-              aria-label={locale === 'ko' ? '메뉴 닫기' : 'Close menu'}
+              aria-label="Close menu"
               data-testid="drawer-close"
             >
               <AppIcon name="x" className="w-5 h-5 text-gray-600" />
@@ -95,11 +80,11 @@ export function SideDrawer({ locale, isOpen, onClose, onLogout }: SideDrawerProp
                   }}
                   disabled={isDisabled}
                   aria-disabled={isDisabled}
-                  title={isDisabled ? comingSoonText : undefined}
+                  title={isDisabled ? 'Coming soon' : undefined}
                   className={cn(
                     'w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-colors relative',
                     item.active
-                      ? 'bg-amber-50 text-[#F27430]'
+                      ? 'bg-amber-50 text-orange-600'
                       : item.available
                       ? 'hover:bg-gray-50 text-gray-700'
                       : 'text-gray-400 cursor-not-allowed'
@@ -111,7 +96,7 @@ export function SideDrawer({ locale, isOpen, onClose, onLogout }: SideDrawerProp
                   {isDisabled && (
                     <span className="ml-auto flex items-center gap-1 text-xs text-gray-400">
                       <AppIcon name="construction" className="w-3 h-3" />
-                      {comingSoonText}
+                      Coming soon
                     </span>
                   )}
                 </button>
@@ -127,7 +112,7 @@ export function SideDrawer({ locale, isOpen, onClose, onLogout }: SideDrawerProp
                 data-testid="drawer-logout"
               >
                 <AppIcon name="logout" className="w-5 h-5" />
-                <span className="font-semibold">{dict.nav.signOut}</span>
+                <span className="font-semibold">Sign Out</span>
               </button>
             </div>
           )}

@@ -2,25 +2,18 @@
 
 import { useState, useMemo } from 'react'
 import { format, isSameMonth, isToday, startOfMonth, addMonths, subMonths } from 'date-fns'
-import { ko, enUS } from 'date-fns/locale'
 import { AppIcon } from '@/components/ui/app-icon'
 import { useMonthData } from '@/hooks/use-month-data'
 import { getCalendarDays, formatDateString } from '@/lib/utils'
 import { cn } from '@/lib/utils'
-import { getDictionarySync, type Locale } from '@/lib/i18n'
 
 interface MonthViewProps {
-  locale: Locale
   onSelectDate: (date: string) => void
 }
 
-const WEEKDAYS_KO = ['월', '화', '수', '목', '금', '토', '일']
-const WEEKDAYS_EN = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
-export function MonthView({ locale, onSelectDate }: MonthViewProps) {
-  const dict = getDictionarySync(locale)
-  const dateLocale = locale === 'ko' ? ko : enUS
-  const WEEKDAYS = locale === 'ko' ? WEEKDAYS_KO : WEEKDAYS_EN
+export function MonthView({ onSelectDate }: MonthViewProps) {
 
   const [currentMonth, setCurrentMonth] = useState(new Date())
 
@@ -75,7 +68,7 @@ export function MonthView({ locale, onSelectDate }: MonthViewProps) {
           <button
             onClick={goToPrevMonth}
             className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/60 transition-colors"
-            aria-label={locale === 'ko' ? '이전 달' : 'Previous month'}
+            aria-label="Previous month"
             data-testid="btn-month-prev"
           >
             <AppIcon name="chevron-left" className="w-5 h-5 text-gray-600" />
@@ -83,14 +76,14 @@ export function MonthView({ locale, onSelectDate }: MonthViewProps) {
 
           <div className="text-center">
             <h2 className="text-xl font-bold text-gray-800" data-testid="month-title">
-              {format(currentMonth, locale === 'ko' ? 'yyyy년 MMMM' : 'MMMM yyyy', { locale: dateLocale })}
+              {format(currentMonth, 'MMMM yyyy')}
             </h2>
           </div>
 
           <button
             onClick={goToNextMonth}
             className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/60 transition-colors"
-            aria-label={locale === 'ko' ? '다음 달' : 'Next month'}
+            aria-label="Next month"
             data-testid="btn-month-next"
           >
             <AppIcon name="chevron-right" className="w-5 h-5 text-gray-600" />
@@ -152,7 +145,7 @@ export function MonthView({ locale, onSelectDate }: MonthViewProps) {
                   !isCurrentDay && 'hover:ring-1 hover:ring-amber-200'
                 )}
                 data-testid={`cell-date-${dateStr}`}
-                aria-label={format(date, locale === 'ko' ? 'M월 d일' : 'MMMM d', { locale: dateLocale })}
+                aria-label={format(date, 'MMMM d')}
               >
                 {/* Date number */}
                 <span

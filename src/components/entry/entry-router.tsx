@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { AppIcon } from '@/components/ui/app-icon'
-import { type Locale, appTitles } from '@/lib/i18n/config'
+import { type Locale } from '@/lib/i18n/config'
 import { shouldSignOutOnNewSession, clearSessionTracking } from '@/lib/auth/session-persistence'
 import { createClient } from '@/lib/supabase/client'
 import { addDebugLog, isDebugMode } from '@/lib/debug'
@@ -163,20 +163,20 @@ export function EntryRouter({ locale, isAuthenticated }: EntryRouterProps) {
       <div className="text-center px-4">
         <AppIcon name="spinner" className="w-8 h-8 animate-spin text-[#F2B949] mx-auto mb-4" />
         <p className="text-gray-500 text-sm mb-4">
-          {hasError ? 'Redirecting...' : appTitles[locale]}
+          {hasError ? 'Redirecting...' : 'DayPat'}
         </p>
 
         {/* Fallback link if navigation times out */}
         {showFallback && targetPath && (
           <div className="mt-4 space-y-2">
             <p className="text-gray-400 text-xs">
-              {locale === 'ko' ? '로딩이 느린가요?' : 'Taking too long?'}
+              Taking too long?
             </p>
             <a
               href={targetPath}
               className="inline-block px-4 py-2 bg-[#F2B949] text-white rounded-lg text-sm font-medium hover:bg-[#e5a93c] transition-colors"
             >
-              {locale === 'ko' ? '여기를 탭하세요' : 'Tap here to continue'}
+              Tap here to continue
             </a>
           </div>
         )}

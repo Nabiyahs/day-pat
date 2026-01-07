@@ -1,54 +1,34 @@
 'use client'
 
 import { AppIcon } from '@/components/ui/app-icon'
-import { useRouter, usePathname } from 'next/navigation'
-import { type Locale } from '@/lib/i18n/config'
 
 interface HeaderProps {
-  locale: Locale
+  onMenuClick?: () => void
 }
 
-export function Header({ locale }: HeaderProps) {
-  const router = useRouter()
-  const pathname = usePathname()
-
-  const toggleLocale = () => {
-    // Get the other locale
-    const newLocale: Locale = locale === 'ko' ? 'en' : 'ko'
-
-    // Replace the locale in the current path
-    const pathWithoutLocale = pathname.replace(`/${locale}`, '')
-    const newPath = `/${newLocale}${pathWithoutLocale || ''}`
-
-    // Set cookie for persistence
-    document.cookie = `locale=${newLocale}; path=/; max-age=${60 * 60 * 24 * 365}`
-
-    router.push(newPath)
-  }
-
+export function Header({ onMenuClick }: HeaderProps) {
   return (
     <div className="flex items-center justify-between px-5 py-4">
-      {/* Spacer for centering */}
-      <div className="w-11" />
+      {/* Menu Button */}
+      <button
+        onClick={onMenuClick}
+        className="w-11 h-11 flex items-center justify-center rounded-xl hover:bg-amber-50 transition-colors"
+        aria-label="Open menu"
+        data-testid="btn-menu"
+      >
+        <AppIcon name="bars" className="w-5 h-5 text-orange-600" />
+      </button>
 
-      {/* Centered title */}
+      {/* Centered title - Caveat font */}
       <h1
-        className="text-xl font-extrabold text-[#F27430]"
-        style={{ fontFamily: "'Nunito', sans-serif" }}
+        className="text-[23px] font-bold text-gray-800 absolute left-1/2 transform -translate-x-1/2"
+        style={{ fontFamily: "'Caveat', cursive" }}
       >
         DayPat
       </h1>
 
-      {/* Language Toggle */}
-      <button
-        onClick={toggleLocale}
-        className="w-11 h-11 flex items-center justify-center rounded-xl hover:bg-amber-50 transition-colors"
-        aria-label="Change language"
-        title={locale === 'ko' ? 'Switch to English' : '한국어로 변경'}
-        data-testid="btn-lang-toggle"
-      >
-        <AppIcon name="globe" className="w-5 h-5 text-[#F27430]" />
-      </button>
+      {/* Spacer for centering */}
+      <div className="w-11" />
     </div>
   )
 }
