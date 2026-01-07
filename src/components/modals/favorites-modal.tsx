@@ -17,12 +17,65 @@ interface FavoritesModalProps {
   favorites?: FavoriteEntry[]
 }
 
+// Sample data matching main.html exactly
+const SAMPLE_FAVORITES: FavoriteEntry[] = [
+  {
+    id: '1',
+    date: 'Jan 4, 2025',
+    caption: 'Peaceful sunset at the beach 🌅',
+    photoUrl: '/image/06c4d59883-ce5ce94d6ad46c42ee8e.png',
+  },
+  {
+    id: '2',
+    date: 'Jan 6, 2025',
+    caption: 'Cozy reading time ☕📚',
+    photoUrl: '/image/5ec6adb291-19a4f27becd9bf81891a.png',
+  },
+  {
+    id: '3',
+    date: 'Jan 8, 2025',
+    caption: 'Fresh flowers brighten my day 🌸',
+    photoUrl: '/image/7d5f2711ea-308301cb34fc01259450.png',
+  },
+  {
+    id: '4',
+    date: 'Jan 10, 2025',
+    caption: 'Mountain adventure 🏔️',
+    photoUrl: '/image/bbd9a37480-db910cb1c5c32661b40c.png',
+  },
+  {
+    id: '5',
+    date: 'Jan 12, 2025',
+    caption: 'Homemade comfort food 🍲',
+    photoUrl: '/image/3fef0312cc-ac35f49b2c70e143e772.png',
+  },
+  {
+    id: '6',
+    date: 'Jan 13, 2025',
+    caption: 'Morning yoga session 🧘‍♀️',
+    photoUrl: '/image/ea32fb5053-f4123dab51535d78b2ac.png',
+  },
+]
+
+// Rotation patterns matching main.html
+const ROTATIONS = [
+  'rotate-[-2deg]',
+  'rotate-[2deg] mt-6',
+  'rotate-[1deg]',
+  'rotate-[-1deg] mt-4',
+  'rotate-[-2deg]',
+  'rotate-[2deg] mt-8',
+]
+
 // Matches main.html favoritesModal exactly - slides up from bottom
 export function FavoritesModal({
   isOpen,
   onClose,
-  favorites = [],
+  favorites,
 }: FavoritesModalProps) {
+  // Use sample data if no favorites provided
+  const displayFavorites = favorites && favorites.length > 0 ? favorites : SAMPLE_FAVORITES
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -68,45 +121,35 @@ export function FavoritesModal({
 
         <div className="px-4">
           <div className="flex items-center justify-between mb-4 px-2">
-            <p className="text-sm text-gray-600">{favorites.length} saved memories</p>
+            <p className="text-sm text-gray-600">{displayFavorites.length} saved memories</p>
             <AppIcon name="heart" className="w-5 h-5 text-orange-500" />
           </div>
 
-          {favorites.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16">
-              <AppIcon name="heart" className="w-16 h-16 text-gray-200 mb-4" />
-              <p className="text-gray-500 text-center">
-                No favorites yet.
-                <br />
-                Tap the heart on any entry to save it here.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-3">
-              {favorites.map((entry, index) => (
-                <div
-                  key={entry.id}
-                  className={cn(
-                    'relative bg-white rounded-2xl shadow-md overflow-hidden hover:rotate-0 transition-transform duration-300',
-                    index % 2 === 0 ? 'transform rotate-[-2deg]' : 'transform rotate-[2deg] mt-6'
-                  )}
-                >
-                  <img
-                    src={entry.photoUrl}
-                    alt={entry.caption}
-                    className="w-full h-48 object-cover"
-                  />
-                  <div className="absolute top-2 right-2">
-                    <AppIcon name="heart" className="w-5 h-5 text-red-500 drop-shadow-lg" />
-                  </div>
-                  <div className="p-3 bg-white">
-                    <p className="text-xs text-gray-500 mb-1">{entry.date}</p>
-                    <p className="text-sm text-gray-700 line-clamp-2">{entry.caption}</p>
-                  </div>
+          <div className="grid grid-cols-2 gap-3">
+            {displayFavorites.map((entry, index) => (
+              <div
+                key={entry.id}
+                className={cn(
+                  'relative bg-white rounded-2xl shadow-md overflow-hidden hover:rotate-0 transition-transform duration-300 transform',
+                  ROTATIONS[index % ROTATIONS.length]
+                )}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={entry.photoUrl}
+                  alt={entry.caption}
+                  className="w-full h-48 object-cover"
+                />
+                <div className="absolute top-2 right-2">
+                  <AppIcon name="heart" className="w-5 h-5 text-red-500 drop-shadow-lg fill-current" />
                 </div>
-              ))}
-            </div>
-          )}
+                <div className="p-3 bg-white">
+                  <p className="text-xs text-gray-500 mb-1">{entry.date}</p>
+                  <p className="text-sm text-gray-700 line-clamp-2">{entry.caption}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
