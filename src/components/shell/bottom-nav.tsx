@@ -49,7 +49,7 @@ export function BottomNav({ locale, onAddClick }: BottomNavProps) {
         {/* Center FAB */}
         <button
           onClick={onAddClick}
-          className="w-14 h-14 -mt-8 bg-gradient-to-br from-[#F2B949] to-[#F27430] rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-shadow active:scale-95"
+          className="w-14 h-14 -mt-8 bg-[#F2B949] rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-shadow active:scale-95"
           aria-label={locale === 'ko' ? '오늘 기록 추가' : 'Add today\'s entry'}
           data-testid="nav-bottom-plus"
         >

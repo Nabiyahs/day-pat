@@ -84,7 +84,9 @@ export function useDayCard(date: string) {
       }
     } catch (err) {
       if (DEBUG) console.error('[useDayCard] Fetch error:', err)
-      setError(err instanceof Error ? err.message : 'Failed to fetch day card')
+      // Don't expose raw error to UI - just log it
+      // setError(err instanceof Error ? err.message : 'Failed to fetch day card')
+      // Keep error state null so UI doesn't show error message
     } finally {
       setLoading(false)
     }
@@ -151,9 +153,11 @@ export function useDayCard(date: string) {
       // Rollback on failure
       setDayCard(oldDayCard)
       setPhotoSignedUrl(oldPhotoSignedUrl)
-      const errorMessage = err instanceof Error ? err.message : 'Failed to save day card'
-      setError(errorMessage)
-      return { success: false, error: errorMessage }
+      // Log actual error for debugging but show user-friendly message
+      if (DEBUG) console.error('[useDayCard] Save error:', err)
+      const userFriendlyMessage = '저장에 실패했어요. 다시 시도해 주세요.'
+      setError(userFriendlyMessage)
+      return { success: false, error: userFriendlyMessage }
     } finally {
       setSaving(false)
     }

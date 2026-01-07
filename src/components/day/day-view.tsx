@@ -51,7 +51,7 @@ export function DayView({ selectedDate, onDateChange, locale }: DayViewProps) {
           </button>
 
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-800">
+            <h2 className="text-xl font-bold text-gray-800">
               {formatDateDisplay(date, locale)}
             </h2>
             <p className="text-sm text-gray-500">

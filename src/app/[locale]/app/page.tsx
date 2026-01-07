@@ -27,7 +27,7 @@ export default function AppPage({ params }: Props) {
   const [user, setUser] = useState<User | null>(null)
   const [initializing, setInitializing] = useState(true)
   const [activeView, setActiveView] = useState<ViewType>('day') // Day is the main/default view
-  const [selectedDate, setSelectedDate] = useState(DEFAULT_START_DATE)
+  const [selectedDate, setSelectedDate] = useState(() => formatDateString(new Date())) // Default to today
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [showDebug, setShowDebug] = useState(false)
   const router = useRouter()
@@ -82,7 +82,7 @@ export default function AppPage({ params }: Props) {
   // Show brief loading only during initialization
   if (initializing) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 flex items-center justify-center">
+      <div className="min-h-screen bg-amber-50 flex items-center justify-center">
         <div className="text-center">
           <AppIcon name="spinner" className="w-8 h-8 animate-spin text-[#F2B949] mx-auto mb-4" />
           <p className="text-gray-500 text-sm">{dict.app.loading}</p>
@@ -92,7 +92,7 @@ export default function AppPage({ params }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50">
+    <div className="min-h-screen bg-amber-50">
       {/* Fixed Header with View Tabs - matches reference HTML structure */}
       <header className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-lg border-b border-amber-100 z-50">
         <Header locale={locale} />
@@ -132,7 +132,7 @@ export default function AppPage({ params }: Props) {
       <BottomNav
         locale={locale}
         onAddClick={() => {
-          setSelectedDate(DEFAULT_START_DATE)
+          setSelectedDate(formatDateString(new Date())) // Go to today
           setActiveView('day')
         }}
       />

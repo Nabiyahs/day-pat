@@ -59,42 +59,6 @@ export function MonthView({ locale, onSelectDate }: MonthViewProps) {
     return days
   }, [year, month])
 
-  // Calculate stats
-  const stats = useMemo(() => {
-    let totalEntries = 0
-    let streak = 0
-    let currentStreak = 0
-    let topMood = '😊'
-
-    monthData.forEach((data) => {
-      if (data.praiseCount > 0 || data.thumbUrl) {
-        totalEntries++
-        currentStreak++
-        if (currentStreak > streak) streak = currentStreak
-      } else {
-        currentStreak = 0
-      }
-    })
-
-    return { totalEntries, streak, topMood }
-  }, [monthData])
-
-  // Get top moments (using thumbUrl for the list)
-  const topMoments = useMemo(() => {
-    const defaultCaption = locale === 'ko' ? '아름다운 순간' : 'Beautiful moment'
-    const moments: { date: string; thumbUrl: string; caption: string }[] = []
-    monthData.forEach((data, dateStr) => {
-      if (data.thumbUrl) {
-        moments.push({
-          date: dateStr,
-          thumbUrl: data.thumbUrl,
-          caption: data.caption || defaultCaption,
-        })
-      }
-    })
-    return moments.slice(0, 3)
-  }, [monthData, locale])
-
   const goToPrevMonth = () => {
     setCurrentMonth(subMonths(currentMonth, 1))
   }
@@ -102,11 +66,6 @@ export function MonthView({ locale, onSelectDate }: MonthViewProps) {
   const goToNextMonth = () => {
     setCurrentMonth(addMonths(currentMonth, 1))
   }
-
-  const monthName = format(currentMonth, 'MMMM', { locale: dateLocale })
-  const highlightsTitle = locale === 'ko'
-    ? `${format(currentMonth, 'M월', { locale: dateLocale })} 하이라이트`
-    : `${monthName} Highlights`
 
   return (
     <div>
@@ -140,13 +99,13 @@ export function MonthView({ locale, onSelectDate }: MonthViewProps) {
       </div>
 
       {/* Calendar Grid - matches reference: Mon-Sun columns */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg mb-6">
+      <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-5 shadow-lg">
         {/* Weekday Headers */}
-        <div className="grid grid-cols-7 gap-1 mb-2">
+        <div className="grid grid-cols-7 gap-2 mb-3">
           {WEEKDAYS.map((day) => (
             <div
               key={day}
-              className="text-center text-xs font-semibold text-gray-500 py-2"
+              className="text-center text-sm font-semibold text-gray-500 py-2"
             >
               {day}
             </div>
@@ -154,7 +113,7 @@ export function MonthView({ locale, onSelectDate }: MonthViewProps) {
         </div>
 
         {/* Calendar Days */}
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid grid-cols-7 gap-2">
           {calendarDays.map((date, index) => {
             const dateStr = formatDateString(date)
             const isCurrentMonth = isSameMonth(date, currentMonth)
@@ -228,79 +187,13 @@ export function MonthView({ locale, onSelectDate }: MonthViewProps) {
 
                 {/* Loading shimmer */}
                 {loading && isCurrentMonth && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent animate-shimmer" />
+                  <div className="absolute inset-0 bg-white/50 animate-pulse" />
                 )}
               </button>
             )
           })}
         </div>
       </div>
-
-      {/* Month Stats - matches reference: gradient bg with stats */}
-      <div className="bg-gradient-to-br from-[#F2B949] to-[#F27430] rounded-2xl p-6 shadow-xl mb-6">
-        <h3 className="text-lg font-bold text-white mb-5 flex items-center gap-2">
-          <AppIcon name="bar-chart" className="w-5 h-5" />
-          {highlightsTitle}
-        </h3>
-        <div className="grid grid-cols-3 gap-4">
-          <div className="text-center bg-white/20 backdrop-blur-sm rounded-xl p-4">
-            <p className="text-4xl font-bold text-white mb-1">{stats.totalEntries}</p>
-            <p className="text-xs text-white/90 font-medium">{dict.calendar.totalDays}</p>
-          </div>
-          <div className="text-center bg-white/20 backdrop-blur-sm rounded-xl p-4">
-            <p className="text-4xl font-bold text-white mb-1">{stats.streak}</p>
-            <p className="text-xs text-white/90 font-medium">{dict.calendar.dayStreak}</p>
-          </div>
-          <div className="text-center bg-white/20 backdrop-blur-sm rounded-xl p-4">
-            <p className="text-4xl mb-1">{stats.topMood}</p>
-            <p className="text-xs text-white/90 font-medium">{dict.calendar.topMood}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Top Moments - matches reference layout */}
-      {topMoments.length > 0 && (
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-5 shadow-lg">
-          <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <AppIcon name="star" className="w-4 h-4 text-yellow-500" />
-            {dict.calendar.topMoments}
-          </h3>
-          <div className="space-y-3">
-            {topMoments.map((moment, index) => {
-              const momentDate = new Date(moment.date)
-              return (
-                <button
-                  key={moment.date}
-                  onClick={() => onSelectDate(moment.date)}
-                  className={cn(
-                    'w-full flex gap-3 items-center p-3 rounded-xl transition-colors',
-                    index === 0 && 'bg-gradient-to-r from-amber-50 to-orange-50',
-                    index === 1 && 'bg-gradient-to-r from-yellow-50 to-amber-50',
-                    index === 2 && 'bg-gradient-to-r from-orange-50 to-yellow-50'
-                  )}
-                >
-                  <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
-                    <img
-                      src={moment.thumbUrl}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0 text-left">
-                    <p className="text-xs font-semibold text-gray-800 mb-0.5">
-                      {format(momentDate, locale === 'ko' ? 'M월 d일' : 'MMM d', { locale: dateLocale })} - {moment.caption.split(' ').slice(0, 3).join(' ')}
-                    </p>
-                    <p className="text-xs text-gray-600 truncate">
-                      {moment.caption}
-                    </p>
-                  </div>
-                  <AppIcon name="heart" className="w-4 h-4 text-[#F27430] flex-shrink-0" />
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      )}
     </div>
   )
 }
