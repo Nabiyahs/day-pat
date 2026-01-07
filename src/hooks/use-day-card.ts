@@ -7,20 +7,19 @@ import type { DayCard, StickerState } from '@/types/database'
 
 const DEBUG = process.env.NODE_ENV === 'development'
 
-// Helper to convert entries table row to DayCard (for UI compatibility)
-// Maps: entry_date → card_date, photo_path → photo_url, praise → caption
+// Convert entries table row to DayCard state
+// Field names now match DB directly - no confusing mapping
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function toDayCard(row: any): DayCard & { is_liked: boolean } {
   return {
     id: row.id,
     user_id: row.user_id,
-    card_date: row.entry_date, // Map entry_date to card_date
-    photo_url: row.photo_path, // Map photo_path to photo_url (stores path, not URL)
-    thumb_url: null, // Not used in entries table
-    caption: row.praise, // Map praise to caption
-    sticker_state: [], // Not used in entries table
-    updated_at: row.created_at, // Map created_at to updated_at
-    is_liked: row.is_liked || false, // Favorites flag
+    entry_date: row.entry_date,
+    photo_path: row.photo_path, // Storage path (e.g., "uuid.webp"), NOT a URL
+    praise: row.praise,
+    sticker_state: [],
+    created_at: row.created_at,
+    is_liked: row.is_liked || false,
   }
 }
 
@@ -157,11 +156,12 @@ export function useDayCard(date: string) {
     console.log('[useDayCard] ✅ Auth check passed, user:', user.id)
 
     // REQUIRED: Photo must exist to save entry
-    const effectivePhotoPath = updates.photo_url !== undefined ? updates.photo_url : dayCard?.photo_url
+    // updates.photo_url contains the new path from upload, dayCard?.photo_path is the existing path
+    const effectivePhotoPath = updates.photo_url !== undefined ? updates.photo_url : dayCard?.photo_path
     if (!effectivePhotoPath) {
       console.error('[useDayCard] ❌ Save blocked - photo is required')
       console.error('[useDayCard] updates.photo_url:', updates.photo_url)
-      console.error('[useDayCard] dayCard?.photo_url:', dayCard?.photo_url)
+      console.error('[useDayCard] dayCard?.photo_path:', dayCard?.photo_path)
       return { success: false, error: 'Please add a photo first.' }
     }
 
@@ -192,13 +192,14 @@ export function useDayCard(date: string) {
     } | null = null
 
     // Build the payload OUTSIDE try block for debugging
+    // updates.caption is the new value, dayCard?.praise is the existing value
     const payload = {
       user_id: user.id,
       entry_date: date,
       photo_path: effectivePhotoPath,
       praise: updates.caption !== undefined
         ? (updates.caption || '')
-        : (dayCard?.caption || ''),
+        : (dayCard?.praise || ''),
     }
 
     console.log('[useDayCard] ═══════════════════════════════════════')

@@ -42,7 +42,7 @@ export function PolaroidCard({
   // Pending changes (only applied on save)
   const [pendingPhotoPath, setPendingPhotoPath] = useState<string | null>(null)
   const [pendingPhotoPreview, setPendingPhotoPreview] = useState<string | null>(null)
-  const [captionDraft, setCaptionDraft] = useState(dayCard?.caption || '')
+  const [praiseDraft, setPraiseDraft] = useState(dayCard?.praise || '')
 
   // Upload state
   const [uploading, setUploading] = useState(false)
@@ -55,16 +55,16 @@ export function PolaroidCard({
 
   const stickers = dayCard?.sticker_state || []
 
-  // Sync caption draft when dayCard changes (e.g., date navigation)
+  // Sync praise draft when dayCard changes (e.g., date navigation)
   useEffect(() => {
-    if (DEBUG) console.log('[PolaroidCard] dayCard changed, resetting state. card_date:', dayCard?.card_date)
-    setCaptionDraft(dayCard?.caption || '')
+    if (DEBUG) console.log('[PolaroidCard] dayCard changed, resetting state. entry_date:', dayCard?.entry_date)
+    setPraiseDraft(dayCard?.praise || '')
     // Reset pending photo when dayCard changes
     setPendingPhotoPath(null)
     setPendingPhotoPreview(null)
     setIsEditing(false)
     onEditingChange?.(false)
-  }, [dayCard?.caption, dayCard?.card_date, onEditingChange])
+  }, [dayCard?.praise, dayCard?.entry_date, onEditingChange])
 
   // Determine what photo to display
   // Priority: pendingPhotoPreview (local) > photoSignedUrl (server)
@@ -130,7 +130,7 @@ export function PolaroidCard({
       if (DEBUG) console.log('[PolaroidCard] Entering edit mode')
       setIsEditing(true)
       onEditingChange?.(true)
-      setCaptionDraft(dayCard?.caption || '')
+      setPraiseDraft(dayCard?.praise || '')
     }
     // If already editing, pencil click does nothing (prevent confusion)
   }
@@ -144,7 +144,7 @@ export function PolaroidCard({
     if (DEBUG) console.log('[PolaroidCard] Save clicked - starting save flow')
 
     // Determine the effective photo path (pending new photo or existing photo)
-    const effectivePhotoPath = pendingPhotoPath || dayCard?.photo_url
+    const effectivePhotoPath = pendingPhotoPath || dayCard?.photo_path
 
     // REQUIRED: Photo must exist to save entry
     if (!effectivePhotoPath) {
@@ -162,10 +162,10 @@ export function PolaroidCard({
       if (DEBUG) console.log('[PolaroidCard] Will save new photo path:', pendingPhotoPath)
     }
 
-    // Check if caption changed
-    if (captionDraft !== (dayCard?.caption || '')) {
-      updates.caption = captionDraft
-      if (DEBUG) console.log('[PolaroidCard] Will save new caption')
+    // Check if praise changed
+    if (praiseDraft !== (dayCard?.praise || '')) {
+      updates.caption = praiseDraft
+      if (DEBUG) console.log('[PolaroidCard] Will save new praise')
     }
 
     // Only save if there are changes
@@ -181,7 +181,7 @@ export function PolaroidCard({
 
     if (DEBUG) console.log('[PolaroidCard] Calling onSave with updates:', {
       photo_url: updates.photo_url ? `${updates.photo_url.substring(0, 40)}...` : undefined,
-      caption: updates.caption !== undefined ? `(${updates.caption?.length || 0} chars)` : undefined,
+      caption: updates.caption !== undefined ? `(${(updates.caption as string)?.length || 0} chars)` : undefined,
     })
 
     const result = await onSave(updates)
@@ -368,8 +368,8 @@ export function PolaroidCard({
           {isEditing ? (
             <input
               type="text"
-              value={captionDraft}
-              onChange={(e) => setCaptionDraft(e.target.value)}
+              value={praiseDraft}
+              onChange={(e) => setPraiseDraft(e.target.value)}
               placeholder={placeholder}
               className="w-full text-center text-gray-700 font-medium leading-relaxed mb-3 bg-transparent border-b border-gray-200 focus:border-pink-400 outline-none py-1"
               maxLength={150}
@@ -378,16 +378,16 @@ export function PolaroidCard({
             <p
               className={cn(
                 'text-center font-medium leading-relaxed mb-3 min-h-[24px]',
-                dayCard?.caption ? 'text-gray-700' : 'text-gray-400'
+                dayCard?.praise ? 'text-gray-700' : 'text-gray-400'
               )}
             >
-              {dayCard?.caption || placeholder}
+              {dayCard?.praise || placeholder}
             </p>
           )}
 
           {/* Footer actions - matches reference: time + edit/like/save buttons */}
           <div className="flex items-center justify-between text-xs text-gray-400">
-            <span>{dayCard?.updated_at ? new Date(dayCard.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
+            <span>{dayCard?.created_at ? new Date(dayCard.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
             <div className="flex gap-3">
               {/* Edit (pencil) button */}
               <button

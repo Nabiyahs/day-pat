@@ -179,17 +179,16 @@ export interface Entry {
   created_at: string
 }
 
-// Day card - mapped from Entry for UI compatibility
-// This provides backward compatibility with existing components
+// Day card - UI state for entries
+// Field names match DB (entries table) for consistency
 export interface DayCard {
-  id: number
+  id: string
   user_id: string
-  card_date: string // Maps to entry_date
-  photo_url: string | null // Maps to photo_path
-  thumb_url: string | null // Not used in entries table
-  caption: string | null // Maps to praise
+  entry_date: string // YYYY-MM-DD format
+  photo_path: string | null // Storage path (e.g., "uuid.webp"), NOT a URL
+  praise: string | null // Text content
   sticker_state: StickerState[]
-  updated_at: string // Maps to created_at
+  created_at: string
 }
 
 // Stamp asset
