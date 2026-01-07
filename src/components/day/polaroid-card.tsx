@@ -66,8 +66,9 @@ export function PolaroidCard({
 
   const stickers = dayCard?.sticker_state || []
 
-  // Show stamp if entry has a photo (saved entry)
-  const showStamp = Boolean(dayCard?.photo_path)
+  // Show stamp if entry has a photo (saved entry) AND not in edit mode
+  // Stamp hides when editing, reappears with animation on save success
+  const showStamp = Boolean(dayCard?.photo_path) && !isEditing
 
   // Sync praise draft when dayCard changes (e.g., date navigation)
   useEffect(() => {
