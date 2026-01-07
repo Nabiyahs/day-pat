@@ -7,18 +7,19 @@ import type { DayCard, StickerState } from '@/types/database'
 
 const DEBUG = process.env.NODE_ENV === 'development'
 
-// Helper to convert database row to DayCard
+// Helper to convert entries table row to DayCard (for UI compatibility)
+// Maps: entry_date → card_date, photo_path → photo_url, praise → caption
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function toDayCard(row: any): DayCard {
   return {
     id: row.id,
     user_id: row.user_id,
-    card_date: row.card_date,
-    photo_url: row.photo_url, // This stores the path, will be converted to signed URL
-    thumb_url: row.thumb_url || null,
-    caption: row.caption,
-    sticker_state: (row.sticker_state as StickerState[]) || [],
-    updated_at: row.updated_at,
+    card_date: row.entry_date, // Map entry_date to card_date
+    photo_url: row.photo_path, // Map photo_path to photo_url (stores path, not URL)
+    thumb_url: null, // Not used in entries table
+    caption: row.praise, // Map praise to caption
+    sticker_state: [], // Not used in entries table
+    updated_at: row.created_at, // Map created_at to updated_at
   }
 }
 
@@ -41,13 +42,18 @@ export function useDayCard(date: string) {
     if (DEBUG) console.log('[useDayCard] Edit state changed:', editing)
   }, [])
 
-  // Fetch signed URL when photo_url (path) changes
+  // Fetch signed URL when photo_path changes
   const fetchSignedUrl = useCallback(async (path: string | null): Promise<string | null> => {
     if (!path) {
       return null
     }
-    const signedUrl = await getSignedUrl(path)
-    return signedUrl
+    try {
+      const signedUrl = await getSignedUrl(path)
+      return signedUrl
+    } catch (err) {
+      console.error('[useDayCard] Failed to get signed URL:', err)
+      return null
+    }
   }, [])
 
   const fetchDayCard = useCallback(async () => {
@@ -57,36 +63,43 @@ export function useDayCard(date: string) {
       return
     }
 
-    if (DEBUG) console.log('[useDayCard] Fetching day card for date:', date)
+    if (DEBUG) console.log('[useDayCard] Fetching entry for date:', date)
 
     try {
       setLoading(true)
-      const { data, error } = await supabase
-        .from('day_cards')
-        .select('*')
-        .eq('card_date', date)
+
+      // Query from 'entries' table with correct column names
+      const { data, error: fetchError } = await supabase
+        .from('entries')
+        .select('id, user_id, entry_date, praise, photo_path, created_at')
+        .eq('entry_date', date)
         .maybeSingle()
 
-      if (error) throw error
+      if (fetchError) {
+        console.error('[useDayCard] DB fetch error:', fetchError)
+        throw fetchError
+      }
 
       if (data) {
         const card = toDayCard(data)
-        if (DEBUG) console.log('[useDayCard] Fetched card:', { photo_url: card.photo_url, caption: card.caption?.slice(0, 20) })
+        if (DEBUG) console.log('[useDayCard] Fetched entry:', {
+          photo_path: data.photo_path,
+          praise: data.praise?.slice(0, 20)
+        })
         setDayCard(card)
+
         // Fetch signed URL for the photo path
-        const signedUrl = await fetchSignedUrl(card.photo_url)
+        const signedUrl = await fetchSignedUrl(data.photo_path)
         if (DEBUG) console.log('[useDayCard] Got signed URL:', signedUrl ? 'yes' : 'no')
         setPhotoSignedUrl(signedUrl)
       } else {
-        if (DEBUG) console.log('[useDayCard] No card found for date')
+        if (DEBUG) console.log('[useDayCard] No entry found for date')
         setDayCard(null)
         setPhotoSignedUrl(null)
       }
     } catch (err) {
-      if (DEBUG) console.error('[useDayCard] Fetch error:', err)
+      console.error('[useDayCard] Fetch error:', err)
       // Don't expose raw error to UI - just log it
-      // setError(err instanceof Error ? err.message : 'Failed to fetch day card')
-      // Keep error state null so UI doesn't show error message
     } finally {
       setLoading(false)
     }
@@ -96,55 +109,86 @@ export function useDayCard(date: string) {
     fetchDayCard()
   }, [fetchDayCard])
 
+  // upsertDayCard accepts UI field names (photo_url, caption) but saves to DB column names (photo_path, praise)
   const upsertDayCard = async (updates: {
-    photo_url?: string | null
-    caption?: string | null
-    sticker_state?: StickerState[]
+    photo_url?: string | null // Will be saved as photo_path
+    caption?: string | null   // Will be saved as praise
+    sticker_state?: StickerState[] // Ignored - not in entries table
   }): Promise<{ success: boolean; error?: string }> => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { success: false, error: 'User not authenticated' }
+    // Check authentication first
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError) {
+      console.error('[useDayCard] Auth error:', authError)
+      return { success: false, error: 'Authentication failed. Please log in again.' }
+    }
+
+    if (!user) {
+      console.error('[useDayCard] No user found')
+      return { success: false, error: 'Please log in to save.' }
+    }
+
+    if (DEBUG) console.log('[useDayCard] Saving entry for user:', user.id, 'date:', date)
 
     setSaving(true)
     setError(null)
 
-    // Save old values for rollback (but don't modify state yet until we confirm success)
+    // Save old values for rollback
     const oldDayCard = dayCard
     const oldPhotoSignedUrl = photoSignedUrl
 
     try {
-      const stickers = updates.sticker_state ?? dayCard?.sticker_state ?? []
+      // Build the payload with correct column names for entries table
+      const payload: {
+        user_id: string
+        entry_date: string
+        photo_path?: string | null
+        praise?: string | null
+      } = {
+        user_id: user.id,
+        entry_date: date, // YYYY-MM-DD format
+      }
+
+      // Only include photo_path if it's being updated
+      if (updates.photo_url !== undefined) {
+        payload.photo_path = updates.photo_url
+      } else if (dayCard?.photo_url) {
+        payload.photo_path = dayCard.photo_url
+      }
+
+      // Only include praise if it's being updated
+      if (updates.caption !== undefined) {
+        payload.praise = updates.caption
+      } else if (dayCard?.caption) {
+        payload.praise = dayCard.caption
+      }
+
+      if (DEBUG) console.log('[useDayCard] Upserting to entries table:', payload)
 
       const { data, error: dbError } = await supabase
-        .from('day_cards')
-        .upsert(
-          {
-            user_id: user.id,
-            card_date: date,
-            photo_url: updates.photo_url ?? dayCard?.photo_url ?? null,
-            caption: updates.caption ?? dayCard?.caption ?? null,
-            sticker_state: stickers,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: 'user_id,card_date' }
-        )
-        .select()
+        .from('entries')
+        .upsert(payload, { onConflict: 'user_id,entry_date' })
+        .select('id, user_id, entry_date, praise, photo_path, created_at')
         .single()
 
-      if (dbError) throw dbError
+      if (dbError) {
+        console.error('[useDayCard] DB upsert error:', dbError)
+        throw dbError
+      }
+
+      if (DEBUG) console.log('[useDayCard] Save successful:', data)
 
       const updatedCard = toDayCard(data)
       setDayCard(updatedCard)
 
-      // Only fetch new signed URL AFTER DB save succeeds
-      // If photo_url changed, get the new signed URL
+      // Fetch new signed URL if photo_path changed
       if (updates.photo_url !== undefined && updates.photo_url !== oldDayCard?.photo_url) {
-        const newSignedUrl = await fetchSignedUrl(updatedCard.photo_url)
+        const newSignedUrl = await fetchSignedUrl(data.photo_path)
         if (newSignedUrl) {
           setPhotoSignedUrl(newSignedUrl)
-        } else if (updatedCard.photo_url) {
-          // If we couldn't get signed URL but path exists, keep old URL temporarily
-          // This prevents photo from disappearing
-          console.warn('Could not get signed URL for new photo, keeping old display')
+        } else if (data.photo_path) {
+          // Keep old URL temporarily to prevent photo disappearing
+          console.warn('[useDayCard] Could not get signed URL for new photo')
         }
       }
 
@@ -153,9 +197,28 @@ export function useDayCard(date: string) {
       // Rollback on failure
       setDayCard(oldDayCard)
       setPhotoSignedUrl(oldPhotoSignedUrl)
-      // Log actual error for debugging but show user-friendly message
-      if (DEBUG) console.error('[useDayCard] Save error:', err)
-      const userFriendlyMessage = '저장에 실패했어요. 다시 시도해 주세요.'
+
+      // Log actual error for debugging
+      console.error('[useDayCard] Save error:', err)
+
+      // Provide specific error messages based on error type
+      let userFriendlyMessage = 'Failed to save. Please try again.'
+
+      if (err instanceof Error) {
+        const msg = err.message.toLowerCase()
+        if (msg.includes('row-level security') || msg.includes('rls') || msg.includes('policy')) {
+          userFriendlyMessage = 'Permission denied. Please log in again.'
+        } else if (msg.includes('not authenticated') || msg.includes('jwt') || msg.includes('expired')) {
+          userFriendlyMessage = 'Session expired. Please log in again.'
+        } else if (msg.includes('network') || msg.includes('fetch') || msg.includes('connection')) {
+          userFriendlyMessage = 'Network error. Check your connection.'
+        } else if (msg.includes('unique') || msg.includes('duplicate')) {
+          userFriendlyMessage = 'Entry already exists for this date.'
+        } else if (msg.includes('relation') || msg.includes('does not exist')) {
+          userFriendlyMessage = 'Database not configured. Contact support.'
+        }
+      }
+
       setError(userFriendlyMessage)
       return { success: false, error: userFriendlyMessage }
     } finally {

@@ -9,6 +9,34 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      // Main entries table for photos and praise text
+      entries: {
+        Row: {
+          id: number
+          user_id: string
+          entry_date: string // YYYY-MM-DD format
+          praise: string | null
+          photo_path: string | null // Storage path, not URL
+          created_at: string
+        }
+        Insert: {
+          id?: never
+          user_id: string
+          entry_date: string
+          praise?: string | null
+          photo_path?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: never
+          user_id?: string
+          entry_date?: string
+          praise?: string | null
+          photo_path?: string | null
+          created_at?: string
+        }
+      }
+      // Legacy tables (kept for reference)
       praises: {
         Row: {
           id: number
@@ -141,16 +169,27 @@ export interface Praise {
   created_at: string
 }
 
-// Day card (with parsed sticker_state)
+// Entry from entries table (main data model)
+export interface Entry {
+  id: number
+  user_id: string
+  entry_date: string // YYYY-MM-DD format
+  praise: string | null
+  photo_path: string | null // Storage path in entry-photos bucket
+  created_at: string
+}
+
+// Day card - mapped from Entry for UI compatibility
+// This provides backward compatibility with existing components
 export interface DayCard {
   id: number
   user_id: string
-  card_date: string
-  photo_url: string | null
-  thumb_url: string | null // Thumbnail for calendar views
-  caption: string | null
+  card_date: string // Maps to entry_date
+  photo_url: string | null // Maps to photo_path
+  thumb_url: string | null // Not used in entries table
+  caption: string | null // Maps to praise
   sticker_state: StickerState[]
-  updated_at: string
+  updated_at: string // Maps to created_at
 }
 
 // Stamp asset

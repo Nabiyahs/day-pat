@@ -3,11 +3,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getWeekRange } from '@/lib/utils'
+import { getSignedUrl } from '@/lib/image-upload'
 
 export interface WeekDayData {
   date: string
   praiseCount: number
-  thumbUrl: string | null // Only load thumbnail for week view (not original)
+  thumbUrl: string | null // Signed URL for display
   hasStamp: boolean
   caption: string | null
   stickers: string[]
@@ -25,88 +26,54 @@ export function useWeekData(anchorDate: Date) {
       setLoading(true)
       const { start, end } = getWeekRange(anchorDate)
 
-      // Fetch all data in parallel
-      // IMPORTANT: Only fetch thumb_url for week view (not photo_url - saves bandwidth)
-      const [praisesRes, dayCardsRes, dayStampsRes] = await Promise.all([
-        supabase
-          .from('praises')
-          .select('praise_date, created_at')
-          .gte('praise_date', start)
-          .lte('praise_date', end),
-        supabase
-          .from('day_cards')
-          .select('card_date, thumb_url, caption, sticker_state, updated_at')
-          .gte('card_date', start)
-          .lte('card_date', end),
-        supabase
-          .from('day_stamps')
-          .select('praise_date')
-          .gte('praise_date', start)
-          .lte('praise_date', end),
-      ])
+      // Query from entries table with correct column names
+      const { data: entriesData, error: entriesError } = await supabase
+        .from('entries')
+        .select('entry_date, praise, photo_path, created_at')
+        .gte('entry_date', start)
+        .lte('entry_date', end)
 
-      if (praisesRes.error) throw praisesRes.error
-      if (dayCardsRes.error) throw dayCardsRes.error
-      if (dayStampsRes.error) throw dayStampsRes.error
-
-      // Aggregate praise counts and get latest time
-      const praiseCounts = new Map<string, number>()
-      const praiseTimes = new Map<string, string>()
-      praisesRes.data?.forEach((p) => {
-        const count = praiseCounts.get(p.praise_date) || 0
-        praiseCounts.set(p.praise_date, count + 1)
-        // Keep the latest time
-        const time = new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        praiseTimes.set(p.praise_date, time)
-      })
-
-      // Create day card data map (using thumb_url only for week view)
-      const dayCardData = new Map<string, { thumbUrl: string | null; caption: string | null; stickers: string[]; time: string | null }>()
-      dayCardsRes.data?.forEach((c) => {
-        // Extract emoji stickers from sticker_state
-        const stickers: string[] = []
-        if (c.sticker_state && Array.isArray(c.sticker_state)) {
-          c.sticker_state.forEach((s: { emoji?: string }) => {
-            if (s.emoji) stickers.push(s.emoji)
-          })
-        }
-        const time = c.updated_at ? new Date(c.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null
-        dayCardData.set(c.card_date, {
-          thumbUrl: c.thumb_url,
-          caption: c.caption,
-          stickers,
-          time,
-        })
-      })
-
-      // Create stamp set
-      const stampDates = new Set(dayStampsRes.data?.map((s) => s.praise_date) || [])
+      if (entriesError) {
+        console.error('[useWeekData] DB error:', entriesError)
+        throw entriesError
+      }
 
       // Build aggregated data
       const weekData = new Map<string, WeekDayData>()
 
-      // Get all unique dates
-      const allDates = new Set([
-        ...praiseCounts.keys(),
-        ...dayCardData.keys(),
-        ...stampDates,
-      ])
+      // Process entries and fetch signed URLs for photos
+      if (entriesData) {
+        for (const entry of entriesData) {
+          let thumbUrl: string | null = null
 
-      allDates.forEach((date) => {
-        const cardData = dayCardData.get(date)
-        weekData.set(date, {
-          date,
-          praiseCount: praiseCounts.get(date) || 0,
-          thumbUrl: cardData?.thumbUrl || null,
-          hasStamp: stampDates.has(date),
-          caption: cardData?.caption || null,
-          stickers: cardData?.stickers || [],
-          time: cardData?.time || praiseTimes.get(date) || null,
-        })
-      })
+          // Get signed URL if photo exists
+          if (entry.photo_path) {
+            try {
+              thumbUrl = await getSignedUrl(entry.photo_path)
+            } catch (err) {
+              console.error('[useWeekData] Failed to get signed URL:', err)
+            }
+          }
+
+          const time = entry.created_at
+            ? new Date(entry.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            : null
+
+          weekData.set(entry.entry_date, {
+            date: entry.entry_date,
+            praiseCount: entry.praise ? 1 : 0, // Count as 1 if praise exists
+            thumbUrl,
+            hasStamp: false, // Not used in entries table
+            caption: entry.praise, // Map praise to caption for UI compatibility
+            stickers: [], // Not used in entries table
+            time,
+          })
+        }
+      }
 
       setData(weekData)
     } catch (err) {
+      console.error('[useWeekData] Fetch error:', err)
       setError(err instanceof Error ? err.message : 'Failed to fetch week data')
     } finally {
       setLoading(false)

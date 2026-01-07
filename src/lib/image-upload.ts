@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 const MAX_SIZE_MB = 1
 const MAX_WIDTH = 1200
 const MAX_HEIGHT = 1200
-const BUCKET_NAME = 'entry-photos'
+const BUCKET_NAME = 'entry-photos' // Must match Supabase Storage bucket name (private bucket)
 const SIGNED_URL_EXPIRES_IN = 60 * 60 // 1 hour
 
 export async function compressImage(file: File): Promise<File> {
