@@ -32,10 +32,55 @@ export default function AppPage() {
   const [currentStreak, setCurrentStreak] = useState(0)
   const [totalFavorites, setTotalFavorites] = useState(0)
 
+  // Favorites data for FavoritesModal
+  const [favorites, setFavorites] = useState<Array<{
+    id: string
+    date: string
+    caption: string
+    photoUrl: string
+  }>>([])
+
   const [showDebug, setShowDebug] = useState(false)
   const router = useRouter()
   const supabase = useSupabase()
   const isDev = process.env.NODE_ENV === 'development'
+
+  // Fetch favorites for FavoritesModal
+  const fetchFavorites = async () => {
+    const { data: entries } = await supabase
+      .from('entries')
+      .select('id, entry_date, caption, photo_url')
+      .eq('is_liked', true)
+      .order('entry_date', { ascending: false })
+
+    if (entries && entries.length > 0) {
+      // Get signed URLs for all photos
+      const favoritesWithUrls = await Promise.all(
+        entries.map(async (entry: { id: string; entry_date: string; caption: string | null; photo_url: string | null }) => {
+          let photoUrl = ''
+          if (entry.photo_url) {
+            const { data } = await supabase.storage
+              .from('photos')
+              .createSignedUrl(entry.photo_url, 3600)
+            photoUrl = data?.signedUrl || ''
+          }
+          return {
+            id: entry.id,
+            date: new Date(entry.entry_date).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            }),
+            caption: entry.caption || '',
+            photoUrl,
+          }
+        })
+      )
+      setFavorites(favoritesWithUrls)
+    } else {
+      setFavorites([])
+    }
+  }
 
   // Fetch user stats for ProfileModal
   const fetchUserStats = async () => {
@@ -159,7 +204,10 @@ export default function AppPage() {
       {/* Bottom Navigation - opens modals, not pages */}
       <BottomNav
         onIntroClick={() => setIntroOpen(true)}
-        onFavoritesClick={() => setFavoritesOpen(true)}
+        onFavoritesClick={() => {
+          fetchFavorites()
+          setFavoritesOpen(true)
+        }}
         onAddClick={() => {
           setSelectedDate(formatDateString(new Date()))
           setActiveView('day')
@@ -176,7 +224,7 @@ export default function AppPage() {
       <FavoritesModal
         isOpen={favoritesOpen}
         onClose={() => setFavoritesOpen(false)}
-        favorites={[]}
+        favorites={favorites}
       />
       <StreakModal
         isOpen={streakOpen}
