@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { AppIcon } from '@/components/ui/app-icon'
 import { cn } from '@/lib/utils'
 import { uploadPhoto } from '@/lib/image-upload'
@@ -10,10 +10,10 @@ interface PolaroidCardProps {
   dayCard: DayCard | null
   photoSignedUrl: string | null
   date: string
-  onPhotoChange: (path: string) => Promise<void>
-  onCaptionChange: (caption: string) => Promise<void>
+  onSave: (updates: { photo_url?: string | null; caption?: string | null }) => Promise<{ success: boolean; error?: string }>
   onStickersChange: (stickers: StickerState[]) => Promise<void>
   saving?: boolean
+  saveError?: string | null
 }
 
 const EMOJI_PALETTE = ['☕', '✨', '💛', '⭐', '🌟', '💖', '🎉', '🌸', '🍀', '🔥', '💪', '🧘‍♀️', '🥗', '💚', '😊', '🥰']
@@ -22,52 +22,127 @@ export function PolaroidCard({
   dayCard,
   photoSignedUrl,
   date,
-  onPhotoChange,
-  onCaptionChange,
+  onSave,
   onStickersChange,
   saving,
+  saveError,
 }: PolaroidCardProps) {
+  // Edit mode state
+  const [isEditing, setIsEditing] = useState(false)
+
+  // Pending changes (only applied on save)
+  const [pendingPhotoPath, setPendingPhotoPath] = useState<string | null>(null)
+  const [pendingPhotoPreview, setPendingPhotoPreview] = useState<string | null>(null)
+  const [captionDraft, setCaptionDraft] = useState(dayCard?.caption || '')
+
+  // Upload state
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
-  const [editingCaption, setEditingCaption] = useState(false)
-  const [captionDraft, setCaptionDraft] = useState(dayCard?.caption || '')
+
+  // UI state
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const photoAreaRef = useRef<HTMLDivElement>(null)
 
   const stickers = dayCard?.sticker_state || []
 
+  // Sync caption draft when dayCard changes (e.g., date navigation)
+  useEffect(() => {
+    setCaptionDraft(dayCard?.caption || '')
+    // Reset pending photo when dayCard changes
+    setPendingPhotoPath(null)
+    setPendingPhotoPreview(null)
+    setIsEditing(false)
+  }, [dayCard?.caption, dayCard?.card_date])
+
+  // Determine what photo to display
+  // Priority: pendingPhotoPreview (local) > photoSignedUrl (server)
+  const displayPhotoUrl = pendingPhotoPreview || photoSignedUrl
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file) return
+    if (!file || !isEditing) return
 
     setUploading(true)
     setUploadError(null)
+
+    // Create local preview immediately
+    const localPreviewUrl = URL.createObjectURL(file)
+    setPendingPhotoPreview(localPreviewUrl)
+
     try {
       const path = await uploadPhoto(file, date)
       if (path) {
-        await onPhotoChange(path)
+        setPendingPhotoPath(path)
+        // Keep the local preview until save
+      } else {
+        // Upload returned null - clear preview and show error
+        setPendingPhotoPreview(null)
+        setUploadError('Upload failed. Please try again.')
+        setTimeout(() => setUploadError(null), 5000)
       }
     } catch (error) {
       console.error('Upload failed:', error)
+      // Clear preview on error
+      setPendingPhotoPreview(null)
       const errorMessage = error instanceof Error ? error.message : 'Upload failed'
       setUploadError(errorMessage)
-      // Clear error after 5 seconds
       setTimeout(() => setUploadError(null), 5000)
     } finally {
       setUploading(false)
-      // Reset file input so same file can be selected again
       if (fileInputRef.current) {
         fileInputRef.current.value = ''
       }
     }
   }
 
-  const handleCaptionBlur = async () => {
-    setEditingCaption(false)
-    if (captionDraft !== (dayCard?.caption || '')) {
-      await onCaptionChange(captionDraft)
+  const handleEditClick = () => {
+    if (!isEditing) {
+      // Enter edit mode
+      setIsEditing(true)
+      setCaptionDraft(dayCard?.caption || '')
     }
+    // If already editing, pencil click does nothing (prevent confusion)
+  }
+
+  const handleSaveClick = async () => {
+    if (!isEditing || saving) return
+
+    const updates: { photo_url?: string | null; caption?: string | null } = {}
+
+    // Check if photo changed
+    if (pendingPhotoPath) {
+      updates.photo_url = pendingPhotoPath
+    }
+
+    // Check if caption changed
+    if (captionDraft !== (dayCard?.caption || '')) {
+      updates.caption = captionDraft
+    }
+
+    // Only save if there are changes
+    if (Object.keys(updates).length === 0) {
+      // No changes, just exit edit mode
+      setIsEditing(false)
+      setPendingPhotoPath(null)
+      setPendingPhotoPreview(null)
+      return
+    }
+
+    const result = await onSave(updates)
+
+    if (result.success) {
+      // Clear pending state and exit edit mode
+      setPendingPhotoPath(null)
+      setPendingPhotoPreview(null)
+      setIsEditing(false)
+    }
+    // On failure, stay in edit mode (saveError will be shown)
+  }
+
+  const handleCameraClick = () => {
+    if (!isEditing) return // Camera only works in edit mode
+    fileInputRef.current?.click()
   }
 
   const addSticker = async (emoji: string) => {
@@ -140,18 +215,21 @@ export function PolaroidCard({
           ref={photoAreaRef}
           className="bg-gray-100 rounded-2xl overflow-hidden mb-4 relative"
         >
-          {photoSignedUrl ? (
+          {displayPhotoUrl ? (
             <>
               <img
-                src={photoSignedUrl}
+                src={displayPhotoUrl}
                 alt="Day photo"
                 className="w-full h-[340px] object-cover"
               />
-              {/* Change photo button */}
+              {/* Change photo button - only clickable in edit mode */}
               <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                className="absolute bottom-3 right-3 p-2 bg-white/80 backdrop-blur-sm rounded-full shadow hover:bg-white transition-colors"
+                onClick={handleCameraClick}
+                disabled={uploading || !isEditing}
+                className={cn(
+                  'absolute bottom-3 right-3 p-2 bg-white/80 backdrop-blur-sm rounded-full shadow transition-colors',
+                  isEditing ? 'hover:bg-white cursor-pointer' : 'opacity-50 cursor-not-allowed'
+                )}
               >
                 {uploading ? (
                   <AppIcon name="spinner" className="w-4 h-4 animate-spin text-gray-600" />
@@ -162,9 +240,14 @@ export function PolaroidCard({
             </>
           ) : (
             <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              className="w-full h-[340px] flex flex-col items-center justify-center gap-2 text-gray-400 hover:text-gray-500 transition-colors"
+              onClick={handleCameraClick}
+              disabled={uploading || !isEditing}
+              className={cn(
+                'w-full h-[340px] flex flex-col items-center justify-center gap-2 transition-colors',
+                isEditing
+                  ? 'text-gray-400 hover:text-gray-500 cursor-pointer'
+                  : 'text-gray-300 cursor-not-allowed'
+              )}
             >
               {uploading ? (
                 <AppIcon name="spinner" className="w-10 h-10 animate-spin" />
@@ -179,6 +262,14 @@ export function PolaroidCard({
             <div className="absolute bottom-3 left-3 right-3 bg-red-500/90 text-white text-xs px-3 py-2 rounded-lg flex items-center gap-2">
               <AppIcon name="alert-circle" className="w-4 h-4 flex-shrink-0" />
               <span className="truncate">{uploadError}</span>
+            </div>
+          )}
+
+          {/* Save error message */}
+          {saveError && !uploadError && (
+            <div className="absolute bottom-3 left-3 right-3 bg-red-500/90 text-white text-xs px-3 py-2 rounded-lg flex items-center gap-2">
+              <AppIcon name="alert-circle" className="w-4 h-4 flex-shrink-0" />
+              <span className="truncate">{saveError}</span>
             </div>
           )}
 
@@ -213,26 +304,19 @@ export function PolaroidCard({
 
         {/* Caption and footer - matches reference layout */}
         <div className="px-2">
-          {editingCaption ? (
+          {isEditing ? (
             <input
               type="text"
               value={captionDraft}
               onChange={(e) => setCaptionDraft(e.target.value)}
-              onBlur={handleCaptionBlur}
-              onKeyDown={(e) => e.key === 'Enter' && handleCaptionBlur()}
-              autoFocus
               placeholder="오늘의 칭찬 하나"
               className="w-full text-center text-gray-700 font-medium leading-relaxed mb-3 bg-transparent border-b border-gray-200 focus:border-pink-400 outline-none py-1"
               maxLength={150}
             />
           ) : (
             <p
-              onClick={() => {
-                setCaptionDraft(dayCard?.caption || '')
-                setEditingCaption(true)
-              }}
               className={cn(
-                'text-center font-medium leading-relaxed mb-3 cursor-pointer min-h-[24px]',
+                'text-center font-medium leading-relaxed mb-3 min-h-[24px]',
                 dayCard?.caption ? 'text-gray-700' : 'text-gray-400'
               )}
             >
@@ -240,18 +324,42 @@ export function PolaroidCard({
             </p>
           )}
 
-          {/* Footer actions - matches reference: time + sticker button */}
+          {/* Footer actions - matches reference: time + edit/save buttons */}
           <div className="flex items-center justify-between text-xs text-gray-400">
             <span>{dayCard?.updated_at ? new Date(dayCard.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
             <div className="flex gap-3">
+              {/* Edit (pencil) button */}
               <button
-                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                className="hover:text-[#F27430] transition-colors p-1"
-                aria-label="Add sticker"
-                title="Add sticker"
+                onClick={handleEditClick}
+                className={cn(
+                  'transition-colors p-1',
+                  isEditing ? 'text-[#F27430]' : 'hover:text-[#F27430]'
+                )}
+                aria-label="Edit"
+                title="Edit"
               >
                 <AppIcon name="edit" className="w-3.5 h-3.5" />
               </button>
+
+              {/* Save (check) button - only shown in edit mode */}
+              {isEditing && (
+                <button
+                  onClick={handleSaveClick}
+                  disabled={saving || uploading}
+                  className={cn(
+                    'transition-colors p-1',
+                    saving || uploading ? 'text-gray-300' : 'text-[#F27430] hover:text-[#E06320]'
+                  )}
+                  aria-label="Save"
+                  title="Save"
+                >
+                  {saving ? (
+                    <AppIcon name="spinner" className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <AppIcon name="check" className="w-3.5 h-3.5" />
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>

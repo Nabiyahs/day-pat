@@ -29,13 +29,12 @@ export function useDayCard(date: string) {
   const supabase = createClient()
 
   // Fetch signed URL when photo_url (path) changes
-  const fetchSignedUrl = useCallback(async (path: string | null) => {
+  const fetchSignedUrl = useCallback(async (path: string | null): Promise<string | null> => {
     if (!path) {
-      setPhotoSignedUrl(null)
-      return
+      return null
     }
     const signedUrl = await getSignedUrl(path)
-    setPhotoSignedUrl(signedUrl)
+    return signedUrl
   }, [])
 
   const fetchDayCard = useCallback(async () => {
@@ -53,7 +52,8 @@ export function useDayCard(date: string) {
         const card = toDayCard(data)
         setDayCard(card)
         // Fetch signed URL for the photo path
-        await fetchSignedUrl(card.photo_url)
+        const signedUrl = await fetchSignedUrl(card.photo_url)
+        setPhotoSignedUrl(signedUrl)
       } else {
         setDayCard(null)
         setPhotoSignedUrl(null)
@@ -73,39 +73,21 @@ export function useDayCard(date: string) {
     photo_url?: string | null
     caption?: string | null
     sticker_state?: StickerState[]
-  }) => {
+  }): Promise<{ success: boolean; error?: string }> => {
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return null
+    if (!user) return { success: false, error: 'User not authenticated' }
 
     setSaving(true)
+    setError(null)
+
+    // Save old values for rollback (but don't modify state yet until we confirm success)
     const oldDayCard = dayCard
     const oldPhotoSignedUrl = photoSignedUrl
-
-    // Optimistic update
-    if (dayCard) {
-      setDayCard({ ...dayCard, ...updates, updated_at: new Date().toISOString() })
-    } else {
-      setDayCard({
-        id: Date.now(),
-        user_id: user.id,
-        card_date: date,
-        photo_url: updates.photo_url ?? null,
-        thumb_url: null,
-        caption: updates.caption ?? null,
-        sticker_state: updates.sticker_state ?? [],
-        updated_at: new Date().toISOString(),
-      })
-    }
-
-    // If photo_url is being updated, fetch new signed URL
-    if (updates.photo_url !== undefined) {
-      await fetchSignedUrl(updates.photo_url)
-    }
 
     try {
       const stickers = updates.sticker_state ?? dayCard?.sticker_state ?? []
 
-      const { data, error } = await supabase
+      const { data, error: dbError } = await supabase
         .from('day_cards')
         .upsert(
           {
@@ -121,17 +103,32 @@ export function useDayCard(date: string) {
         .select()
         .single()
 
-      if (error) throw error
+      if (dbError) throw dbError
+
       const updatedCard = toDayCard(data)
       setDayCard(updatedCard)
-      // Refresh signed URL after successful save
-      await fetchSignedUrl(updatedCard.photo_url)
-      return updatedCard
+
+      // Only fetch new signed URL AFTER DB save succeeds
+      // If photo_url changed, get the new signed URL
+      if (updates.photo_url !== undefined && updates.photo_url !== oldDayCard?.photo_url) {
+        const newSignedUrl = await fetchSignedUrl(updatedCard.photo_url)
+        if (newSignedUrl) {
+          setPhotoSignedUrl(newSignedUrl)
+        } else if (updatedCard.photo_url) {
+          // If we couldn't get signed URL but path exists, keep old URL temporarily
+          // This prevents photo from disappearing
+          console.warn('Could not get signed URL for new photo, keeping old display')
+        }
+      }
+
+      return { success: true }
     } catch (err) {
+      // Rollback on failure
       setDayCard(oldDayCard)
       setPhotoSignedUrl(oldPhotoSignedUrl)
-      setError(err instanceof Error ? err.message : 'Failed to save day card')
-      return null
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save day card'
+      setError(errorMessage)
+      return { success: false, error: errorMessage }
     } finally {
       setSaving(false)
     }
