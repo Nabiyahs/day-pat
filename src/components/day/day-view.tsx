@@ -16,7 +16,7 @@ export function DayView({ selectedDate, onDateChange }: DayViewProps) {
   const date = parseDateString(selectedDate)
   const dateStr = formatDateString(date)
 
-  const { dayCard, saving: cardSaving, upsertDayCard } = useDayCard(dateStr)
+  const { dayCard, photoSignedUrl, saving: cardSaving, upsertDayCard } = useDayCard(dateStr)
 
   const goToPrevDay = () => {
     const prev = new Date(date)
@@ -63,9 +63,10 @@ export function DayView({ selectedDate, onDateChange }: DayViewProps) {
       {/* Polaroid Card - matches reference design */}
       <PolaroidCard
         dayCard={dayCard}
+        photoSignedUrl={photoSignedUrl}
         date={dateStr}
-        onPhotoChange={async (url) => {
-          await upsertDayCard({ photo_url: url })
+        onPhotoChange={async (path) => {
+          await upsertDayCard({ photo_url: path })
         }}
         onCaptionChange={async (caption) => {
           await upsertDayCard({ caption })
