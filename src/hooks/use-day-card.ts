@@ -111,6 +111,10 @@ export function useDayCard(date: string) {
   }, [fetchDayCard])
 
   // upsertDayCard accepts UI field names (photo_url, caption) but saves to DB column names (photo_path, praise)
+  // SAVE STAGES:
+  // 1. Upload stage (handled by polaroid-card before calling this)
+  // 2. DB save stage (critical - failure = save failed)
+  // 3. Post-save processing (signed URL, state update - failure = warning only)
   const upsertDayCard = async (updates: {
     photo_url?: string | null // Will be saved as photo_path
     caption?: string | null   // Will be saved as praise
@@ -149,9 +153,18 @@ export function useDayCard(date: string) {
     setSaving(true)
     setError(null)
 
-    // Save old values for rollback
-    const oldDayCard = dayCard
-    const oldPhotoSignedUrl = photoSignedUrl
+    // ═══════════════════════════════════════════════════════════════════
+    // STAGE 2: DB SAVE (Critical - failure means save failed)
+    // ═══════════════════════════════════════════════════════════════════
+    let savedData: {
+      id: string
+      user_id: string
+      entry_date: string
+      praise: string
+      photo_path: string
+      is_liked: boolean
+      created_at: string
+    } | null = null
 
     try {
       // Build the payload with correct column names for entries table
@@ -164,7 +177,7 @@ export function useDayCard(date: string) {
       } = {
         user_id: user.id,
         entry_date: date, // YYYY-MM-DD format
-        // photo_path is required - use new photo or existing (already validated above)
+        // photo_path is required - use EXACTLY as provided, no manipulation
         photo_path: (updates.photo_url !== undefined ? updates.photo_url : dayCard?.photo_url) as string,
         // praise is required - default to empty string if not provided
         praise: updates.caption !== undefined
@@ -174,10 +187,11 @@ export function useDayCard(date: string) {
 
       if (DEBUG) {
         console.log('[useDayCard] ═══════════════════════════════════════')
-        console.log('[useDayCard] DB SAVE - photo_path:', payload.photo_path)
-        console.log('[useDayCard] DB SAVE - entry_date:', payload.entry_date)
-        console.log('[useDayCard] DB SAVE - user_id:', payload.user_id)
-        console.log('[useDayCard] DB SAVE - praise length:', payload.praise?.length || 0)
+        console.log('[useDayCard] STAGE 2: DB SAVE')
+        console.log('[useDayCard] photo_path:', payload.photo_path)
+        console.log('[useDayCard] entry_date:', payload.entry_date)
+        console.log('[useDayCard] user_id:', payload.user_id)
+        console.log('[useDayCard] praise length:', payload.praise?.length || 0)
         console.log('[useDayCard] ═══════════════════════════════════════')
       }
 
@@ -189,47 +203,21 @@ export function useDayCard(date: string) {
 
       if (dbError) {
         // Log detailed error info for debugging (dev console only)
-        console.error('[useDayCard] DB upsert FAILED')
+        console.error('[useDayCard] ❌ STAGE 2 FAILED: DB upsert error')
         console.error('[useDayCard] Error code:', dbError.code)
         console.error('[useDayCard] Error message:', dbError.message)
         console.error('[useDayCard] Error details:', dbError.details)
         console.error('[useDayCard] Error hint:', dbError.hint)
-        console.error('[useDayCard] Payload attempted:', {
-          user_id: payload.user_id,
-          entry_date: payload.entry_date,
-          photo_path: payload.photo_path ? `${payload.photo_path.substring(0, 50)}...` : 'NULL',
-          praise_length: payload.praise?.length || 0,
-        })
         throw dbError
       }
 
+      savedData = data
       if (DEBUG) {
-        console.log('[useDayCard] ✅ Save successful!')
-        console.log('[useDayCard] DB returned photo_path:', data.photo_path)
-        console.log('[useDayCard] DB returned entry_date:', data.entry_date)
+        console.log('[useDayCard] ✅ STAGE 2 SUCCESS: DB save complete')
+        console.log('[useDayCard] Saved photo_path:', data.photo_path)
       }
-
-      const updatedCard = toDayCard(data)
-      setDayCard(updatedCard)
-
-      // Fetch new signed URL if photo_path changed
-      if (updates.photo_url !== undefined && updates.photo_url !== oldDayCard?.photo_url) {
-        const newSignedUrl = await fetchSignedUrl(data.photo_path)
-        if (newSignedUrl) {
-          setPhotoSignedUrl(newSignedUrl)
-        } else if (data.photo_path) {
-          // Keep old URL temporarily to prevent photo disappearing
-          console.warn('[useDayCard] Could not get signed URL for new photo')
-        }
-      }
-
-      return { success: true }
     } catch (err) {
-      // Rollback on failure
-      setDayCard(oldDayCard)
-      setPhotoSignedUrl(oldPhotoSignedUrl)
-
-      // Log actual error for debugging
+      // DB save failed - this is a real failure
       console.error('[useDayCard] Save error:', err)
 
       // Provide specific error messages based on error type
@@ -253,10 +241,53 @@ export function useDayCard(date: string) {
       }
 
       setError(userFriendlyMessage)
-      return { success: false, error: userFriendlyMessage }
-    } finally {
       setSaving(false)
+      return { success: false, error: userFriendlyMessage }
     }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // STAGE 3: POST-SAVE PROCESSING (Non-critical - failure = warning only)
+    // ═══════════════════════════════════════════════════════════════════
+    // At this point, DB save succeeded. Update local state and fetch signed URL.
+    // Errors here should NOT cause "save failed" - just log warnings.
+
+    if (DEBUG) console.log('[useDayCard] STAGE 3: Post-save processing')
+
+    // Update local state with saved data
+    if (savedData) {
+      const updatedCard = toDayCard(savedData)
+      setDayCard(updatedCard)
+    }
+
+    // Fetch new signed URL if photo_path changed
+    if (updates.photo_url !== undefined && savedData?.photo_path) {
+      try {
+        if (DEBUG) {
+          console.log('[useDayCard] Fetching signed URL for:', savedData.photo_path)
+        }
+        const newSignedUrl = await fetchSignedUrl(savedData.photo_path)
+        if (newSignedUrl) {
+          setPhotoSignedUrl(newSignedUrl)
+          if (DEBUG) console.log('[useDayCard] ✅ Signed URL fetched successfully')
+        } else {
+          // Signed URL failed but save succeeded - just warn
+          console.warn('[useDayCard] ⚠️ STAGE 3 WARNING: Could not get signed URL')
+          console.warn('[useDayCard] photo_path:', savedData.photo_path)
+          // Keep any existing photo visible
+        }
+      } catch (signedUrlError) {
+        // Signed URL error - log but don't fail the save
+        console.warn('[useDayCard] ⚠️ STAGE 3 WARNING: Signed URL fetch error')
+        if (signedUrlError instanceof Error) {
+          console.warn('[useDayCard] Error:', signedUrlError.message)
+        }
+        // Photo was saved successfully, just URL fetch had issues
+      }
+    }
+
+    setSaving(false)
+    if (DEBUG) console.log('[useDayCard] ✅ Save complete (all stages)')
+    return { success: true }
   }
 
   // Toggle the is_liked flag for the current entry
