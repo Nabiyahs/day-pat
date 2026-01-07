@@ -78,7 +78,7 @@ export function StampOverlay({
       )}
     >
       <img
-        src="/image/compliment-seal.jpg"
+        src="/image/seal-image.jpg"
         alt="Compliment seal"
         className="w-20 h-20 object-contain rounded-full shadow-md"
         draggable={false}
