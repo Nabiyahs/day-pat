@@ -8,7 +8,7 @@ import { useSupabase, resetSupabaseClient } from '@/lib/supabase/client'
 import { AppIcon } from '@/components/ui/app-icon'
 import type { User, AuthChangeEvent, Session } from '@supabase/supabase-js'
 import { Header, ViewTabs, BottomNav, type ViewType } from '@/components/shell'
-import { IntroModal, FavoritesModal, StreakModal, ProfileModal } from '@/components/modals'
+import { IntroModal, FavoritesModal, StreakModal, ProfileModal, ExportModal } from '@/components/modals'
 import { MonthView } from '@/components/calendar/month-view'
 import { WeekView } from '@/components/calendar/week-view'
 import { DayView } from '@/components/day/day-view'
@@ -26,6 +26,7 @@ export default function AppPage() {
   const [favoritesOpen, setFavoritesOpen] = useState(false)
   const [streakOpen, setStreakOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  const [exportOpen, setExportOpen] = useState(false)
 
   // Stats for ProfileModal
   const [totalEntries, setTotalEntries] = useState(0)
@@ -242,14 +243,19 @@ export default function AppPage() {
           router.push('/app/profile')
         }}
         onExportPdf={() => {
-          // TODO: Implement PDF export
-          console.log('Export to PDF clicked')
+          setProfileOpen(false)
+          setExportOpen(true)
         }}
         userName={user?.user_metadata?.display_name}
         userEmail={user?.email}
         totalEntries={totalEntries}
         currentStreak={currentStreak}
         totalFavorites={totalFavorites}
+      />
+      <ExportModal
+        isOpen={exportOpen}
+        onClose={() => setExportOpen(false)}
+        selectedDate={selectedDate}
       />
 
       {/* Debug Panel (Development only) */}
