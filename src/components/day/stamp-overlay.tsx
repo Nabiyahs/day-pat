@@ -4,8 +4,8 @@ import { useEffect, useState, useCallback } from 'react'
 import { cn } from '@/lib/utils'
 
 // Animation timing constants (must match globals.css)
-const ANIMATION_DURATION = 550 // Total animation duration in ms
-const IMPACT_TIMING = 200 // When impact happens (38% of 550ms ≈ 209ms)
+const ANIMATION_DURATION = 420 // Total animation duration in ms
+const IMPACT_TIMING = 230 // When impact happens (55% of 420ms)
 
 interface StampOverlayProps {
   /** Whether to show the stamp (entry exists) */
@@ -14,8 +14,6 @@ interface StampOverlayProps {
   playAnimation: boolean
   /** Callback when animation completes */
   onAnimationComplete?: () => void
-  /** Callback when stamp impacts (for polaroid shake sync) */
-  onImpact?: () => void
 }
 
 /**
@@ -25,7 +23,7 @@ interface StampOverlayProps {
 function triggerHapticFeedback() {
   try {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-      navigator.vibrate(35) // Short "thump" vibration
+      navigator.vibrate(50) // Stronger "thump" vibration
     }
   } catch {
     // Silently ignore - vibration not supported or blocked
@@ -41,19 +39,17 @@ export function StampOverlay({
   show,
   playAnimation,
   onAnimationComplete,
-  onImpact,
 }: StampOverlayProps) {
   const [isAnimating, setIsAnimating] = useState(false)
 
   const handleAnimationStart = useCallback(() => {
-    // Trigger haptic + impact callback at the "squash" moment
+    // Trigger haptic at the "squash" moment
     const impactTimer = setTimeout(() => {
       triggerHapticFeedback()
-      onImpact?.()
     }, IMPACT_TIMING)
 
     return () => clearTimeout(impactTimer)
-  }, [onImpact])
+  }, [])
 
   useEffect(() => {
     if (playAnimation && show) {
@@ -80,14 +76,14 @@ export function StampOverlay({
   return (
     <div
       className={cn(
-        'absolute bottom-6 right-2 z-30 pointer-events-none',
+        'absolute bottom-12 right-2 z-30 pointer-events-none',
         isAnimating && 'animate-stamp-thump'
       )}
     >
       <img
         src="/image/seal-image.jpg"
         alt="Compliment seal"
-        className="w-20 h-20 object-contain rounded-full shadow-md"
+        className="w-[88px] h-[88px] object-contain rounded-full shadow-lg"
         draggable={false}
       />
     </div>

@@ -122,32 +122,26 @@ body {
 }
 
 /* Stamp "thump" animation for Day View polaroid
-   4-phase: approach → impact (squash) → rebound → settle */
+   3-phase: approach → impact (squash) → settle (no rebound) */
 @keyframes stamp-thump {
   /* Phase 1: Approach - dropping from above */
   0% {
     opacity: 0;
-    transform: translateY(-32px) scale(1.12);
+    transform: translateY(-36px) scale(1.15);
   }
-  25% {
+  35% {
     opacity: 1;
-    transform: translateY(-8px) scale(1.05);
+    transform: translateY(-6px) scale(1.06);
   }
-  /* Phase 2: Impact - squash effect (stamp pressing down) */
-  38% {
-    opacity: 1;
-    transform: translateY(3px) scaleX(1.08) scaleY(0.94);
-  }
-  /* Phase 3: Rebound - small bounce up */
+  /* Phase 2: Impact - strong squash effect (stamp pressing hard) */
   55% {
-    transform: translateY(-5px) scale(1.01);
+    opacity: 1;
+    transform: translateY(2px) scaleX(1.10) scaleY(0.93);
   }
-  70% {
-    transform: translateY(1px) scale(0.995);
-  }
-  /* Phase 4: Settle - ink stabilizes */
-  85% {
-    transform: translateY(-1px) scale(1.002);
+  /* Phase 3: Settle - immediate stabilization, no bounce */
+  75% {
+    opacity: 0.97;
+    transform: translateY(0) scale(1);
   }
   100% {
     opacity: 1;
@@ -156,19 +150,7 @@ body {
 }
 
 .animate-stamp-thump {
-  animation: stamp-thump 0.55s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
-}
-
-/* Polaroid micro-shake on stamp impact (Day View only) */
-@keyframes polaroid-shake {
-  0%, 100% { transform: rotate(-1deg); }
-  25% { transform: rotate(-1.5deg); }
-  50% { transform: rotate(-0.5deg); }
-  75% { transform: rotate(-1.3deg); }
-}
-
-.animate-polaroid-shake {
-  animation: polaroid-shake 0.18s ease-in-out;
+  animation: stamp-thump 0.42s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
 /* Disable stamp animation for users who prefer reduced motion */
