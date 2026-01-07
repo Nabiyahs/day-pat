@@ -70,7 +70,7 @@ export function IntroModal({ isOpen, onClose }: IntroModalProps) {
       >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-100">
-          <h2 className="text-xl font-bold text-gray-800">Guide</h2>
+          <h2 className="text-2xl font-bold text-gray-800" style={{ fontFamily: 'Caveat, cursive' }}>DayPat</h2>
           <button
             onClick={onClose}
             className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100"
@@ -140,7 +140,6 @@ export function IntroModal({ isOpen, onClose }: IntroModalProps) {
                       <img src="/image/67c9033525-e71831b512ea2e428637.png" alt="week example" className="w-full h-full object-cover" />
                     </div>
                   </div>
-                  <p className="text-xs text-gray-600 text-center pt-2">Track your weekly progress</p>
                 </div>
               </div>
             </div>
@@ -196,7 +195,6 @@ export function IntroModal({ isOpen, onClose }: IntroModalProps) {
                       <img src="/image/011a105c86-64ea07166049e1017e9a.png" alt="month" className="w-full h-full object-cover" />
                     </div>
                   </div>
-                  <p className="text-xs text-gray-600 text-center pt-2">Monthly memory gallery</p>
                 </div>
               </div>
             </div>
@@ -231,7 +229,6 @@ export function IntroModal({ isOpen, onClose }: IntroModalProps) {
                     <AppIcon name="heart" className="w-4 h-4 text-red-500 absolute top-1 right-1 drop-shadow-lg fill-current" />
                   </div>
                 </div>
-                <p className="text-xs text-gray-600 text-center pt-3">Collage of loved memories</p>
               </div>
             </div>
           </div>
@@ -257,27 +254,20 @@ export function IntroModal({ isOpen, onClose }: IntroModalProps) {
             onClick={handlePrev}
             disabled={currentSlide === 0}
             className={cn(
-              'px-4 py-2 text-gray-400 font-semibold rounded-lg hover:bg-gray-100',
+              'w-10 h-10 flex items-center justify-center text-gray-400 font-semibold rounded-lg hover:bg-gray-100',
               currentSlide === 0 ? 'opacity-0' : ''
             )}
           >
-            <AppIcon name="chevron-left" className="w-4 h-4 inline mr-2" />
-            Back
+            <AppIcon name="chevron-left" className="w-5 h-5" />
           </button>
           <button
             onClick={handleNext}
-            className="px-6 py-2 bg-orange-500 text-white font-semibold rounded-lg hover:bg-orange-600"
+            className="w-10 h-10 flex items-center justify-center bg-orange-500 text-white font-semibold rounded-lg hover:bg-orange-600"
           >
             {currentSlide === totalSlides - 1 ? (
-              <>
-                Get Started
-                <AppIcon name="check" className="w-4 h-4 inline ml-2" />
-              </>
+              <AppIcon name="check" className="w-5 h-5" />
             ) : (
-              <>
-                Next
-                <AppIcon name="chevron-right" className="w-4 h-4 inline ml-2" />
-              </>
+              <AppIcon name="chevron-right" className="w-5 h-5" />
             )}
           </button>
         </div>
