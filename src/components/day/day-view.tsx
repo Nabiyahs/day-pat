@@ -16,7 +16,7 @@ export function DayView({ selectedDate, onDateChange }: DayViewProps) {
   const date = parseDateString(selectedDate)
   const dateStr = formatDateString(date)
 
-  const { dayCard, photoSignedUrl, saving: cardSaving, error, upsertDayCard, setEditingState } = useDayCard(dateStr)
+  const { dayCard, photoSignedUrl, saving: cardSaving, error, upsertDayCard, toggleLike, setEditingState } = useDayCard(dateStr)
 
   const goToPrevDay = () => {
     const prev = new Date(date)
@@ -76,6 +76,7 @@ export function DayView({ selectedDate, onDateChange }: DayViewProps) {
         onStickersChange={async (stickers) => {
           await upsertDayCard({ sticker_state: stickers })
         }}
+        onToggleLike={toggleLike}
         saving={cardSaving}
         saveError={error}
         onEditingChange={setEditingState}

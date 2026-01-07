@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
 import { AppIcon } from '@/components/ui/app-icon'
 import { cn } from '@/lib/utils'
 
@@ -10,14 +11,24 @@ interface SideDrawerProps {
   onLogout?: () => void
 }
 
-const MENU_ITEMS = [
-  { id: 'calendar', label: 'Calendar', icon: 'calendar' as const, active: true, available: true },
-  { id: 'favorites', label: 'Favorites', icon: 'heart' as const, active: false, available: false },
-  { id: 'insights', label: 'Insights', icon: 'trending-up' as const, active: false, available: false },
-  { id: 'settings', label: 'Settings', icon: 'settings' as const, active: false, available: false },
+interface MenuItem {
+  id: string
+  label: string
+  icon: 'calendar' | 'heart' | 'trending-up' | 'settings'
+  href: string
+}
+
+const MENU_ITEMS: MenuItem[] = [
+  { id: 'calendar', label: 'Calendar', icon: 'calendar', href: '/en/app' },
+  { id: 'favorites', label: 'Favorites', icon: 'heart', href: '/en/app/favorites' },
+  { id: 'insights', label: 'Insights', icon: 'trending-up', href: '/en/app/insights' },
+  { id: 'settings', label: 'Settings', icon: 'settings', href: '/en/app/settings' },
 ]
 
 export function SideDrawer({ isOpen, onClose, onLogout }: SideDrawerProps) {
+  const router = useRouter()
+  const pathname = usePathname()
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -35,6 +46,18 @@ export function SideDrawer({ isOpen, onClose, onLogout }: SideDrawerProps) {
       document.body.style.overflow = ''
     }
   }, [isOpen, onClose])
+
+  const isActive = (href: string) => {
+    if (href === '/en/app') {
+      return pathname === '/en/app'
+    }
+    return pathname.startsWith(href)
+  }
+
+  const handleNavClick = (href: string) => {
+    onClose()
+    router.push(href)
+  }
 
   return (
     <div
@@ -69,36 +92,21 @@ export function SideDrawer({ isOpen, onClose, onLogout }: SideDrawerProps) {
 
           <nav className="space-y-2">
             {MENU_ITEMS.map((item) => {
-              const isDisabled = !item.available && !item.active
+              const active = isActive(item.href)
               return (
                 <button
                   key={item.id}
-                  onClick={() => {
-                    if (item.active) {
-                      onClose()
-                    }
-                  }}
-                  disabled={isDisabled}
-                  aria-disabled={isDisabled}
-                  title={isDisabled ? 'Coming soon' : undefined}
+                  onClick={() => handleNavClick(item.href)}
                   className={cn(
                     'w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-colors relative',
-                    item.active
+                    active
                       ? 'bg-amber-50 text-orange-600'
-                      : item.available
-                      ? 'hover:bg-gray-50 text-gray-700'
-                      : 'text-gray-400 cursor-not-allowed'
+                      : 'hover:bg-gray-50 text-gray-700'
                   )}
                   data-testid={`drawer-item-${item.id}`}
                 >
                   <AppIcon name={item.icon} className="w-5 h-5" />
                   <span className="font-semibold">{item.label}</span>
-                  {isDisabled && (
-                    <span className="ml-auto flex items-center gap-1 text-xs text-gray-400">
-                      <AppIcon name="construction" className="w-3 h-3" />
-                      Coming soon
-                    </span>
-                  )}
                 </button>
               )
             })}

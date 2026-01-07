@@ -9,11 +9,12 @@ import type { DayCard, StickerState } from '@/types/database'
 const DEBUG = process.env.NODE_ENV === 'development'
 
 interface PolaroidCardProps {
-  dayCard: DayCard | null
+  dayCard: (DayCard & { is_liked?: boolean }) | null
   photoSignedUrl: string | null
   date: string
   onSave: (updates: { photo_url?: string | null; caption?: string | null }) => Promise<{ success: boolean; error?: string }>
   onStickersChange: (stickers: StickerState[]) => Promise<void>
+  onToggleLike?: () => Promise<{ success: boolean; error?: string }>
   saving?: boolean
   saveError?: string | null
   onEditingChange?: (editing: boolean) => void
@@ -29,6 +30,7 @@ export function PolaroidCard({
   date,
   onSave,
   onStickersChange,
+  onToggleLike,
   saving,
   saveError,
   onEditingChange,
@@ -373,7 +375,7 @@ export function PolaroidCard({
             </p>
           )}
 
-          {/* Footer actions - matches reference: time + edit/save buttons */}
+          {/* Footer actions - matches reference: time + edit/like/save buttons */}
           <div className="flex items-center justify-between text-xs text-gray-400">
             <span>{dayCard?.updated_at ? new Date(dayCard.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
             <div className="flex gap-3">
@@ -389,6 +391,24 @@ export function PolaroidCard({
               >
                 <AppIcon name="edit" className="w-3.5 h-3.5" />
               </button>
+
+              {/* Heart (like) button - only show if entry exists */}
+              {dayCard?.id && onToggleLike && (
+                <button
+                  onClick={onToggleLike}
+                  className={cn(
+                    'transition-colors p-1',
+                    dayCard.is_liked ? 'text-red-500' : 'hover:text-[#F27430]'
+                  )}
+                  aria-label={dayCard.is_liked ? 'Remove from favorites' : 'Add to favorites'}
+                  title={dayCard.is_liked ? 'Remove from favorites' : 'Add to favorites'}
+                >
+                  <AppIcon
+                    name="heart"
+                    className={cn('w-3.5 h-3.5', dayCard.is_liked && 'fill-current')}
+                  />
+                </button>
+              )}
 
               {/* Save (check) button - only shown in edit mode */}
               {isEditing && (
