@@ -100,7 +100,7 @@ export function SideDrawer({ isOpen, onClose, onLogout }: SideDrawerProps) {
                   className={cn(
                     'w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-colors relative',
                     active
-                      ? 'bg-amber-50 text-orange-600'
+                      ? 'bg-amber-50 text-[#F27430]'
                       : 'hover:bg-gray-50 text-gray-700'
                   )}
                   data-testid={`drawer-item-${item.id}`}

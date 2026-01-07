@@ -25,10 +25,9 @@ export function ViewTabs({ activeView, onViewChange }: ViewTabsProps) {
           className={cn(
             'px-6 py-2 rounded-full text-sm font-semibold transition-all',
             activeView === tab.id
-              ? 'bg-orange-500 text-white'
-              : 'bg-white/60 text-gray-600 hover:bg-white/80'
+              ? 'bg-[#F2B949] text-white'
+              : 'bg-white/60 text-gray-600'
           )}
-          style={{ fontFamily: "'Noto Sans', sans-serif" }}
           data-testid={`tab-${tab.id}`}
           aria-pressed={activeView === tab.id}
         >
