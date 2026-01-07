@@ -27,15 +27,63 @@ export default function AppPage() {
   const [streakOpen, setStreakOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
 
+  // Stats for ProfileModal
+  const [totalEntries, setTotalEntries] = useState(0)
+  const [currentStreak, setCurrentStreak] = useState(0)
+  const [totalFavorites, setTotalFavorites] = useState(0)
+
   const [showDebug, setShowDebug] = useState(false)
   const router = useRouter()
   const supabase = useSupabase()
   const isDev = process.env.NODE_ENV === 'development'
 
+  // Fetch user stats for ProfileModal
+  const fetchUserStats = async () => {
+    // Total entries
+    const { count: entriesCount } = await supabase
+      .from('entries')
+      .select('*', { count: 'exact', head: true })
+    setTotalEntries(entriesCount || 0)
+
+    // Total favorites
+    const { count: favoritesCount } = await supabase
+      .from('entries')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_liked', true)
+    setTotalFavorites(favoritesCount || 0)
+
+    // Calculate current streak
+    const { data: entries } = await supabase
+      .from('entries')
+      .select('entry_date')
+      .order('entry_date', { ascending: false })
+
+    if (entries && entries.length > 0) {
+      let streak = 0
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+
+      for (let i = 0; i < entries.length; i++) {
+        const entryDate = new Date(entries[i].entry_date)
+        entryDate.setHours(0, 0, 0, 0)
+        const expectedDate = new Date(today)
+        expectedDate.setDate(today.getDate() - i)
+
+        if (entryDate.getTime() === expectedDate.getTime()) {
+          streak++
+        } else {
+          break
+        }
+      }
+      setCurrentStreak(streak)
+    }
+  }
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }: { data: { session: Session | null } }) => {
       if (session?.user) {
         setUser(session.user)
+        fetchUserStats()
       }
       setInitializing(false)
     })
@@ -133,15 +181,27 @@ export default function AppPage() {
       <StreakModal
         isOpen={streakOpen}
         onClose={() => setStreakOpen(false)}
-        currentStreak={0}
-        longestStreak={0}
-        totalEntries={0}
+        currentStreak={currentStreak}
+        longestStreak={currentStreak}
+        totalEntries={totalEntries}
       />
       <ProfileModal
         isOpen={profileOpen}
         onClose={() => setProfileOpen(false)}
         onLogout={handleLogout}
+        onMyProfile={() => {
+          setProfileOpen(false)
+          router.push('/app/profile')
+        }}
+        onExportPdf={() => {
+          // TODO: Implement PDF export
+          console.log('Export to PDF clicked')
+        }}
+        userName={user?.user_metadata?.name}
         userEmail={user?.email}
+        totalEntries={totalEntries}
+        currentStreak={currentStreak}
+        totalFavorites={totalFavorites}
       />
 
       {/* Debug Panel (Development only) */}
