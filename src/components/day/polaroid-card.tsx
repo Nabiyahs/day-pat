@@ -12,7 +12,7 @@ interface PolaroidCardProps {
   dayCard: (DayCard & { is_liked?: boolean }) | null
   photoSignedUrl: string | null
   date: string
-  onSave: (updates: { photo_url?: string | null; caption?: string | null }) => Promise<{ success: boolean; error?: string }>
+  onSave: (updates: { photo_url?: string | null; caption?: string | null }) => Promise<{ success: boolean; error?: string; refreshError?: string }>
   onStickersChange: (stickers: StickerState[]) => Promise<void>
   onToggleLike?: () => Promise<{ success: boolean; error?: string }>
   saving?: boolean
@@ -195,6 +195,14 @@ export function PolaroidCard({
       setPendingPhotoPreview(null)
       setIsEditing(false)
       onEditingChange?.(false)
+
+      // Handle refresh warning separately (not a save failure)
+      if (result.refreshError) {
+        if (DEBUG) console.log('[PolaroidCard] Refresh warning:', result.refreshError)
+        // Show as a warning, not an error - save succeeded
+        setUploadError(result.refreshError)
+        setTimeout(() => setUploadError(null), 5000)
+      }
     } else {
       if (DEBUG) console.log('[PolaroidCard] Save failed, staying in edit mode')
     }

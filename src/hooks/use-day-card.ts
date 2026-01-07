@@ -113,12 +113,12 @@ export function useDayCard(date: string) {
   // SAVE STAGES:
   // 1. Upload stage (handled by polaroid-card before calling this)
   // 2. DB save stage (critical - failure = save failed)
-  // 3. Post-save processing (signed URL, state update - failure = warning only)
+  // 3. Post-save processing (signed URL, state update - failure = warning only, returns as 'refreshError')
   const upsertDayCard = async (updates: {
     photo_url?: string | null // Will be saved as photo_path
     caption?: string | null   // Will be saved as praise
     sticker_state?: StickerState[] // Ignored - not in entries table
-  }): Promise<{ success: boolean; error?: string }> => {
+  }): Promise<{ success: boolean; error?: string; refreshError?: string }> => {
     console.log('[useDayCard] ═══════════════════════════════════════════════════')
     console.log('[useDayCard] SAVE FLOW STARTED')
     console.log('[useDayCard] Date:', date)
@@ -208,34 +208,49 @@ export function useDayCard(date: string) {
     console.log('[useDayCard] ═══════════════════════════════════════')
 
     try {
-      const { data, error: dbError } = await supabase
+      // IMPORTANT: Only upsert without .select().single() chain
+      // RLS SELECT policy issues can cause the select to fail even when upsert succeeds
+      // We treat upsert success (no error) as save success
+      const { error: upsertError } = await supabase
         .from('entries')
         .upsert(payload, { onConflict: 'user_id,entry_date' })
-        .select('id, user_id, entry_date, praise, photo_path, is_liked, created_at')
-        .single()
 
-      if (dbError) {
+      if (upsertError) {
         console.error('[useDayCard] ❌ STAGE 2 FAILED: DB upsert error')
-        console.error('[useDayCard] Error code:', dbError.code)
-        console.error('[useDayCard] Error message:', dbError.message)
-        console.error('[useDayCard] Error details:', dbError.details)
-        console.error('[useDayCard] Error hint:', dbError.hint)
-        throw dbError
+        console.error('[useDayCard] Error code:', upsertError.code)
+        console.error('[useDayCard] Error message:', upsertError.message)
+        console.error('[useDayCard] Error details:', upsertError.details)
+        console.error('[useDayCard] Error hint:', upsertError.hint)
+        throw upsertError
       }
 
-      // Check if data was returned (should always be returned on success)
-      if (!data) {
-        console.warn('[useDayCard] ⚠️ STAGE 2: Upsert succeeded but no data returned')
-        console.warn('[useDayCard] This may indicate RLS SELECT policy issue')
-        // Still consider this a success - the write happened
-        // We just couldn't read back the data
+      console.log('[useDayCard] ✅ STAGE 2 SUCCESS: DB upsert complete')
+
+      // Now try to fetch the saved data separately (non-critical)
+      // Using .maybeSingle() to avoid errors when RLS SELECT policy has issues
+      const { data: fetchedData, error: fetchError } = await supabase
+        .from('entries')
+        .select('id, user_id, entry_date, praise, photo_path, is_liked, created_at')
+        .eq('user_id', user.id)
+        .eq('entry_date', date)
+        .maybeSingle()
+
+      if (fetchError) {
+        console.warn('[useDayCard] ⚠️ STAGE 2: Post-upsert fetch failed (non-critical)')
+        console.warn('[useDayCard] Fetch error code:', fetchError.code)
+        console.warn('[useDayCard] Fetch error message:', fetchError.message)
+        console.warn('[useDayCard] Fetch error details:', fetchError.details)
+        // Don't throw - upsert succeeded, this is just for UI update
+      } else if (fetchedData) {
+        savedData = fetchedData
+        console.log('[useDayCard] ✅ STAGE 2: Post-upsert fetch succeeded')
+        console.log('[useDayCard] Fetched data:', JSON.stringify(fetchedData, null, 2))
       } else {
-        savedData = data
-        console.log('[useDayCard] ✅ STAGE 2 SUCCESS: DB save complete')
-        console.log('[useDayCard] Returned data:', JSON.stringify(data, null, 2))
+        console.warn('[useDayCard] ⚠️ STAGE 2: Post-upsert fetch returned null (RLS SELECT issue?)')
+        // Don't throw - upsert succeeded
       }
     } catch (err) {
-      // DB save failed - this is a real failure
+      // DB upsert failed - this is a real failure
       console.error('[useDayCard] ❌ STAGE 2 EXCEPTION')
       console.error('[useDayCard] Error type:', typeof err)
       console.error('[useDayCard] Error:', err)
@@ -262,10 +277,6 @@ export function useDayCard(date: string) {
           userFriendlyMessage = 'Database not configured. Contact support.'
         } else if (msg.includes('not-null') || msg.includes('null value') || msg.includes('violates not-null')) {
           userFriendlyMessage = 'Please add a photo first.'
-        } else if (msg.includes('pgrst116') || msg.includes('json object requested')) {
-          // .single() returned 0 rows - but upsert should have written
-          console.warn('[useDayCard] .single() returned no rows - checking if write succeeded anyway')
-          userFriendlyMessage = 'Save may have succeeded but could not verify. Please refresh.'
         }
       }
 
@@ -275,13 +286,16 @@ export function useDayCard(date: string) {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    // STAGE 3: POST-SAVE PROCESSING (Non-critical - failure = warning only)
+    // STAGE 3: POST-SAVE PROCESSING (Non-critical - failure = refreshError only)
     // DB save succeeded at this point. Errors here don't mean "save failed"
+    // They are returned as 'refreshError' for UI to show "Refresh failed" toast
     // ═══════════════════════════════════════════════════════════════════
     console.log('[useDayCard] ═══════════════════════════════════════')
     console.log('[useDayCard] STAGE 3: POST-SAVE PROCESSING')
     console.log('[useDayCard] savedData available:', !!savedData)
     console.log('[useDayCard] ═══════════════════════════════════════')
+
+    let refreshError: string | undefined
 
     // 3a. Update local state with saved data
     if (savedData) {
@@ -292,7 +306,7 @@ export function useDayCard(date: string) {
       } catch (stateError) {
         console.warn('[useDayCard] ⚠️ Stage 3a WARNING: Failed to update local state')
         console.warn('[useDayCard] Error:', stateError)
-        // Don't fail - save succeeded
+        refreshError = 'Failed to update display. Please refresh.'
       }
     } else {
       console.warn('[useDayCard] ⚠️ Stage 3a: No savedData to update local state')
@@ -303,6 +317,10 @@ export function useDayCard(date: string) {
       } catch (refetchError) {
         console.warn('[useDayCard] ⚠️ Stage 3a WARNING: Refetch failed')
         console.warn('[useDayCard] Error:', refetchError)
+        if (refetchError instanceof Error) {
+          console.warn('[useDayCard] Refetch error message:', refetchError.message)
+        }
+        refreshError = 'Saved successfully, but failed to refresh. Please reload.'
       }
     }
 
@@ -319,22 +337,31 @@ export function useDayCard(date: string) {
         } else {
           console.warn('[useDayCard] ⚠️ Stage 3b WARNING: fetchSignedUrl returned null')
           console.warn('[useDayCard] photo_path used:', photoPathForUrl)
+          if (!refreshError) {
+            refreshError = 'Photo may not display. Please refresh.'
+          }
         }
       } catch (signedUrlError) {
         console.warn('[useDayCard] ⚠️ Stage 3b WARNING: Signed URL fetch error')
         console.warn('[useDayCard] Error:', signedUrlError)
         if (signedUrlError instanceof Error) {
+          console.warn('[useDayCard] Signed URL error message:', signedUrlError.message)
           console.warn('[useDayCard] Stack:', signedUrlError.stack)
         }
-        // Don't fail - save succeeded
+        if (!refreshError) {
+          refreshError = 'Photo may not display. Please refresh.'
+        }
       }
     }
 
     setSaving(false)
     console.log('[useDayCard] ═══════════════════════════════════════')
     console.log('[useDayCard] ✅ SAVE FLOW COMPLETE - SUCCESS')
+    if (refreshError) {
+      console.log('[useDayCard] ⚠️ With refresh warning:', refreshError)
+    }
     console.log('[useDayCard] ═══════════════════════════════════════')
-    return { success: true }
+    return { success: true, refreshError }
   }
 
   // Toggle the is_liked flag for the current entry

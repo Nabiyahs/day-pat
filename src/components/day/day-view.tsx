@@ -33,7 +33,7 @@ export function DayView({ selectedDate, onDateChange }: DayViewProps) {
   const handleSave = async (updates: {
     photo_url?: string | null
     caption?: string | null
-  }): Promise<{ success: boolean; error?: string }> => {
+  }): Promise<{ success: boolean; error?: string; refreshError?: string }> => {
     return await upsertDayCard(updates)
   }
 
