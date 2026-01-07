@@ -1,9 +1,11 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { getSupabaseClient } from '@/lib/supabase/client'
 import { getSignedUrl } from '@/lib/image-upload'
 import type { DayCard, StickerState } from '@/types/database'
+
+const DEBUG = process.env.NODE_ENV === 'development'
 
 // Helper to convert database row to DayCard
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -26,7 +28,18 @@ export function useDayCard(date: string) {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const supabase = createClient()
+
+  // Use singleton client to prevent re-fetch on every render
+  const supabase = getSupabaseClient()
+
+  // Track if we're in edit mode to prevent fetched data from overwriting drafts
+  const isEditingRef = useRef(false)
+
+  // Expose method to set editing state from component
+  const setEditingState = useCallback((editing: boolean) => {
+    isEditingRef.current = editing
+    if (DEBUG) console.log('[useDayCard] Edit state changed:', editing)
+  }, [])
 
   // Fetch signed URL when photo_url (path) changes
   const fetchSignedUrl = useCallback(async (path: string | null): Promise<string | null> => {
@@ -38,6 +51,14 @@ export function useDayCard(date: string) {
   }, [])
 
   const fetchDayCard = useCallback(async () => {
+    // Don't overwrite state if user is editing
+    if (isEditingRef.current) {
+      if (DEBUG) console.log('[useDayCard] Skipping fetch - user is editing')
+      return
+    }
+
+    if (DEBUG) console.log('[useDayCard] Fetching day card for date:', date)
+
     try {
       setLoading(true)
       const { data, error } = await supabase
@@ -50,15 +71,19 @@ export function useDayCard(date: string) {
 
       if (data) {
         const card = toDayCard(data)
+        if (DEBUG) console.log('[useDayCard] Fetched card:', { photo_url: card.photo_url, caption: card.caption?.slice(0, 20) })
         setDayCard(card)
         // Fetch signed URL for the photo path
         const signedUrl = await fetchSignedUrl(card.photo_url)
+        if (DEBUG) console.log('[useDayCard] Got signed URL:', signedUrl ? 'yes' : 'no')
         setPhotoSignedUrl(signedUrl)
       } else {
+        if (DEBUG) console.log('[useDayCard] No card found for date')
         setDayCard(null)
         setPhotoSignedUrl(null)
       }
     } catch (err) {
+      if (DEBUG) console.error('[useDayCard] Fetch error:', err)
       setError(err instanceof Error ? err.message : 'Failed to fetch day card')
     } finally {
       setLoading(false)
@@ -142,5 +167,6 @@ export function useDayCard(date: string) {
     error,
     upsertDayCard,
     refetch: fetchDayCard,
+    setEditingState, // Call this when entering/exiting edit mode
   }
 }

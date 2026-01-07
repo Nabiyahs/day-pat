@@ -7,6 +7,8 @@ import { uploadPhoto } from '@/lib/image-upload'
 import { getDictionarySync, type Locale } from '@/lib/i18n'
 import type { DayCard, StickerState } from '@/types/database'
 
+const DEBUG = process.env.NODE_ENV === 'development'
+
 interface PolaroidCardProps {
   dayCard: DayCard | null
   photoSignedUrl: string | null
@@ -16,6 +18,7 @@ interface PolaroidCardProps {
   onStickersChange: (stickers: StickerState[]) => Promise<void>
   saving?: boolean
   saveError?: string | null
+  onEditingChange?: (editing: boolean) => void
 }
 
 const EMOJI_PALETTE = ['☕', '✨', '💛', '⭐', '🌟', '💖', '🎉', '🌸', '🍀', '🔥', '💪', '🧘‍♀️', '🥗', '💚', '😊', '🥰']
@@ -29,6 +32,7 @@ export function PolaroidCard({
   onStickersChange,
   saving,
   saveError,
+  onEditingChange,
 }: PolaroidCardProps) {
   const dict = getDictionarySync(locale)
   const placeholder = dict.dayView.placeholder
@@ -53,20 +57,35 @@ export function PolaroidCard({
 
   // Sync caption draft when dayCard changes (e.g., date navigation)
   useEffect(() => {
+    if (DEBUG) console.log('[PolaroidCard] dayCard changed, resetting state. card_date:', dayCard?.card_date)
     setCaptionDraft(dayCard?.caption || '')
     // Reset pending photo when dayCard changes
     setPendingPhotoPath(null)
     setPendingPhotoPreview(null)
     setIsEditing(false)
-  }, [dayCard?.caption, dayCard?.card_date])
+    onEditingChange?.(false)
+  }, [dayCard?.caption, dayCard?.card_date, onEditingChange])
 
   // Determine what photo to display
   // Priority: pendingPhotoPreview (local) > photoSignedUrl (server)
   const displayPhotoUrl = pendingPhotoPreview || photoSignedUrl
 
+  if (DEBUG && !displayPhotoUrl && (pendingPhotoPreview !== null || photoSignedUrl !== null)) {
+    console.log('[PolaroidCard] Photo display state:', {
+      pendingPhotoPreview: pendingPhotoPreview ? 'set' : 'null',
+      photoSignedUrl: photoSignedUrl ? 'set' : 'null',
+      displayPhotoUrl: displayPhotoUrl ? 'set' : 'null'
+    })
+  }
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file || !isEditing) return
+    if (!file || !isEditing) {
+      if (DEBUG) console.log('[PolaroidCard] File change ignored - no file or not editing')
+      return
+    }
+
+    if (DEBUG) console.log('[PolaroidCard] File selected:', { name: file.name, size: file.size, type: file.type })
 
     setUploading(true)
     setUploadError(null)
@@ -74,21 +93,25 @@ export function PolaroidCard({
     // Create local preview immediately
     const localPreviewUrl = URL.createObjectURL(file)
     setPendingPhotoPreview(localPreviewUrl)
+    if (DEBUG) console.log('[PolaroidCard] Local preview created')
 
     try {
+      if (DEBUG) console.log('[PolaroidCard] Starting upload to Storage...')
       const path = await uploadPhoto(file, date)
       if (path) {
+        if (DEBUG) console.log('[PolaroidCard] Upload successful, path:', path)
         setPendingPhotoPath(path)
         // Keep the local preview until save
       } else {
         // Upload returned null - clear preview and show error
+        if (DEBUG) console.log('[PolaroidCard] Upload returned null')
         setPendingPhotoPreview(null)
         setUploadError('Upload failed. Please try again.')
         setTimeout(() => setUploadError(null), 5000)
       }
     } catch (error) {
-      console.error('Upload failed:', error)
-      // Clear preview on error
+      console.error('[PolaroidCard] Upload failed:', error)
+      // Clear preview on error - BUT keep existing photo visible
       setPendingPhotoPreview(null)
       const errorMessage = error instanceof Error ? error.message : 'Upload failed'
       setUploadError(errorMessage)
@@ -104,7 +127,9 @@ export function PolaroidCard({
   const handleEditClick = () => {
     if (!isEditing) {
       // Enter edit mode
+      if (DEBUG) console.log('[PolaroidCard] Entering edit mode')
       setIsEditing(true)
+      onEditingChange?.(true)
       setCaptionDraft(dayCard?.caption || '')
     }
     // If already editing, pencil click does nothing (prevent confusion)
@@ -113,22 +138,28 @@ export function PolaroidCard({
   const handleSaveClick = async () => {
     if (!isEditing || saving) return
 
+    if (DEBUG) console.log('[PolaroidCard] Save clicked')
+
     const updates: { photo_url?: string | null; caption?: string | null } = {}
 
     // Check if photo changed
     if (pendingPhotoPath) {
       updates.photo_url = pendingPhotoPath
+      if (DEBUG) console.log('[PolaroidCard] Will save new photo path:', pendingPhotoPath)
     }
 
     // Check if caption changed
     if (captionDraft !== (dayCard?.caption || '')) {
       updates.caption = captionDraft
+      if (DEBUG) console.log('[PolaroidCard] Will save new caption')
     }
 
     // Only save if there are changes
     if (Object.keys(updates).length === 0) {
       // No changes, just exit edit mode
+      if (DEBUG) console.log('[PolaroidCard] No changes, exiting edit mode')
       setIsEditing(false)
+      onEditingChange?.(false)
       setPendingPhotoPath(null)
       setPendingPhotoPreview(null)
       return
@@ -137,10 +168,14 @@ export function PolaroidCard({
     const result = await onSave(updates)
 
     if (result.success) {
+      if (DEBUG) console.log('[PolaroidCard] Save successful, exiting edit mode')
       // Clear pending state and exit edit mode
       setPendingPhotoPath(null)
       setPendingPhotoPreview(null)
       setIsEditing(false)
+      onEditingChange?.(false)
+    } else {
+      if (DEBUG) console.log('[PolaroidCard] Save failed, staying in edit mode')
     }
     // On failure, stay in edit mode (saveError will be shown)
   }

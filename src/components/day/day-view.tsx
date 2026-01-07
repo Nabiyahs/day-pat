@@ -17,7 +17,7 @@ export function DayView({ selectedDate, onDateChange, locale }: DayViewProps) {
   const date = parseDateString(selectedDate)
   const dateStr = formatDateString(date)
 
-  const { dayCard, photoSignedUrl, saving: cardSaving, error, upsertDayCard } = useDayCard(dateStr)
+  const { dayCard, photoSignedUrl, saving: cardSaving, error, upsertDayCard, setEditingState } = useDayCard(dateStr)
 
   const goToPrevDay = () => {
     const prev = new Date(date)
@@ -80,6 +80,7 @@ export function DayView({ selectedDate, onDateChange, locale }: DayViewProps) {
         }}
         saving={cardSaving}
         saveError={error}
+        onEditingChange={setEditingState}
       />
     </div>
   )
