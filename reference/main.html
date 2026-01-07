@@ -1,0 +1,1322 @@
+<html>
+
+  <head>
+    <link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Calendar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      window.FontAwesomeConfig = {
+        autoReplaceSvg: 'nest'
+      };
+    </script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"
+      crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap"
+      rel="stylesheet">
+    <style>
+      ::-webkit-scrollbar
+      {
+        display: none;
+      }
+    </style>
+    <script>
+      tailwind.config = {
+        theme:
+        {
+          extend:
+          {
+            fontFamily:
+            {
+              sans: ['Inter', 'sans-serif'],
+            },
+            colors:
+            {
+              primary: '#F27430',
+              secondary: '#F2B949',
+              accent: '#F2E829',
+              warm: '#EDD377',
+            }
+          }
+        }
+      }
+    </script>
+    <style data-grapesjs-styles="true">
+      *
+      {
+        box-sizing: border-box;
+      }
+
+      body
+      {
+        margin: 0;
+      }
+
+      ::-webkit-scrollbar
+      {
+        display: none;
+      }
+
+      *
+      {
+        box-sizing: border-box;
+      }
+
+      body
+      {
+        margin-top: 0px;
+        margin-right: 0px;
+        margin-bottom: 0px;
+        margin-left: 0px;
+      }
+
+      #ixplt
+      {
+        font-size: 23px;
+        font-family: Caveat, cursive;
+      }
+
+      #ia4nj
+      {
+        font-family: "Noto Sans", sans-serif;
+      }
+
+      #ihmey
+      {
+        font-family: "Noto Sans", sans-serif;
+      }
+
+      #imk3w
+      {
+        font-family: "Noto Sans", sans-serif;
+      }
+
+      #ixoq7j
+      {
+        font-family: "Noto Sans", sans-serif;
+      }
+
+      #i7xnpj
+      {
+        width: 1042px;
+      }
+
+      #ihv4i
+      {
+        font-family: "Noto Sans", sans-serif;
+        font-size: 18px;
+      }
+
+      #iryfj
+      {
+        font-family: "Noto Sans", sans-serif;
+      }
+
+      #iacjk
+      {
+        font-family: "Noto Sans", sans-serif;
+      }
+    </style>
+
+
+
+    <link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700;800&amp;display=swap"
+      data-manual-edit-font="true">
+  </head>
+
+  <body
+    class="bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 font-sans">
+    <header id="header"
+      class="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-lg border-b border-amber-100 z-50">
+      <div class="flex items-center justify-between px-5 py-4"><button
+          id="menuBtn"
+          class="w-11 h-11 flex items-center justify-center rounded-xl hover:bg-amber-50 transition-colors"><i
+            class="fa-solid fa-bars text-orange-600 text-xl"></i></button>
+        <h1 id="ixplt"
+          class="text-base font-bold text-gray-800 absolute left-1/2 transform -translate-x-1/2">
+          DayPat</h1>
+        <div class="w-11"></div>
+      </div>
+      <div id="viewTabs"
+        class="flex items-center justify-center gap-2 px-5 pb-3"><button
+          data-view="day" id="ia4nj"
+          class="view-tab active px-6 py-2 rounded-full text-sm font-semibold transition-all">Day</button><button
+          data-view="week" id="ihmey"
+          class="view-tab px-6 py-2 rounded-full text-sm font-semibold transition-all">Week</button><button
+          data-view="month" id="imk3w"
+          class="view-tab px-6 py-2 rounded-full text-sm font-semibold transition-all">Month</button>
+      </div>
+    </header>
+    <div id="sideDrawer"
+      class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none transition-opacity duration-300">
+      <div id="drawerContent"
+        class="absolute left-0 top-0 bottom-0 w-[280px] bg-white shadow-2xl transform -translate-x-full transition-transform duration-300">
+        <div class="p-6">
+          <div class="flex items-center justify-between mb-8">
+            <h2 class="text-xl font-bold text-gray-800">Menu</h2><button
+              id="closeDrawer"
+              class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100"><i
+                class="fa-solid fa-times text-gray-600"></i></button>
+          </div>
+          <nav class="space-y-2"><a href="#"
+              class="flex items-center gap-4 px-4 py-3 rounded-xl bg-amber-50 text-orange-600"><i
+                class="fa-solid fa-calendar-days text-lg"></i><span
+                class="font-semibold">Calendar</span></a><a href="#"
+              class="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-gray-50 text-gray-700"><i
+                class="fa-solid fa-heart text-lg"></i><span
+                class="font-semibold">Favorites</span></a><a href="#"
+              class="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-gray-50 text-gray-700"><svg
+                aria-hidden="true" focusable="false" data-prefix="fas"
+                data-icon="chart-line" role="img"
+                xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"
+                data-fa-i2svg="" class="fa-solid fa-chart-line text-lg">
+                <path fill="currentColor"
+                  d="M64 64c0-17.7-14.3-32-32-32S0 46.3 0 64V400c0 44.2 35.8 80 80 80H480c17.7 0 32-14.3 32-32s-14.3-32-32-32H80c-8.8 0-16-7.2-16-16V64zm406.6 86.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L320 210.7l-57.4-57.4c-12.5-12.5-32.8-12.5-45.3 0l-112 112c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L240 221.3l57.4 57.4c12.5 12.5 32.8 12.5 45.3 0l128-128z">
+                </path>
+              </svg>
+              <!-- <i id="i1udp" data-gjs-type="default" draggable="true" class="fa-solid fa-chart-line text-lg"></i> Font Awesome fontawesome.com --><span
+                class="font-semibold">Streak</span></a><a href="#"
+              class="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-gray-50 text-gray-700"><i
+                class="fa-solid fa-gear text-lg"></i><span
+                class="font-semibold">Settings</span></a></nav>
+        </div>
+      </div>
+    </div>
+    <main id="mainContent" class="pt-[140px] pb-24 px-5">
+      <div id="dayView" class="view-content">
+        <div class="mb-6">
+          <div class="flex items-center justify-between mb-4"><button
+              class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/60 transition-colors"><i
+                class="fa-solid fa-chevron-left text-gray-600"></i></button>
+            <div class="text-center">
+              <h2 id="ihv4i" class="text-2xl font-bold text-gray-800">January 15
+              </h2>
+              <p id="iryfj" class="text-sm text-gray-500">Monday, 2026</p>
+            </div><button
+              class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/60 transition-colors"><i
+                class="fa-solid fa-chevron-right text-gray-600"></i></button>
+          </div>
+        </div>
+        <div id="polaroidCard"
+          class="bg-white rounded-3xl shadow-xl p-5 mb-6 transform rotate-[-1deg]">
+          <div class="bg-gray-100 rounded-2xl overflow-hidden mb-4 relative">
+            <img
+              src="https://storage.googleapis.com/uxpilot-auth.appspot.com/9848b97d68-29d8f31e7e5b8dcb9f5d.png"
+              alt="peaceful morning coffee on wooden table with sunlight streaming through window, warm cozy atmosphere"
+              class="w-full h-[340px] object-cover">
+            <div class="absolute top-3 right-3 flex gap-2"><span
+                class="text-3xl">☕</span><span class="text-3xl">✨</span></div>
+          </div>
+          <div class="px-2">
+            <p id="iacjk"
+              class="text-gray-700 text-center font-medium leading-relaxed mb-3">
+              Started my day with gratitude. The simple joy of morning coffee
+              and sunshine reminded me to appreciate the little things.
+            </p>
+            <div
+              class="flex items-center justify-between text-xs text-gray-400">
+              <span>3:42 PM</span>
+              <div class="flex gap-3"><button
+                  class="hover:text-orange-500 transition-colors"><i
+                    class="fa-solid fa-pen-to-square"></i></button><button
+                  class="hover:text-orange-500 transition-colors"><i
+                    class="fa-solid fa-heart"></i></button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="weekView" class="view-content hidden">
+        <div class="mb-6">
+          <div class="flex items-center justify-between mb-4"><button
+              class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/60 transition-colors"><i
+                class="fa-solid fa-chevron-left text-gray-600"></i></button>
+            <div class="text-center">
+              <h2 class="text-xl font-bold text-gray-800">Week 3</h2>
+              <p class="text-sm text-gray-500">Jan 13 - Jan 19, 2025</p>
+            </div><button
+              class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/60 transition-colors"><i
+                class="fa-solid fa-chevron-right text-gray-600"></i></button>
+          </div>
+        </div>
+        <div id="weekGrid" class="space-y-4">
+          <div class="bg-white rounded-2xl p-4 shadow-md">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="text-center">
+                <p class="text-xs text-gray-500 font-medium">MON</p>
+                <p class="text-2xl font-bold text-gray-800">13</p>
+              </div>
+              <div class="flex-1 h-[100px] rounded-xl overflow-hidden"><img
+                  src="https://storage.googleapis.com/uxpilot-auth.appspot.com/df82fafb81-e691c7ae868ff48609ca.png"
+                  alt="morning yoga meditation peaceful sunrise"
+                  class="w-full h-full object-cover"></div>
+            </div>
+            <p id="i7xnpj" class="text-sm text-gray-600 line-clamp-2">Morning
+              yoga session
+              brought peace to my mind 🧘‍♀️✨</p>
+          </div>
+          <div class="bg-white rounded-2xl p-4 shadow-md">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="text-center">
+                <p class="text-xs text-gray-500 font-medium">TUE</p>
+                <p class="text-2xl font-bold text-gray-800">14</p>
+              </div>
+              <div class="flex-1 h-[100px] rounded-xl overflow-hidden"><img
+                  src="https://storage.googleapis.com/uxpilot-auth.appspot.com/67c9033525-e71831b512ea2e428637.png"
+                  alt="colorful healthy salad bowl fresh vegetables"
+                  class="w-full h-full object-cover"></div>
+            </div>
+            <p class="text-sm text-gray-600 line-clamp-2">Nourishing my body
+              with fresh healthy food 🥗💚</p>
+          </div>
+          <div
+            class="bg-white rounded-2xl p-4 shadow-md border-2 border-orange-400">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="text-center">
+                <p class="text-xs text-orange-600 font-bold">WED</p>
+                <p class="text-2xl font-bold text-orange-600">15</p>
+              </div>
+              <div class="flex-1 h-[100px] rounded-xl overflow-hidden"><img
+                  src="https://storage.googleapis.com/uxpilot-auth.appspot.com/085a115998-cbb43d62b37ed7285cf1.png"
+                  alt="morning coffee on wooden table with sunlight"
+                  class="w-full h-full object-cover"></div>
+            </div>
+            <p class="text-sm text-gray-600 line-clamp-2">Simple joy of morning
+              coffee ☕✨</p>
+          </div>
+          <div
+            class="bg-white/60 rounded-2xl p-4 border-2 border-dashed border-gray-300">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="text-center">
+                <p class="text-xs text-gray-400 font-medium">THU</p>
+                <p class="text-2xl font-bold text-gray-400">16</p>
+              </div>
+              <div
+                class="flex-1 h-[100px] rounded-xl bg-gray-100 flex items-center justify-center">
+                <i class="fa-solid fa-plus text-3xl text-gray-300"></i></div>
+            </div>
+            <p class="text-sm text-gray-400">No entry yet</p>
+          </div>
+          <div
+            class="bg-white/60 rounded-2xl p-4 border-2 border-dashed border-gray-300">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="text-center">
+                <p class="text-xs text-gray-400 font-medium">FRI</p>
+                <p class="text-2xl font-bold text-gray-400">17</p>
+              </div>
+              <div
+                class="flex-1 h-[100px] rounded-xl bg-gray-100 flex items-center justify-center">
+                <i class="fa-solid fa-plus text-3xl text-gray-300"></i></div>
+            </div>
+            <p class="text-sm text-gray-400">No entry yet</p>
+          </div>
+          <div
+            class="bg-white/60 rounded-2xl p-4 border-2 border-dashed border-gray-300">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="text-center">
+                <p class="text-xs text-gray-400 font-medium">SAT</p>
+                <p class="text-2xl font-bold text-gray-400">18</p>
+              </div>
+              <div
+                class="flex-1 h-[100px] rounded-xl bg-gray-100 flex items-center justify-center">
+                <i class="fa-solid fa-plus text-3xl text-gray-300"></i></div>
+            </div>
+            <p class="text-sm text-gray-400">No entry yet</p>
+          </div>
+          <div
+            class="bg-white/60 rounded-2xl p-4 border-2 border-dashed border-gray-300">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="text-center">
+                <p class="text-xs text-gray-400 font-medium">SUN</p>
+                <p class="text-2xl font-bold text-gray-400">19</p>
+              </div>
+              <div
+                class="flex-1 h-[100px] rounded-xl bg-gray-100 flex items-center justify-center">
+                <i class="fa-solid fa-plus text-3xl text-gray-300"></i></div>
+            </div>
+            <p class="text-sm text-gray-400">No entry yet</p>
+          </div>
+        </div>
+      </div>
+      <div id="monthView" class="view-content hidden">
+        <div class="mb-6">
+          <div class="flex items-center justify-between mb-4"><button
+              class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/60 transition-colors"><i
+                class="fa-solid fa-chevron-left text-gray-600"></i></button>
+            <div class="text-center">
+              <h2 id="ixoq7j" class="text-xl font-bold text-gray-800">January
+                2025</h2>
+            </div><button
+              class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/60 transition-colors"><i
+                class="fa-solid fa-chevron-right text-gray-600"></i></button>
+          </div>
+        </div>
+        <div id="monthCalendar"
+          class="bg-white/80 backdrop-blur-sm rounded-2xl p-4">
+          <div class="grid grid-cols-7 gap-1 mb-2">
+            <div class="text-center text-xs font-semibold text-gray-500 py-2">
+              Mon</div>
+            <div class="text-center text-xs font-semibold text-gray-500 py-2">
+              Tue</div>
+            <div class="text-center text-xs font-semibold text-gray-500 py-2">
+              Wed</div>
+            <div class="text-center text-xs font-semibold text-gray-500 py-2">
+              Thu</div>
+            <div class="text-center text-xs font-semibold text-gray-500 py-2">
+              Fri</div>
+            <div class="text-center text-xs font-semibold text-gray-500 py-2">
+              Sat</div>
+            <div class="text-center text-xs font-semibold text-gray-500 py-2">
+              Sun</div>
+          </div>
+          <div class="grid grid-cols-7 gap-1">
+            <div class="aspect-square bg-gray-50 rounded-lg"></div>
+            <div class="aspect-square bg-gray-50 rounded-lg"></div>
+            <div class="aspect-square bg-gray-50 rounded-lg"></div>
+            <div class="aspect-square bg-gray-50 rounded-lg"></div>
+            <div class="aspect-square bg-gray-50 rounded-lg"></div>
+            <div class="aspect-square bg-gray-50 rounded-lg"></div>
+            <div class="aspect-square bg-gray-50 rounded-lg"></div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-700 z-10">1</span>
+            </div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-700 z-10">2</span>
+            </div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-700 z-10">3</span>
+            </div>
+            <div
+              class="aspect-square rounded-lg p-0.5 relative overflow-hidden">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-bold text-white z-10 drop-shadow">4</span><img
+                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/06c4d59883-ce5ce94d6ad46c42ee8e.png"
+                alt="sunset beach peaceful ocean"
+                class="w-full h-full object-cover rounded-lg"></div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-700 z-10">5</span>
+            </div>
+            <div
+              class="aspect-square rounded-lg p-0.5 relative overflow-hidden">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-bold text-white z-10 drop-shadow">6</span><img
+                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/5ec6adb291-19a4f27becd9bf81891a.png"
+                alt="cozy reading book with tea"
+                class="w-full h-full object-cover rounded-lg"></div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-700 z-10">7</span>
+            </div>
+            <div
+              class="aspect-square rounded-lg p-0.5 relative overflow-hidden">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-bold text-white z-10 drop-shadow">8</span><img
+                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/7d5f2711ea-308301cb34fc01259450.png"
+                alt="fresh flowers in vase morning light"
+                class="w-full h-full object-cover rounded-lg"></div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-700 z-10">9</span>
+            </div>
+            <div
+              class="aspect-square rounded-lg p-0.5 relative overflow-hidden">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-bold text-white z-10 drop-shadow">10</span><img
+                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/bbd9a37480-db910cb1c5c32661b40c.png"
+                alt="mountain hiking trail adventure"
+                class="w-full h-full object-cover rounded-lg"></div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-700 z-10">11</span>
+            </div>
+            <div
+              class="aspect-square rounded-lg p-0.5 relative overflow-hidden">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-bold text-white z-10 drop-shadow">12</span><img
+                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/3fef0312cc-ac35f49b2c70e143e772.png"
+                alt="home cooked meal delicious food"
+                class="w-full h-full object-cover rounded-lg"></div>
+            <div
+              class="aspect-square rounded-lg p-0.5 relative overflow-hidden">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-bold text-white z-10 drop-shadow">13</span><img
+                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/ea32fb5053-f4123dab51535d78b2ac.png"
+                alt="yoga meditation peaceful"
+                class="w-full h-full object-cover rounded-lg"></div>
+            <div
+              class="aspect-square rounded-lg p-0.5 relative overflow-hidden">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-bold text-white z-10 drop-shadow">14</span><img
+                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/011a105c86-64ea07166049e1017e9a.png"
+                alt="healthy salad bowl vegetables"
+                class="w-full h-full object-cover rounded-lg"></div>
+            <div
+              class="aspect-square rounded-lg p-0.5 relative overflow-hidden border-2 border-orange-400">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-bold text-white z-10 drop-shadow">15</span><img
+                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/13dfd0edd7-1248a08cd0625d7d2cb8.png"
+                alt="morning coffee sunlight"
+                class="w-full h-full object-cover rounded-lg"></div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-400 z-10">16</span>
+            </div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-400 z-10">17</span>
+            </div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-400 z-10">18</span>
+            </div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-400 z-10">19</span>
+            </div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-400 z-10">20</span>
+            </div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-400 z-10">21</span>
+            </div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-400 z-10">22</span>
+            </div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-400 z-10">23</span>
+            </div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-400 z-10">24</span>
+            </div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-400 z-10">25</span>
+            </div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-400 z-10">26</span>
+            </div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-400 z-10">27</span>
+            </div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-400 z-10">28</span>
+            </div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-400 z-10">29</span>
+            </div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-400 z-10">30</span>
+            </div>
+            <div class="aspect-square bg-gray-50 rounded-lg p-0.5 relative">
+              <span
+                class="absolute top-1 left-1 text-[10px] font-semibold text-gray-400 z-10">31</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+    <nav id="bottomNav"
+      class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
+      <div class="flex items-center justify-around px-5 py-3"><button
+          id="introBtn"
+          class="flex flex-col items-center gap-1 text-gray-400"><i
+            class="fa-solid fa-compass text-xl"></i></button><button
+          id="favoritesBtn"
+          class="flex flex-col items-center gap-1 text-gray-400"><i
+            class="fa-solid fa-heart text-xl"></i></button><button
+          class="w-14 h-14 -mt-8 bg-gradient-to-br from-orange-500 to-amber-500 rounded-full flex items-center justify-center shadow-lg"><i
+            class="fa-solid fa-plus text-white text-2xl"></i></button><button
+          id="streakBtn"
+          class="flex flex-col items-center gap-1 text-gray-400"><i
+            class="fa-solid fa-fire text-xl"></i></button><button
+          id="profileBtn"
+          class="flex flex-col items-center gap-1 text-gray-400"><i
+            class="fa-solid fa-user text-xl"></i></button></div>
+    </nav>
+
+    <div id="introModal"
+      class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none transition-opacity duration-300 flex items-center justify-center p-5">
+      <div id="introModalContent"
+        class="bg-white rounded-3xl shadow-2xl w-full max-w-sm transform scale-95 transition-transform duration-300 overflow-hidden">
+        <div class="flex items-center justify-between p-6 border-b border-gray-100">
+          <h2 class="text-xl font-bold text-gray-800">Guide</h2>
+          <button id="closeIntroModal"
+            class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100"><i
+              class="fa-solid fa-times text-gray-600"></i></button>
+        </div>
+        
+        <div id="introSlider" class="relative overflow-hidden">
+          <div id="introSlides" class="flex transition-transform duration-500 ease-out">
+            
+            <!-- Slide 1: Day View -->
+            <div class="intro-slide min-w-full p-6">
+              <div class="flex flex-col items-center">
+                <div class="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-4">
+                  <i class="fa-solid fa-calendar-day text-3xl text-orange-500"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800 mb-2">Day View</h3>
+                <p class="text-gray-600 text-center text-sm mb-4">Your daily Polaroid card</p>
+                <div class="w-full bg-white rounded-2xl shadow-lg p-4 transform rotate-[-1deg]">
+                  <div class="bg-gray-100 rounded-xl overflow-hidden mb-3 relative">
+                    <img
+                      src="https://storage.googleapis.com/uxpilot-auth.appspot.com/9848b97d68-29d8f31e7e5b8dcb9f5d.png"
+                      alt="example day view"
+                      class="w-full h-40 object-cover">
+                    <div class="absolute top-2 right-2 flex gap-1">
+                      <span class="text-xl">☕</span>
+                      <span class="text-xl">✨</span>
+                    </div>
+                  </div>
+                  <p class="text-xs text-gray-600 text-center leading-relaxed">One beautiful memory per day with photo and caption</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Slide 2: Week View -->
+            <div class="intro-slide min-w-full p-6">
+              <div class="flex flex-col items-center">
+                <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-4">
+                  <i class="fa-solid fa-calendar-week text-3xl text-amber-600"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800 mb-2">Week View</h3>
+                <p class="text-gray-600 text-center text-sm mb-4">Monday to Sunday overview</p>
+                <div class="w-full space-y-2">
+                  <div class="bg-white rounded-xl p-2 shadow-md flex items-center gap-2">
+                    <div class="text-center w-10">
+                      <p class="text-[10px] text-gray-500 font-bold">MON</p>
+                      <p class="text-lg font-bold text-gray-800">13</p>
+                    </div>
+                    <div class="flex-1 h-16 rounded-lg overflow-hidden">
+                      <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/df82fafb81-e691c7ae868ff48609ca.png" alt="week example" class="w-full h-full object-cover">
+                    </div>
+                  </div>
+                  <div class="bg-white rounded-xl p-2 shadow-md flex items-center gap-2">
+                    <div class="text-center w-10">
+                      <p class="text-[10px] text-gray-500 font-bold">TUE</p>
+                      <p class="text-lg font-bold text-gray-800">14</p>
+                    </div>
+                    <div class="flex-1 h-16 rounded-lg overflow-hidden">
+                      <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/67c9033525-e71831b512ea2e428637.png" alt="week example" class="w-full h-full object-cover">
+                    </div>
+                  </div>
+                  <p class="text-xs text-gray-600 text-center pt-2">Track your weekly progress</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Slide 3: Month View -->
+            <div class="intro-slide min-w-full p-6">
+              <div class="flex flex-col items-center">
+                <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
+                  <i class="fa-solid fa-calendar text-3xl text-yellow-600"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800 mb-2">Month View</h3>
+                <p class="text-gray-600 text-center text-sm mb-4">Calendar with thumbnails</p>
+                <div class="w-full bg-white/90 rounded-xl p-3 shadow-lg">
+                  <div class="grid grid-cols-7 gap-0.5 mb-1">
+                    <div class="text-center text-[9px] font-bold text-gray-500 py-1">M</div>
+                    <div class="text-center text-[9px] font-bold text-gray-500 py-1">T</div>
+                    <div class="text-center text-[9px] font-bold text-gray-500 py-1">W</div>
+                    <div class="text-center text-[9px] font-bold text-gray-500 py-1">T</div>
+                    <div class="text-center text-[9px] font-bold text-gray-500 py-1">F</div>
+                    <div class="text-center text-[9px] font-bold text-gray-500 py-1">S</div>
+                    <div class="text-center text-[9px] font-bold text-gray-500 py-1">S</div>
+                  </div>
+                  <div class="grid grid-cols-7 gap-0.5">
+                    <div class="aspect-square bg-gray-100 rounded"></div>
+                    <div class="aspect-square bg-gray-100 rounded"></div>
+                    <div class="aspect-square bg-gray-100 rounded"></div>
+                    <div class="aspect-square rounded overflow-hidden">
+                      <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/06c4d59883-ce5ce94d6ad46c42ee8e.png" alt="month" class="w-full h-full object-cover">
+                    </div>
+                    <div class="aspect-square bg-gray-100 rounded"></div>
+                    <div class="aspect-square rounded overflow-hidden">
+                      <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/5ec6adb291-19a4f27becd9bf81891a.png" alt="month" class="w-full h-full object-cover">
+                    </div>
+                    <div class="aspect-square bg-gray-100 rounded"></div>
+                    <div class="aspect-square rounded overflow-hidden">
+                      <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/7d5f2711ea-308301cb34fc01259450.png" alt="month" class="w-full h-full object-cover">
+                    </div>
+                    <div class="aspect-square bg-gray-100 rounded"></div>
+                    <div class="aspect-square rounded overflow-hidden">
+                      <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/bbd9a37480-db910cb1c5c32661b40c.png" alt="month" class="w-full h-full object-cover">
+                    </div>
+                    <div class="aspect-square bg-gray-100 rounded"></div>
+                    <div class="aspect-square rounded overflow-hidden">
+                      <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/3fef0312cc-ac35f49b2c70e143e772.png" alt="month" class="w-full h-full object-cover">
+                    </div>
+                    <div class="aspect-square rounded overflow-hidden">
+                      <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/ea32fb5053-f4123dab51535d78b2ac.png" alt="month" class="w-full h-full object-cover">
+                    </div>
+                    <div class="aspect-square rounded overflow-hidden">
+                      <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/011a105c86-64ea07166049e1017e9a.png" alt="month" class="w-full h-full object-cover">
+                    </div>
+                  </div>
+                  <p class="text-xs text-gray-600 text-center pt-2">Monthly memory gallery</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Slide 4: Favorites -->
+            <div class="intro-slide min-w-full p-6">
+              <div class="flex flex-col items-center">
+                <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                  <i class="fa-solid fa-heart text-3xl text-red-500"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800 mb-2">Favorites</h3>
+                <p class="text-gray-600 text-center text-sm mb-4">Your cherished moments</p>
+                <div class="w-full grid grid-cols-2 gap-2">
+                  <div class="relative bg-white rounded-xl shadow-md overflow-hidden transform rotate-[-2deg] h-32">
+                    <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/06c4d59883-ce5ce94d6ad46c42ee8e.png" alt="favorite" class="w-full h-full object-cover">
+                    <i class="fa-solid fa-heart text-red-500 absolute top-1 right-1 text-sm drop-shadow-lg"></i>
+                  </div>
+                  <div class="relative bg-white rounded-xl shadow-md overflow-hidden transform rotate-[2deg] h-32 mt-3">
+                    <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/5ec6adb291-19a4f27becd9bf81891a.png" alt="favorite" class="w-full h-full object-cover">
+                    <i class="fa-solid fa-heart text-red-500 absolute top-1 right-1 text-sm drop-shadow-lg"></i>
+                  </div>
+                  <div class="relative bg-white rounded-xl shadow-md overflow-hidden transform rotate-[1deg] h-32">
+                    <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/7d5f2711ea-308301cb34fc01259450.png" alt="favorite" class="w-full h-full object-cover">
+                    <i class="fa-solid fa-heart text-red-500 absolute top-1 right-1 text-sm drop-shadow-lg"></i>
+                  </div>
+                  <div class="relative bg-white rounded-xl shadow-md overflow-hidden transform rotate-[-1deg] h-32 mt-2">
+                    <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/bbd9a37480-db910cb1c5c32661b40c.png" alt="favorite" class="w-full h-full object-cover">
+                    <i class="fa-solid fa-heart text-red-500 absolute top-1 right-1 text-sm drop-shadow-lg"></i>
+                  </div>
+                </div>
+                <p class="text-xs text-gray-600 text-center pt-3">Collage of loved memories</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="flex items-center justify-center gap-2 py-3">
+          <button class="intro-dot w-2 h-2 rounded-full bg-orange-500"></button>
+          <button class="intro-dot w-2 h-2 rounded-full bg-gray-300"></button>
+          <button class="intro-dot w-2 h-2 rounded-full bg-gray-300"></button>
+          <button class="intro-dot w-2 h-2 rounded-full bg-gray-300"></button>
+        </div>
+
+        <div class="flex items-center justify-between px-6 pb-6">
+          <button id="introPrev" class="px-4 py-2 text-gray-400 font-semibold rounded-lg hover:bg-gray-100 disabled:opacity-0" disabled>
+            <i class="fa-solid fa-chevron-left mr-2"></i>Back
+          </button>
+          <button id="introNext" class="px-6 py-2 bg-orange-500 text-white font-semibold rounded-lg hover:bg-orange-600">
+            Next<i class="fa-solid fa-chevron-right ml-2"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="streakModal"
+      class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none transition-opacity duration-300 flex items-center justify-center p-5">
+      <div id="streakModalContent"
+        class="bg-white rounded-3xl shadow-2xl w-full max-w-sm transform scale-95 transition-transform duration-300 p-8">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-2xl font-bold text-gray-800">Your Streak</h2>
+          <button id="closeStreakModal"
+            class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100"><i
+              class="fa-solid fa-times text-gray-600"></i></button>
+        </div>
+        
+        <div class="flex flex-col items-center justify-center py-8">
+          <div class="relative mb-6">
+            <i class="fa-solid fa-fire text-[120px] text-orange-500"></i>
+            <div class="absolute inset-0 flex items-center justify-center">
+              <span class="text-4xl font-bold text-white drop-shadow-lg mt-4">15</span>
+            </div>
+          </div>
+          
+          <h3 class="text-3xl font-bold text-gray-800 mb-2">15 Days</h3>
+          <p class="text-gray-600 text-center mb-8">You're on fire! Keep the momentum going.</p>
+          
+          <div class="w-full space-y-4">
+            <div class="bg-amber-50 rounded-2xl p-4 flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center">
+                  <i class="fa-solid fa-trophy text-white text-xl"></i>
+                </div>
+                <div>
+                  <p class="font-semibold text-gray-800">Current Streak</p>
+                  <p class="text-sm text-gray-600">15 days</p>
+                </div>
+              </div>
+            </div>
+            
+            <div class="bg-gray-50 rounded-2xl p-4 flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">
+                  <i class="fa-solid fa-star text-white text-xl"></i>
+                </div>
+                <div>
+                  <p class="font-semibold text-gray-800">Longest Streak</p>
+                  <p class="text-sm text-gray-600">23 days</p>
+                </div>
+              </div>
+            </div>
+            
+            <div class="bg-gray-50 rounded-2xl p-4 flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">
+                  <i class="fa-solid fa-calendar-check text-white text-xl"></i>
+                </div>
+                <div>
+                  <p class="font-semibold text-gray-800">Total Entries</p>
+                  <p class="text-sm text-gray-600">87 days</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="favoritesModal"
+      class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none transition-opacity duration-300 flex items-start justify-center overflow-y-auto">
+      <div id="favoritesModalContent"
+        class="bg-white rounded-t-3xl shadow-2xl w-full min-h-screen transform translate-y-full transition-transform duration-300 pt-6 pb-24">
+        <div class="flex items-center justify-between px-6 mb-6">
+          <h2 class="text-2xl font-bold text-gray-800">Favorite Moments</h2>
+          <button id="closeFavoritesModal"
+            class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100"><i
+              class="fa-solid fa-times text-gray-600"></i></button>
+        </div>
+        
+        <div class="px-4">
+          <div class="flex items-center justify-between mb-4 px-2">
+            <p class="text-sm text-gray-600">12 saved memories</p>
+            <i class="fa-solid fa-heart text-orange-500 text-xl"></i>
+          </div>
+          
+          <div class="grid grid-cols-2 gap-3">
+            <div class="relative bg-white rounded-2xl shadow-md overflow-hidden transform rotate-[-2deg] hover:rotate-0 transition-transform duration-300">
+              <img
+                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/06c4d59883-ce5ce94d6ad46c42ee8e.png"
+                alt="sunset beach peaceful ocean"
+                class="w-full h-48 object-cover">
+              <div class="absolute top-2 right-2">
+                <i class="fa-solid fa-heart text-red-500 text-xl drop-shadow-lg"></i>
+              </div>
+              <div class="p-3 bg-white">
+                <p class="text-xs text-gray-500 mb-1">Jan 4, 2025</p>
+                <p class="text-sm text-gray-700 line-clamp-2">Peaceful sunset at the beach 🌅</p>
+              </div>
+            </div>
+
+            <div class="relative bg-white rounded-2xl shadow-md overflow-hidden transform rotate-[2deg] hover:rotate-0 transition-transform duration-300 mt-6">
+              <img
+                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/5ec6adb291-19a4f27becd9bf81891a.png"
+                alt="cozy reading book with tea"
+                class="w-full h-48 object-cover">
+              <div class="absolute top-2 right-2">
+                <i class="fa-solid fa-heart text-red-500 text-xl drop-shadow-lg"></i>
+              </div>
+              <div class="p-3 bg-white">
+                <p class="text-xs text-gray-500 mb-1">Jan 6, 2025</p>
+                <p class="text-sm text-gray-700 line-clamp-2">Cozy reading time ☕📚</p>
+              </div>
+            </div>
+
+            <div class="relative bg-white rounded-2xl shadow-md overflow-hidden transform rotate-[1deg] hover:rotate-0 transition-transform duration-300">
+              <img
+                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/7d5f2711ea-308301cb34fc01259450.png"
+                alt="fresh flowers in vase morning light"
+                class="w-full h-48 object-cover">
+              <div class="absolute top-2 right-2">
+                <i class="fa-solid fa-heart text-red-500 text-xl drop-shadow-lg"></i>
+              </div>
+              <div class="p-3 bg-white">
+                <p class="text-xs text-gray-500 mb-1">Jan 8, 2025</p>
+                <p class="text-sm text-gray-700 line-clamp-2">Fresh flowers brighten my day 🌸</p>
+              </div>
+            </div>
+
+            <div class="relative bg-white rounded-2xl shadow-md overflow-hidden transform rotate-[-1deg] hover:rotate-0 transition-transform duration-300 mt-4">
+              <img
+                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/bbd9a37480-db910cb1c5c32661b40c.png"
+                alt="mountain hiking trail adventure"
+                class="w-full h-48 object-cover">
+              <div class="absolute top-2 right-2">
+                <i class="fa-solid fa-heart text-red-500 text-xl drop-shadow-lg"></i>
+              </div>
+              <div class="p-3 bg-white">
+                <p class="text-xs text-gray-500 mb-1">Jan 10, 2025</p>
+                <p class="text-sm text-gray-700 line-clamp-2">Mountain adventure 🏔️</p>
+              </div>
+            </div>
+
+            <div class="relative bg-white rounded-2xl shadow-md overflow-hidden transform rotate-[-2deg] hover:rotate-0 transition-transform duration-300">
+              <img
+                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/3fef0312cc-ac35f49b2c70e143e772.png"
+                alt="home cooked meal delicious food"
+                class="w-full h-48 object-cover">
+              <div class="absolute top-2 right-2">
+                <i class="fa-solid fa-heart text-red-500 text-xl drop-shadow-lg"></i>
+              </div>
+              <div class="p-3 bg-white">
+                <p class="text-xs text-gray-500 mb-1">Jan 12, 2025</p>
+                <p class="text-sm text-gray-700 line-clamp-2">Homemade comfort food 🍲</p>
+              </div>
+            </div>
+
+            <div class="relative bg-white rounded-2xl shadow-md overflow-hidden transform rotate-[2deg] hover:rotate-0 transition-transform duration-300 mt-8">
+              <img
+                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/ea32fb5053-f4123dab51535d78b2ac.png"
+                alt="yoga meditation peaceful"
+                class="w-full h-48 object-cover">
+              <div class="absolute top-2 right-2">
+                <i class="fa-solid fa-heart text-red-500 text-xl drop-shadow-lg"></i>
+              </div>
+              <div class="p-3 bg-white">
+                <p class="text-xs text-gray-500 mb-1">Jan 13, 2025</p>
+                <p class="text-sm text-gray-700 line-clamp-2">Morning yoga session 🧘‍♀️</p>
+              </div>
+            </div>
+
+            <div class="relative bg-white rounded-2xl shadow-md overflow-hidden transform rotate-[1deg] hover:rotate-0 transition-transform duration-300">
+              <img
+                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/011a105c86-64ea07166049e1017e9a.png"
+                alt="healthy salad bowl vegetables"
+                class="w-full h-48 object-cover">
+              <div class="absolute top-2 right-2">
+                <i class="fa-solid fa-heart text-red-500 text-xl drop-shadow-lg"></i>
+              </div>
+              <div class="p-3 bg-white">
+                <p class="text-xs text-gray-500 mb-1">Jan 14, 2025</p>
+                <p class="text-sm text-gray-700 line-clamp-2">Healthy lunch bowl 🥗</p>
+              </div>
+            </div>
+
+            <div class="relative bg-white rounded-2xl shadow-md overflow-hidden transform rotate-[-1deg] hover:rotate-0 transition-transform duration-300 mt-5">
+              <img
+                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/13dfd0edd7-1248a08cd0625d7d2cb8.png"
+                alt="morning coffee sunlight"
+                class="w-full h-48 object-cover">
+              <div class="absolute top-2 right-2">
+                <i class="fa-solid fa-heart text-red-500 text-xl drop-shadow-lg"></i>
+              </div>
+              <div class="p-3 bg-white">
+                <p class="text-xs text-gray-500 mb-1">Jan 15, 2025</p>
+                <p class="text-sm text-gray-700 line-clamp-2">Morning coffee ritual ☕</p>
+              </div>
+            </div>
+
+            <div class="relative bg-white rounded-2xl shadow-md overflow-hidden transform rotate-[2deg] hover:rotate-0 transition-transform duration-300">
+              <img
+                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/df82fafb81-e691c7ae868ff48609ca.png"
+                alt="morning yoga meditation peaceful sunrise"
+                class="w-full h-48 object-cover">
+              <div class="absolute top-2 right-2">
+                <i class="fa-solid fa-heart text-red-500 text-xl drop-shadow-lg"></i>
+              </div>
+              <div class="p-3 bg-white">
+                <p class="text-xs text-gray-500 mb-1">Dec 28, 2024</p>
+                <p class="text-sm text-gray-700 line-clamp-2">Sunrise meditation 🌅</p>
+              </div>
+            </div>
+
+            <div class="relative bg-white rounded-2xl shadow-md overflow-hidden transform rotate-[-2deg] hover:rotate-0 transition-transform duration-300 mt-7">
+              <img
+                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/67c9033525-e71831b512ea2e428637.png"
+                alt="colorful healthy salad bowl fresh vegetables"
+                class="w-full h-48 object-cover">
+              <div class="absolute top-2 right-2">
+                <i class="fa-solid fa-heart text-red-500 text-xl drop-shadow-lg"></i>
+              </div>
+              <div class="p-3 bg-white">
+                <p class="text-xs text-gray-500 mb-1">Dec 30, 2024</p>
+                <p class="text-sm text-gray-700 line-clamp-2">Fresh garden salad 🥬</p>
+              </div>
+            </div>
+
+            <div class="relative bg-white rounded-2xl shadow-md overflow-hidden transform rotate-[1deg] hover:rotate-0 transition-transform duration-300">
+              <img
+                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/085a115998-cbb43d62b37ed7285cf1.png"
+                alt="morning coffee on wooden table with sunlight"
+                class="w-full h-48 object-cover">
+              <div class="absolute top-2 right-2">
+                <i class="fa-solid fa-heart text-red-500 text-xl drop-shadow-lg"></i>
+              </div>
+              <div class="p-3 bg-white">
+                <p class="text-xs text-gray-500 mb-1">Dec 25, 2024</p>
+                <p class="text-sm text-gray-700 line-clamp-2">Christmas morning ☕🎄</p>
+              </div>
+            </div>
+
+            <div class="relative bg-white rounded-2xl shadow-md overflow-hidden transform rotate-[-1deg] hover:rotate-0 transition-transform duration-300 mt-6">
+              <img
+                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/9848b97d68-29d8f31e7e5b8dcb9f5d.png"
+                alt="peaceful morning coffee on wooden table with sunlight streaming through window, warm cozy atmosphere"
+                class="w-full h-48 object-cover">
+              <div class="absolute top-2 right-2">
+                <i class="fa-solid fa-heart text-red-500 text-xl drop-shadow-lg"></i>
+              </div>
+              <div class="p-3 bg-white">
+                <p class="text-xs text-gray-500 mb-1">Dec 20, 2024</p>
+                <p class="text-sm text-gray-700 line-clamp-2">Cozy winter morning ☕</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="profileModal"
+      class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none transition-opacity duration-300 flex items-center justify-center p-5">
+      <div id="profileModalContent"
+        class="bg-white rounded-3xl shadow-2xl w-full max-w-sm transform scale-95 transition-transform duration-300 overflow-hidden">
+        <div class="flex items-center justify-between p-6 border-b border-gray-100">
+          <h2 class="text-xl font-bold text-gray-800">Profile</h2>
+          <button id="closeProfileModal"
+            class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100"><i
+              class="fa-solid fa-times text-gray-600"></i></button>
+        </div>
+        
+        <div class="p-6">
+          <div class="flex flex-col items-center mb-6">
+            <div class="w-24 h-24 rounded-full overflow-hidden mb-4 border-4 border-orange-200">
+              <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-1.jpg" alt="Profile" class="w-full h-full object-cover">
+            </div>
+            <h3 class="text-2xl font-bold text-gray-800 mb-1">Sarah Johnson</h3>
+            <p class="text-sm text-gray-500">sarah.j@email.com</p>
+          </div>
+
+          <div class="space-y-3">
+            <button class="w-full flex items-center gap-4 px-5 py-4 rounded-xl bg-amber-50 hover:bg-amber-100 transition-colors text-left">
+              <div class="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center">
+                <i class="fa-solid fa-user text-white"></i>
+              </div>
+              <div class="flex-1">
+                <p class="font-semibold text-gray-800">My Profile</p>
+                <p class="text-xs text-gray-500">View and edit your information</p>
+              </div>
+              <i class="fa-solid fa-chevron-right text-gray-400"></i>
+            </button>
+
+            <button class="w-full flex items-center gap-4 px-5 py-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors text-left">
+              <div class="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
+                <i class="fa-solid fa-file-pdf text-white"></i>
+              </div>
+              <div class="flex-1">
+                <p class="font-semibold text-gray-800">Export to PDF</p>
+                <p class="text-xs text-gray-500">Download your journal entries</p>
+              </div>
+              <i class="fa-solid fa-chevron-right text-gray-400"></i>
+            </button>
+
+            <button class="w-full flex items-center gap-4 px-5 py-4 rounded-xl bg-red-50 hover:bg-red-100 transition-colors text-left">
+              <div class="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
+                <i class="fa-solid fa-right-from-bracket text-white"></i>
+              </div>
+              <div class="flex-1">
+                <p class="font-semibold text-red-600">Logout</p>
+                <p class="text-xs text-gray-500">Sign out of your account</p>
+              </div>
+              <i class="fa-solid fa-chevron-right text-gray-400"></i>
+            </button>
+          </div>
+
+          <div class="mt-6 pt-6 border-t border-gray-100">
+            <div class="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <p class="text-2xl font-bold text-gray-800">87</p>
+                <p class="text-xs text-gray-500">Entries</p>
+              </div>
+              <div>
+                <p class="text-2xl font-bold text-gray-800">15</p>
+                <p class="text-xs text-gray-500">Streak</p>
+              </div>
+              <div>
+                <p class="text-2xl font-bold text-gray-800">12</p>
+                <p class="text-xs text-gray-500">Favorites</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const menuBtn = document.getElementById('menuBtn');
+      const sideDrawer = document.getElementById('sideDrawer');
+      const drawerContent = document.getElementById('drawerContent');
+      const closeDrawer = document.getElementById('closeDrawer');
+
+      menuBtn.addEventListener('click', () =>
+      {
+        sideDrawer.classList.remove('pointer-events-none', 'opacity-0');
+        drawerContent.classList.remove('-translate-x-full');
+      });
+
+      closeDrawer.addEventListener('click', () =>
+      {
+        sideDrawer.classList.add('pointer-events-none', 'opacity-0');
+        drawerContent.classList.add('-translate-x-full');
+      });
+
+      sideDrawer.addEventListener('click', (e) =>
+      {
+        if (e.target === sideDrawer)
+        {
+          sideDrawer.classList.add('pointer-events-none', 'opacity-0');
+          drawerContent.classList.add('-translate-x-full');
+        }
+      });
+
+      const introBtn = document.getElementById('introBtn');
+      const introModal = document.getElementById('introModal');
+      const introModalContent = document.getElementById('introModalContent');
+      const closeIntroModal = document.getElementById('closeIntroModal');
+      const introSlides = document.getElementById('introSlides');
+      const introDots = document.querySelectorAll('.intro-dot');
+      const introPrevBtn = document.getElementById('introPrev');
+      const introNextBtn = document.getElementById('introNext');
+      
+      let currentSlide = 0;
+      const totalSlides = 4;
+
+      function updateIntroSlide() {
+        introSlides.style.transform = `translateX(-${currentSlide * 100}%)`;
+        
+        introDots.forEach((dot, index) => {
+          if (index === currentSlide) {
+            dot.classList.remove('bg-gray-300');
+            dot.classList.add('bg-orange-500');
+          } else {
+            dot.classList.remove('bg-orange-500');
+            dot.classList.add('bg-gray-300');
+          }
+        });
+
+        introPrevBtn.disabled = currentSlide === 0;
+        if (currentSlide === 0) {
+          introPrevBtn.classList.add('opacity-0');
+        } else {
+          introPrevBtn.classList.remove('opacity-0');
+        }
+
+        if (currentSlide === totalSlides - 1) {
+          introNextBtn.textContent = 'Get Started';
+          introNextBtn.innerHTML = 'Get Started<i class="fa-solid fa-check ml-2"></i>';
+        } else {
+          introNextBtn.innerHTML = 'Next<i class="fa-solid fa-chevron-right ml-2"></i>';
+        }
+      }
+
+      introBtn.addEventListener('click', () => {
+        currentSlide = 0;
+        updateIntroSlide();
+        introModal.classList.remove('pointer-events-none', 'opacity-0');
+        introModalContent.classList.remove('scale-95');
+        introModalContent.classList.add('scale-100');
+      });
+
+      closeIntroModal.addEventListener('click', () => {
+        introModal.classList.add('pointer-events-none', 'opacity-0');
+        introModalContent.classList.remove('scale-100');
+        introModalContent.classList.add('scale-95');
+      });
+
+      introModal.addEventListener('click', (e) => {
+        if (e.target === introModal) {
+          introModal.classList.add('pointer-events-none', 'opacity-0');
+          introModalContent.classList.remove('scale-100');
+          introModalContent.classList.add('scale-95');
+        }
+      });
+
+      introPrevBtn.addEventListener('click', () => {
+        if (currentSlide > 0) {
+          currentSlide--;
+          updateIntroSlide();
+        }
+      });
+
+      introNextBtn.addEventListener('click', () => {
+        if (currentSlide < totalSlides - 1) {
+          currentSlide++;
+          updateIntroSlide();
+        } else {
+          introModal.classList.add('pointer-events-none', 'opacity-0');
+          introModalContent.classList.remove('scale-100');
+          introModalContent.classList.add('scale-95');
+        }
+      });
+
+      introDots.forEach((dot, index) => {
+        dot.addEventListener('click', () => {
+          currentSlide = index;
+          updateIntroSlide();
+        });
+      });
+
+      let touchStartX = 0;
+      let touchEndX = 0;
+
+      introSlides.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+      });
+
+      introSlides.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipe();
+      });
+
+      function handleSwipe() {
+        if (touchStartX - touchEndX > 50 && currentSlide < totalSlides - 1) {
+          currentSlide++;
+          updateIntroSlide();
+        }
+        if (touchEndX - touchStartX > 50 && currentSlide > 0) {
+          currentSlide--;
+          updateIntroSlide();
+        }
+      }
+
+      const streakBtn = document.getElementById('streakBtn');
+      const streakModal = document.getElementById('streakModal');
+      const streakModalContent = document.getElementById('streakModalContent');
+      const closeStreakModal = document.getElementById('closeStreakModal');
+
+      streakBtn.addEventListener('click', () =>
+      {
+        streakModal.classList.remove('pointer-events-none', 'opacity-0');
+        streakModalContent.classList.remove('scale-95');
+        streakModalContent.classList.add('scale-100');
+      });
+
+      closeStreakModal.addEventListener('click', () =>
+      {
+        streakModal.classList.add('pointer-events-none', 'opacity-0');
+        streakModalContent.classList.remove('scale-100');
+        streakModalContent.classList.add('scale-95');
+      });
+
+      streakModal.addEventListener('click', (e) =>
+      {
+        if (e.target === streakModal)
+        {
+          streakModal.classList.add('pointer-events-none', 'opacity-0');
+          streakModalContent.classList.remove('scale-100');
+          streakModalContent.classList.add('scale-95');
+        }
+      });
+
+      const favoritesBtn = document.getElementById('favoritesBtn');
+      const favoritesModal = document.getElementById('favoritesModal');
+      const favoritesModalContent = document.getElementById('favoritesModalContent');
+      const closeFavoritesModal = document.getElementById('closeFavoritesModal');
+
+      favoritesBtn.addEventListener('click', () => {
+        favoritesModal.classList.remove('pointer-events-none', 'opacity-0');
+        favoritesModalContent.classList.remove('translate-y-full');
+        favoritesModalContent.classList.add('translate-y-0');
+        document.body.style.overflow = 'hidden';
+      });
+
+      closeFavoritesModal.addEventListener('click', () => {
+        favoritesModal.classList.add('pointer-events-none', 'opacity-0');
+        favoritesModalContent.classList.remove('translate-y-0');
+        favoritesModalContent.classList.add('translate-y-full');
+        document.body.style.overflow = 'auto';
+      });
+
+      favoritesModal.addEventListener('click', (e) => {
+        if (e.target === favoritesModal) {
+          favoritesModal.classList.add('pointer-events-none', 'opacity-0');
+          favoritesModalContent.classList.remove('translate-y-0');
+          favoritesModalContent.classList.add('translate-y-full');
+          document.body.style.overflow = 'auto';
+        }
+      });
+
+      const profileBtn = document.getElementById('profileBtn');
+      const profileModal = document.getElementById('profileModal');
+      const profileModalContent = document.getElementById('profileModalContent');
+      const closeProfileModal = document.getElementById('closeProfileModal');
+
+      profileBtn.addEventListener('click', () => {
+        profileModal.classList.remove('pointer-events-none', 'opacity-0');
+        profileModalContent.classList.remove('scale-95');
+        profileModalContent.classList.add('scale-100');
+      });
+
+      closeProfileModal.addEventListener('click', () => {
+        profileModal.classList.add('pointer-events-none', 'opacity-0');
+        profileModalContent.classList.remove('scale-100');
+        profileModalContent.classList.add('scale-95');
+      });
+
+      profileModal.addEventListener('click', (e) => {
+        if (e.target === profileModal) {
+          profileModal.classList.add('pointer-events-none', 'opacity-0');
+          profileModalContent.classList.remove('scale-100');
+          profileModalContent.classList.add('scale-95');
+        }
+      });
+
+      const viewTabs = document.querySelectorAll('.view-tab');
+      const viewContents = document.querySelectorAll('.view-content');
+
+      viewTabs.forEach(tab =>
+      {
+        tab.addEventListener('click', () =>
+        {
+          const viewType = tab.dataset.view;
+
+          viewTabs.forEach(t =>
+          {
+            t.classList.remove('active', 'bg-orange-500',
+              'text-white');
+            t.classList.add('bg-white/60', 'text-gray-600');
+          });
+
+          tab.classList.add('active', 'bg-orange-500', 'text-white');
+          tab.classList.remove('bg-white/60', 'text-gray-600');
+
+          viewContents.forEach(content =>
+          {
+            content.classList.add('hidden');
+          });
+
+          document.getElementById(viewType + 'View').classList.remove(
+            'hidden');
+        });
+      });
+
+      document.querySelector('.view-tab.active').classList.add('bg-orange-500',
+        'text-white');
+      document.querySelector('.view-tab.active').classList.remove('bg-white/60',
+        'text-gray-600');
+
+      viewTabs.forEach(t =>
+      {
+        if (!t.classList.contains('active'))
+        {
+          t.classList.add('bg-white/60', 'text-gray-600');
+        }
+      });
+    </script>
+  </body>
+
+</html>
