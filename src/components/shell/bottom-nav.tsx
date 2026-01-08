@@ -1,6 +1,6 @@
 'use client'
 
-import { AppIcon, type IconName } from '@/components/ui/app-icon'
+import { AppIcon } from '@/components/ui/app-icon'
 
 // Bottom nav matches main.html exactly:
 // compass (guide) | heart (favorites) | plus (FAB) | fire (streak) | user (profile)
@@ -8,6 +8,12 @@ import { AppIcon, type IconName } from '@/components/ui/app-icon'
 //
 // NOTE: onGuideClick opens GuideModal (fullscreen swipeable guide)
 //       This is SEPARATE from IntroModal (onboarding)
+//
+// Layout: Increased height for better tap targets on mobile (~6.3" screens)
+// - py-4 provides comfortable vertical padding
+// - Icons at w-6 h-6 for visibility
+// - w-11 h-11 button containers ensure 44px minimum touch target
+// - Safe-area-inset-bottom for notched devices
 
 interface BottomNavProps {
   onGuideClick?: () => void  // Opens GuideModal (NOT IntroModal for onboarding)
@@ -25,30 +31,33 @@ export function BottomNav({
   onProfileClick,
 }: BottomNavProps) {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
-      <div className="flex items-center justify-around px-5 py-3">
+    <nav
+      className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+    >
+      <div className="flex items-center justify-around px-5 py-4">
         {/* Guide - compass icon (opens GuideModal, NOT IntroModal) */}
         <button
           onClick={onGuideClick}
-          className="flex flex-col items-center gap-1 text-gray-400"
+          className="flex flex-col items-center justify-center w-11 h-11 text-gray-400 active:text-gray-600"
           data-testid="nav-bottom-guide"
         >
-          <AppIcon name="compass" className="w-5 h-5" />
+          <AppIcon name="compass" className="w-6 h-6" />
         </button>
 
         {/* Favorites - heart icon */}
         <button
           onClick={onFavoritesClick}
-          className="flex flex-col items-center gap-1 text-gray-400"
+          className="flex flex-col items-center justify-center w-11 h-11 text-gray-400 active:text-gray-600"
           data-testid="nav-bottom-favorites"
         >
-          <AppIcon name="heart" className="w-5 h-5" />
+          <AppIcon name="heart" className="w-6 h-6" />
         </button>
 
         {/* Center FAB - Plus button */}
         <button
           onClick={onAddClick}
-          className="w-14 h-14 -mt-8 bg-gradient-to-br from-orange-500 to-amber-500 rounded-full flex items-center justify-center shadow-lg"
+          className="w-14 h-14 -mt-7 bg-gradient-to-br from-orange-500 to-amber-500 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform"
           aria-label="Add today's entry"
           data-testid="nav-bottom-plus"
         >
@@ -58,19 +67,19 @@ export function BottomNav({
         {/* Streak - fire icon */}
         <button
           onClick={onStreakClick}
-          className="flex flex-col items-center gap-1 text-gray-400"
+          className="flex flex-col items-center justify-center w-11 h-11 text-gray-400 active:text-gray-600"
           data-testid="nav-bottom-streak"
         >
-          <AppIcon name="flame" className="w-5 h-5" />
+          <AppIcon name="flame" className="w-6 h-6" />
         </button>
 
         {/* Profile - user icon */}
         <button
           onClick={onProfileClick}
-          className="flex flex-col items-center gap-1 text-gray-400"
+          className="flex flex-col items-center justify-center w-11 h-11 text-gray-400 active:text-gray-600"
           data-testid="nav-bottom-profile"
         >
-          <AppIcon name="user" className="w-5 h-5" />
+          <AppIcon name="user" className="w-6 h-6" />
         </button>
       </div>
     </nav>

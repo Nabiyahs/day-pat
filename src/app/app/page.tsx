@@ -200,8 +200,8 @@ export default function AppPage() {
         <ViewTabs activeView={activeView} onViewChange={setActiveView} />
       </header>
 
-      {/* Main Content */}
-      <main className="pt-[140px] pb-24 px-5">
+      {/* Main Content - adjusted padding for compact header and taller bottom nav */}
+      <main className="pt-[110px] pb-28 px-5">
         {activeView === 'day' && (
           <DayView
             selectedDate={selectedDate}

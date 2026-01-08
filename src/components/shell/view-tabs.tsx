@@ -17,7 +17,7 @@ const TABS: { id: ViewType; label: string }[] = [
 
 export function ViewTabs({ activeView, onViewChange }: ViewTabsProps) {
   return (
-    <div className="flex items-center justify-center gap-2 px-5 pb-3">
+    <div className="flex items-center justify-center gap-2 px-5 pb-2">
       {TABS.map((tab) => (
         <button
           key={tab.id}
