@@ -16,8 +16,7 @@ interface PolaroidCardProps {
   dayCard: (DayCard & { is_liked?: boolean }) | null
   photoSignedUrl: string | null
   date: string
-  onSave: (updates: { photo_url?: string | null; caption?: string | null }) => Promise<{ success: boolean; error?: string; refreshError?: string }>
-  onStickersChange: (stickers: StickerState[]) => Promise<void>
+  onSave: (updates: { photo_url?: string | null; caption?: string | null; sticker_state?: StickerState[] }) => Promise<{ success: boolean; error?: string; refreshError?: string }>
   onToggleLike?: () => Promise<{ success: boolean; error?: string }>
   onShare?: () => Promise<void>
   saving?: boolean
@@ -38,7 +37,6 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
   photoSignedUrl,
   date,
   onSave,
-  onStickersChange,
   onToggleLike,
   onShare,
   saving,
@@ -205,7 +203,7 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
       return
     }
 
-    const updates: { photo_url?: string | null; caption?: string | null } = {}
+    const updates: { photo_url?: string | null; caption?: string | null; sticker_state?: StickerState[] } = {}
 
     // Check if photo changed
     if (pendingPhotoPath) {
@@ -221,9 +219,13 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
 
     // Check if stickers changed (compare draft to saved)
     const stickersChanged = JSON.stringify(draftStickers) !== JSON.stringify(savedStickers)
+    if (stickersChanged) {
+      updates.sticker_state = draftStickers
+      if (DEBUG) console.log('[PolaroidCard] Will save stickers:', draftStickers.length, 'items')
+    }
 
     // Only save if there are changes (photo, caption, or stickers)
-    if (Object.keys(updates).length === 0 && !stickersChanged) {
+    if (Object.keys(updates).length === 0) {
       // No changes, just exit edit mode
       if (DEBUG) console.log('[PolaroidCard] No changes, exiting edit mode')
       setIsEditing(false)
@@ -233,34 +235,27 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
       return
     }
 
-    // Save stickers if changed (draft becomes the new saved state)
-    if (stickersChanged) {
-      if (DEBUG) console.log('[PolaroidCard] Will save stickers')
-      await onStickersChange(draftStickers)
+    // Save all changes in a single call
+    if (DEBUG) console.log('[PolaroidCard] Calling onSave with updates:', {
+      photo_url: updates.photo_url ? `${updates.photo_url.substring(0, 40)}...` : undefined,
+      caption: updates.caption !== undefined ? `(${(updates.caption as string)?.length || 0} chars)` : undefined,
+      sticker_state: updates.sticker_state ? `(${updates.sticker_state.length} stickers)` : undefined,
+    })
+
+    const result = await onSave(updates)
+
+    if (DEBUG) console.log('[PolaroidCard] onSave result:', result)
+
+    if (!result.success) {
+      if (DEBUG) console.log('[PolaroidCard] Save failed, staying in edit mode')
+      return // Stay in edit mode on failure
     }
 
-    // Only call onSave if there are photo/caption updates
-    if (Object.keys(updates).length > 0) {
-      if (DEBUG) console.log('[PolaroidCard] Calling onSave with updates:', {
-        photo_url: updates.photo_url ? `${updates.photo_url.substring(0, 40)}...` : undefined,
-        caption: updates.caption !== undefined ? `(${(updates.caption as string)?.length || 0} chars)` : undefined,
-      })
-
-      const result = await onSave(updates)
-
-      if (DEBUG) console.log('[PolaroidCard] onSave result:', result)
-
-      if (!result.success) {
-        if (DEBUG) console.log('[PolaroidCard] Save failed, staying in edit mode')
-        return // Stay in edit mode on failure
-      }
-
-      // Handle refresh warning separately (not a save failure)
-      if (result.refreshError) {
-        if (DEBUG) console.log('[PolaroidCard] Refresh warning:', result.refreshError)
-        setUploadError(result.refreshError)
-        setTimeout(() => setUploadError(null), 5000)
-      }
+    // Handle refresh warning separately (not a save failure)
+    if (result.refreshError) {
+      if (DEBUG) console.log('[PolaroidCard] Refresh warning:', result.refreshError)
+      setUploadError(result.refreshError)
+      setTimeout(() => setUploadError(null), 5000)
     }
 
     // Success - exit edit mode
@@ -360,6 +355,11 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
                 )}
               </button>
             </>
+          ) : dayCard?.photo_path ? (
+            // Skeleton loader - photo exists but URL still loading
+            <div className="w-full h-[280px] flex items-center justify-center bg-gray-100 animate-pulse">
+              <AppIcon name="spinner" className="w-8 h-8 animate-spin text-gray-400" />
+            </div>
           ) : (
             <button
               onClick={handleCameraClick}
@@ -600,8 +600,8 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
                 </button>
               )}
 
-              {/* Heart (like) button - only show if entry exists */}
-              {dayCard?.id && onToggleLike && !isEditing && (
+              {/* Heart (like) button - only show if entry exists (visible in both view and edit mode) */}
+              {dayCard?.id && onToggleLike && (
                 <button
                   onClick={onToggleLike}
                   className={cn(

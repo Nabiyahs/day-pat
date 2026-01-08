@@ -14,6 +14,7 @@ import { WeekView } from '@/components/calendar/week-view'
 import { DayView } from '@/components/day/day-view'
 import { formatDateString } from '@/lib/utils'
 import { clearSessionTracking } from '@/lib/auth/session-persistence'
+import { clearSignedUrlCache } from '@/lib/image-upload'
 
 export default function AppPage() {
   const [user, setUser] = useState<User | null>(null)
@@ -176,6 +177,7 @@ export default function AppPage() {
     await supabase.auth.signOut()
     resetSupabaseClient()
     clearSessionTracking()
+    clearSignedUrlCache() // Clear cached signed URLs on logout
     router.replace('/login')
   }
 

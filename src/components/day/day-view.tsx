@@ -98,6 +98,7 @@ export function DayView({ selectedDate, onDateChange }: DayViewProps) {
   const handleSave = async (updates: {
     photo_url?: string | null
     caption?: string | null
+    sticker_state?: import('@/types/database').StickerState[]
   }): Promise<{ success: boolean; error?: string; refreshError?: string }> => {
     return await upsertDayCard(updates)
   }
@@ -140,9 +141,6 @@ export function DayView({ selectedDate, onDateChange }: DayViewProps) {
           photoSignedUrl={photoSignedUrl}
           date={dateStr}
           onSave={handleSave}
-          onStickersChange={async (stickers) => {
-            await upsertDayCard({ sticker_state: stickers })
-          }}
           onToggleLike={toggleLike}
           onShare={handleShareFromActionBar}
           saving={cardSaving}

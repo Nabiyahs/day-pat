@@ -7,6 +7,10 @@ const MAX_WIDTH = 1200
 const MAX_HEIGHT = 1200
 const BUCKET_NAME = 'entry-photos' // Must match Supabase Storage bucket name (private bucket)
 const SIGNED_URL_EXPIRES_IN = 60 * 60 // 1 hour
+const SIGNED_URL_CACHE_DURATION = 50 * 60 * 1000 // 50 minutes in ms (refresh before expiry)
+
+// Simple in-memory cache for signed URLs to avoid redundant requests
+const signedUrlCache = new Map<string, { url: string; timestamp: number }>()
 
 export async function compressImage(file: File): Promise<File> {
   const options = {
@@ -120,11 +124,22 @@ export async function uploadPhoto(
 
 /**
  * Get a signed URL for a private storage path
+ * Uses in-memory cache to avoid redundant requests
  * @param path The storage path (e.g., "uuid.webp")
  * @returns Signed URL for temporary access
  */
 export async function getSignedUrl(path: string): Promise<string | null> {
   if (!path) return null
+
+  // Check cache first
+  const cached = signedUrlCache.get(path)
+  const now = Date.now()
+  if (cached && now - cached.timestamp < SIGNED_URL_CACHE_DURATION) {
+    if (DEBUG) {
+      console.log('[getSignedUrl] ✅ Cache hit for:', path)
+    }
+    return cached.url
+  }
 
   const supabase = getSupabaseClient()
 
@@ -146,7 +161,20 @@ export async function getSignedUrl(path: string): Promise<string | null> {
     console.log('[getSignedUrl] ✅ Got signed URL for:', path)
   }
 
+  // Cache the result
+  signedUrlCache.set(path, { url: data.signedUrl, timestamp: now })
+
   return data.signedUrl
+}
+
+/**
+ * Clear the signed URL cache (useful after logout or when URLs need refresh)
+ */
+export function clearSignedUrlCache(): void {
+  signedUrlCache.clear()
+  if (DEBUG) {
+    console.log('[getSignedUrl] Cache cleared')
+  }
 }
 
 /**
