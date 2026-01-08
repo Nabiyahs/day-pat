@@ -364,22 +364,19 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
               <AppIcon name="spinner" className="w-8 h-8 animate-spin text-gray-400" />
             </div>
           ) : (
-            <button
-              onClick={handleCameraClick}
-              disabled={uploading || !isEditing}
+            // Empty state - clean, neutral container (no camera icon)
+            // Clickable in edit mode to trigger photo upload
+            <div
+              onClick={isEditing ? handleCameraClick : undefined}
               className={cn(
-                'w-full h-[280px] flex flex-col items-center justify-center gap-2 transition-colors',
-                isEditing
-                  ? 'text-gray-400 hover:text-gray-500 cursor-pointer'
-                  : 'text-gray-300 cursor-not-allowed'
+                'w-full h-[280px] flex items-center justify-center',
+                isEditing && !uploading && 'cursor-pointer'
               )}
             >
-              {uploading ? (
-                <AppIcon name="spinner" className="w-10 h-10 animate-spin" />
-              ) : (
-                <AppIcon name="camera" className="w-10 h-10" />
+              {uploading && (
+                <AppIcon name="spinner" className="w-10 h-10 animate-spin text-gray-400" />
               )}
-            </button>
+            </div>
           )}
 
           {/* Upload error message */}
