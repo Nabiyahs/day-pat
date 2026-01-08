@@ -8,7 +8,7 @@ import { useSupabase, resetSupabaseClient } from '@/lib/supabase/client'
 import { AppIcon } from '@/components/ui/app-icon'
 import type { User, AuthChangeEvent, Session } from '@supabase/supabase-js'
 import { Header, ViewTabs, BottomNav, type ViewType } from '@/components/shell'
-import { IntroModal, FavoritesModal, StreakModal, ProfileModal, ExportModal, GuideModal } from '@/components/modals'
+import { IntroModal, FavoritesModal, StreakModal, ProfileModal, ExportModal, GuideModal, DayViewModal } from '@/components/modals'
 import { MonthView } from '@/components/calendar/month-view'
 import { WeekView } from '@/components/calendar/week-view'
 import { DayView } from '@/components/day/day-view'
@@ -28,6 +28,8 @@ export default function AppPage() {
   const [streakOpen, setStreakOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
+  const [dayViewModalOpen, setDayViewModalOpen] = useState(false)  // Day View modal from Week/Month
+  const [dayViewModalDate, setDayViewModalDate] = useState<string>('')  // Selected date for modal
 
   // Stats for ProfileModal
   const [totalEntries, setTotalEntries] = useState(0)
@@ -153,11 +155,20 @@ export default function AppPage() {
     return () => subscription.unsubscribe()
   }, [supabase, router])
 
+  // Called when a day is clicked in Week/Month views - opens modal instead of switching views
   const handleSelectDate = (date: string) => {
-    setSelectedDate(date)
-    if (activeView !== 'day') {
-      setActiveView('day')
-    }
+    setDayViewModalDate(date)
+    setDayViewModalOpen(true)
+  }
+
+  // Called when navigating within the Day View modal
+  const handleModalDateChange = (date: string) => {
+    setDayViewModalDate(date)
+  }
+
+  // Called when closing the Day View modal
+  const handleDayViewModalClose = () => {
+    setDayViewModalOpen(false)
   }
 
   const handleLogout = async () => {
@@ -262,6 +273,12 @@ export default function AppPage() {
       <ExportModal
         isOpen={exportOpen}
         onClose={() => setExportOpen(false)}
+      />
+      <DayViewModal
+        isOpen={dayViewModalOpen}
+        onClose={handleDayViewModalClose}
+        selectedDate={dayViewModalDate}
+        onDateChange={handleModalDateChange}
       />
 
       {/* Debug Panel (Development only) */}
