@@ -61,11 +61,18 @@ export function PolaroidCard({
   // UI state
   const [playStampAnimation, setPlayStampAnimation] = useState(false)
   const [selectedStickerIndex, setSelectedStickerIndex] = useState<number | null>(null)
+  const [localStickers, setLocalStickers] = useState<StickerState[]>(dayCard?.sticker_state || [])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const photoAreaRef = useRef<HTMLDivElement>(null)
   const stickerRefs = useRef<(HTMLDivElement | null)[]>([])
 
-  const stickers = dayCard?.sticker_state || []
+  // Sync local stickers with dayCard when it changes (e.g., date navigation, server refresh)
+  useEffect(() => {
+    setLocalStickers(dayCard?.sticker_state || [])
+  }, [dayCard?.sticker_state])
+
+  // Use local stickers for rendering (optimistic updates)
+  const stickers = localStickers
 
   // Clear selection when exiting edit mode
   useEffect(() => {
@@ -253,12 +260,15 @@ export function PolaroidCard({
       rotate: catalogSticker.defaultRotation,
       z: stickers.length + 1,
     }
-    await onStickersChange([...stickers, newSticker])
+    const newStickers = [...stickers, newSticker]
+    setLocalStickers(newStickers) // Optimistic update for immediate visibility
+    await onStickersChange(newStickers)
   }
 
   const deleteSticker = async (index: number) => {
     const newStickers = stickers.filter((_, i) => i !== index)
     setSelectedStickerIndex(null)
+    setLocalStickers(newStickers) // Optimistic update for immediate removal
     await onStickersChange(newStickers)
   }
 
@@ -281,6 +291,7 @@ export function PolaroidCard({
       const newStickers = stickers.map((s, i) =>
         i === index ? { ...s, ...updates } : s
       )
+      setLocalStickers(newStickers) // Optimistic update for immediate feedback
       onStickersChange(newStickers)
     },
     [stickers, onStickersChange]
