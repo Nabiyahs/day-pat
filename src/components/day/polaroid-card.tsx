@@ -2,7 +2,6 @@
 
 import { useState, useRef, useCallback, useEffect, useMemo, forwardRef, useImperativeHandle } from 'react'
 import { startOfDay } from 'date-fns'
-import Image from 'next/image'
 import Moveable from 'react-moveable'
 import { AppIcon } from '@/components/ui/app-icon'
 import { cn, parseDateString } from '@/lib/utils'
@@ -350,21 +349,15 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
               style={{ cursor: isEditing ? 'pointer' : 'default' }}
             />
           ) : photoSignedUrl ? (
-            // Remote image from Supabase - use next/image for optimization
-            <div
-              className="relative w-full h-[280px]"
+            // Remote image from Supabase - use regular img for html-to-image export compatibility
+            <img
+              src={photoSignedUrl}
+              alt="Day photo"
+              className="w-full h-[280px] object-cover"
+              crossOrigin="anonymous"
               onClick={isEditing ? handleCameraClick : undefined}
               style={{ cursor: isEditing ? 'pointer' : 'default' }}
-            >
-              <Image
-                src={photoSignedUrl}
-                alt="Day photo"
-                fill
-                sizes="(max-width: 768px) 100vw, 340px"
-                className="object-cover"
-                priority
-              />
-            </div>
+            />
           ) : dayCard?.photo_path ? (
             // Skeleton loader - photo exists but signed URL still loading
             <div className="w-full h-[280px] flex items-center justify-center bg-gray-100 animate-pulse">
