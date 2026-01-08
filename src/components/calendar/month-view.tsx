@@ -94,22 +94,27 @@ export function MonthView({ onSelectDate }: MonthViewProps) {
       {/* Calendar Grid - matches reference design */}
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4">
         {/* Weekday Headers */}
-        <div className="grid grid-cols-7 gap-1 mb-2">
+        <div
+          className="grid gap-0 mb-2"
+          style={{ gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}
+        >
           {WEEKDAYS.map((day) => (
             <div
               key={day}
-              className="text-center text-xs font-semibold text-gray-500 py-2"
+              className="text-center text-xs font-semibold text-gray-500 py-2 min-w-0"
             >
               {day}
             </div>
           ))}
         </div>
 
-        {/* Calendar Days - larger cells when fewer weeks */}
-        <div className={cn(
-          'grid grid-cols-7 gap-1.5',
-          numWeeks <= 5 ? 'auto-rows-[1fr]' : ''
-        )}>
+        {/* Calendar Days - stable grid with no overlap
+            Uses minmax(0, 1fr) to prevent subpixel overflow on mobile
+            gap-px with bg as separator prevents double-border issues */}
+        <div
+          className="grid gap-px bg-gray-100 rounded-xl overflow-hidden"
+          style={{ gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}
+        >
           {calendarDays.map((date, index) => {
             const dateStr = formatDateString(date)
             const isCurrentMonth = isSameMonth(date, currentMonth)
@@ -120,17 +125,13 @@ export function MonthView({ onSelectDate }: MonthViewProps) {
             // Cell height class based on number of weeks
             const cellHeight = numWeeks <= 4 ? 'h-16' : numWeeks <= 5 ? 'h-14' : 'h-12'
 
-            // Empty placeholder for non-month days at the beginning
-            if (!isCurrentMonth && index < 7) {
-              return (
-                <div key={index} className={cn('aspect-square bg-gray-50/50 rounded-lg', cellHeight)} />
-              )
-            }
-
-            // Non-month days at the end (hidden)
+            // Empty placeholder for non-month days
             if (!isCurrentMonth) {
               return (
-                <div key={index} className={cn('aspect-square bg-gray-50/50 rounded-lg', cellHeight)} />
+                <div
+                  key={index}
+                  className={cn('min-w-0 bg-gray-50', cellHeight)}
+                />
               )
             }
 
@@ -140,10 +141,10 @@ export function MonthView({ onSelectDate }: MonthViewProps) {
                 key={index}
                 onClick={() => onSelectDate(dateStr)}
                 className={cn(
-                  'aspect-square rounded-lg p-0.5 relative overflow-hidden transition-all',
+                  'min-w-0 p-0.5 relative overflow-hidden transition-all box-border',
                   cellHeight,
-                  hasPhoto ? '' : 'bg-gray-50',
-                  !isCurrentDay && 'hover:ring-1 hover:ring-amber-200'
+                  hasPhoto ? 'bg-white' : 'bg-gray-50',
+                  !isCurrentDay && 'hover:ring-1 hover:ring-amber-200 hover:ring-inset'
                 )}
                 aria-label={format(date, 'MMMM d')}
               >
@@ -173,7 +174,7 @@ export function MonthView({ onSelectDate }: MonthViewProps) {
                   <img
                     src={dayData.thumbUrl}
                     alt=""
-                    className="w-full h-full object-cover rounded-lg"
+                    className="w-full h-full object-cover"
                     loading="lazy"
                   />
                 )}
@@ -182,7 +183,7 @@ export function MonthView({ onSelectDate }: MonthViewProps) {
 
                 {/* Loading shimmer */}
                 {loading && (
-                  <div className="absolute inset-0 bg-white/50 animate-pulse rounded-lg" />
+                  <div className="absolute inset-0 bg-white/50 animate-pulse" />
                 )}
               </button>
             )

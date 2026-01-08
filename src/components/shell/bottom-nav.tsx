@@ -9,8 +9,8 @@ import { AppIcon } from '@/components/ui/app-icon'
 // NOTE: onGuideClick opens GuideModal (fullscreen swipeable guide)
 //       This is SEPARATE from IntroModal (onboarding)
 //
-// Layout: Increased height for better tap targets on mobile (~6.3" screens)
-// - py-4 provides comfortable vertical padding
+// Layout: Optimized height for tap targets on mobile (~6.3" screens)
+// - pt-2 pb-4: reduced top padding, comfortable bottom padding
 // - Icons at w-6 h-6 for visibility
 // - w-11 h-11 button containers ensure 44px minimum touch target
 // - Safe-area-inset-bottom for notched devices
@@ -35,7 +35,7 @@ export function BottomNav({
       className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
-      <div className="flex items-center justify-around px-5 py-4">
+      <div className="flex items-center justify-around px-5 pt-2 pb-4">
         {/* Guide - compass icon (opens GuideModal, NOT IntroModal) */}
         <button
           onClick={onGuideClick}
