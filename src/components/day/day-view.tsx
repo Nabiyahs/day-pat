@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react'
 import { format } from 'date-fns'
 import { AppIcon } from '@/components/ui/app-icon'
+import { Toast, useToast } from '@/components/ui/toast'
 import { useDayCard } from '@/hooks/use-day-card'
 import { formatDateString, parseDateString } from '@/lib/utils'
 import { exportPolaroidAsPng, exportPolaroidAsPdf, sharePolaroid } from '@/lib/export-polaroid'
@@ -19,6 +20,8 @@ export function DayView({ selectedDate, onDateChange }: DayViewProps) {
   const dateStr = formatDateString(date)
   const polaroidRef = useRef<PolaroidCardRef>(null)
   const [exporting, setExporting] = useState(false)
+  const [sharing, setSharing] = useState(false)
+  const { toast, showToast, hideToast } = useToast()
 
   const { dayCard, photoSignedUrl, saving: cardSaving, error, upsertDayCard, toggleLike, setEditingState } = useDayCard(dateStr)
 
@@ -53,6 +56,30 @@ export function DayView({ selectedDate, onDateChange }: DayViewProps) {
       await sharePolaroid(element, dateStr)
     } finally {
       setExporting(false)
+    }
+  }
+
+  // Share handler for action bar (with toast feedback)
+  const handleShareFromActionBar = async () => {
+    const element = polaroidRef.current?.getExportElement()
+    if (!element) return
+    setSharing(true)
+    try {
+      const result = await sharePolaroid(element, dateStr)
+      if (result.success) {
+        if (result.method === 'shared') {
+          showToast('Ready to share!', 'success')
+        } else if (result.method === 'downloaded') {
+          showToast('Sharing not supported, downloaded instead.', 'info')
+        }
+      } else if (result.method === 'failed') {
+        showToast(result.error || 'Failed to create image', 'error')
+      }
+      // Don't show toast for 'cancelled' - user intentionally cancelled
+    } catch {
+      showToast('Something went wrong', 'error')
+    } finally {
+      setSharing(false)
     }
   }
 
@@ -117,7 +144,9 @@ export function DayView({ selectedDate, onDateChange }: DayViewProps) {
             await upsertDayCard({ sticker_state: stickers })
           }}
           onToggleLike={toggleLike}
+          onShare={handleShareFromActionBar}
           saving={cardSaving}
+          sharing={sharing}
           saveError={error}
           onEditingChange={setEditingState}
         />
@@ -164,6 +193,15 @@ export function DayView({ selectedDate, onDateChange }: DayViewProps) {
           </div>
         )}
       </div>
+
+      {/* Toast notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={hideToast}
+        />
+      )}
     </div>
   )
 }

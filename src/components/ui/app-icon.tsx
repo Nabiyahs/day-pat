@@ -19,6 +19,7 @@ import {
   faTrash,
   faDownload,
   faShareNodes,
+  faPaperPlane,
   faRightFromBracket,
   faGear,
   // Status
@@ -62,6 +63,7 @@ const iconMap: Record<string, IconDefinition> = {
   'trash': faTrash,
   'download': faDownload,
   'share': faShareNodes,
+  'paper-plane': faPaperPlane,
   'logout': faRightFromBracket,
   'settings': faGear,
   // Status

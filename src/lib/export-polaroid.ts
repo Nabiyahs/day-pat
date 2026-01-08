@@ -129,34 +129,53 @@ export async function exportPolaroidAsPdf(
   pdf.save(`day-pat-${date}.pdf`)
 }
 
+export type ShareResult = {
+  success: boolean
+  method: 'shared' | 'downloaded' | 'cancelled' | 'failed'
+  error?: string
+}
+
 /**
  * Share polaroid via Web Share API or fallback to download
+ * Returns result object with success status and method used
  */
 export async function sharePolaroid(
   element: HTMLElement,
   date: string
-): Promise<void> {
-  const dataUrl = await captureElementAsPng(element)
-  const blob = dataUrlToBlob(dataUrl)
-  const file = new File([blob], `day-pat-${date}.png`, { type: 'image/png' })
+): Promise<ShareResult> {
+  try {
+    const dataUrl = await captureElementAsPng(element)
+    const blob = dataUrlToBlob(dataUrl)
+    const file = new File([blob], `day-pat-${date}.png`, { type: 'image/png' })
 
-  // Check if Web Share API supports sharing files
-  if (navigator.canShare?.({ files: [file] })) {
-    try {
-      await navigator.share({
-        files: [file],
-        title: 'My Day Pat',
-        text: `My day on ${date}`,
-      })
-      return
-    } catch (err) {
-      // User cancelled or share failed, fall back to download
-      if ((err as Error).name !== 'AbortError') {
+    // Check if Web Share API supports sharing files
+    if (navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: 'My Day Pat',
+          text: `My day on ${date}`,
+        })
+        return { success: true, method: 'shared' }
+      } catch (err) {
+        // User cancelled the share dialog
+        if ((err as Error).name === 'AbortError') {
+          return { success: false, method: 'cancelled' }
+        }
+        // Share failed, fall back to download
         console.warn('Share failed, falling back to download:', err)
       }
     }
-  }
 
-  // Fallback: download the image
-  downloadDataUrl(dataUrl, `day-pat-${date}.png`)
+    // Fallback: download the image
+    downloadDataUrl(dataUrl, `day-pat-${date}.png`)
+    return { success: true, method: 'downloaded' }
+  } catch (err) {
+    console.error('Share/download failed:', err)
+    return {
+      success: false,
+      method: 'failed',
+      error: err instanceof Error ? err.message : 'Failed to create image',
+    }
+  }
 }

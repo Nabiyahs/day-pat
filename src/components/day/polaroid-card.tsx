@@ -19,7 +19,9 @@ interface PolaroidCardProps {
   onSave: (updates: { photo_url?: string | null; caption?: string | null }) => Promise<{ success: boolean; error?: string; refreshError?: string }>
   onStickersChange: (stickers: StickerState[]) => Promise<void>
   onToggleLike?: () => Promise<{ success: boolean; error?: string }>
+  onShare?: () => Promise<void>
   saving?: boolean
+  sharing?: boolean
   saveError?: string | null
   onEditingChange?: (editing: boolean) => void
 }
@@ -38,7 +40,9 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
   onSave,
   onStickersChange,
   onToggleLike,
+  onShare,
   saving,
+  sharing,
   saveError,
   onEditingChange,
 }, ref) {
@@ -553,39 +557,65 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
             </p>
           )}
 
-          {/* Footer actions - matches reference: time + edit/like/save buttons */}
+          {/* Footer actions - matches reference: time + edit/share/like/save buttons */}
+          {/* Icon order: Pencil (edit) / Paper Plane (share) / Heart (like) */}
+          {/* Tap targets: min 44x44px with clear separation */}
           <div className="flex items-center justify-between text-xs text-gray-400">
             <span>{dayCard?.created_at ? new Date(dayCard.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
-            <div className="flex gap-3">
+            <div className="flex items-center gap-1">
               {/* Edit (pencil) button - hidden for future dates */}
               {!isFutureDate && (
                 <button
                   onClick={handleEditClick}
                   className={cn(
-                    'transition-colors p-1',
-                    isEditing ? 'text-[#F27430]' : 'hover:text-[#F27430]'
+                    'w-11 h-11 flex items-center justify-center rounded-lg transition-colors',
+                    isEditing ? 'text-[#F27430]' : 'text-gray-400 hover:text-[#F27430] hover:bg-gray-100'
                   )}
-                  aria-label="Edit"
+                  aria-label="Edit diary entry"
                   title="Edit"
                 >
-                  <AppIcon name="edit" className="w-3.5 h-3.5" />
+                  <AppIcon name="edit" className="w-4 h-4" />
+                </button>
+              )}
+
+              {/* Share (paper plane) button - only show if entry has saved photo */}
+              {dayCard?.photo_path && !isEditing && (
+                <button
+                  onClick={onShare}
+                  disabled={sharing}
+                  className={cn(
+                    'w-11 h-11 flex items-center justify-center rounded-lg transition-colors',
+                    sharing
+                      ? 'text-gray-300 cursor-wait'
+                      : 'text-gray-400 hover:text-[#F27430] hover:bg-gray-100'
+                  )}
+                  aria-label="Share diary as image"
+                  title="Share"
+                >
+                  {sharing ? (
+                    <AppIcon name="spinner" className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <AppIcon name="paper-plane" className="w-4 h-4" />
+                  )}
                 </button>
               )}
 
               {/* Heart (like) button - only show if entry exists */}
-              {dayCard?.id && onToggleLike && (
+              {dayCard?.id && onToggleLike && !isEditing && (
                 <button
                   onClick={onToggleLike}
                   className={cn(
-                    'transition-colors p-1',
-                    dayCard.is_liked ? 'text-red-500' : 'hover:text-[#F27430]'
+                    'w-11 h-11 flex items-center justify-center rounded-lg transition-colors',
+                    dayCard.is_liked
+                      ? 'text-red-500'
+                      : 'text-gray-400 hover:text-[#F27430] hover:bg-gray-100'
                   )}
                   aria-label={dayCard.is_liked ? 'Remove from favorites' : 'Add to favorites'}
                   title={dayCard.is_liked ? 'Remove from favorites' : 'Add to favorites'}
                 >
                   <AppIcon
                     name="heart"
-                    className={cn('w-3.5 h-3.5', dayCard.is_liked && 'fill-current')}
+                    className={cn('w-4 h-4', dayCard.is_liked && 'fill-current')}
                   />
                 </button>
               )}
@@ -596,16 +626,18 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
                   onClick={handleSaveClick}
                   disabled={saving || uploading}
                   className={cn(
-                    'transition-colors p-1',
-                    saving || uploading ? 'text-gray-300' : 'text-[#F27430] hover:text-[#E06320]'
+                    'w-11 h-11 flex items-center justify-center rounded-lg transition-colors',
+                    saving || uploading
+                      ? 'text-gray-300'
+                      : 'text-[#F27430] hover:text-[#E06320] hover:bg-orange-50'
                   )}
-                  aria-label="Save"
+                  aria-label="Save changes"
                   title="Save"
                 >
                   {saving ? (
-                    <AppIcon name="spinner" className="w-3.5 h-3.5 animate-spin" />
+                    <AppIcon name="spinner" className="w-4 h-4 animate-spin" />
                   ) : (
-                    <AppIcon name="check" className="w-3.5 h-3.5" />
+                    <AppIcon name="check" className="w-4 h-4" />
                   )}
                 </button>
               )}
