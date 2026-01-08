@@ -61,7 +61,6 @@ export function PolaroidCard({
   // UI state
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [playStampAnimation, setPlayStampAnimation] = useState(false)
-  const [isPolaroidShaking, setIsPolaroidShaking] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const photoAreaRef = useRef<HTMLDivElement>(null)
 
@@ -299,10 +298,7 @@ export function PolaroidCard({
     <div className="w-full max-w-[340px] mx-auto relative">
       {/* Polaroid frame - constrained width with balanced padding */}
       <div
-        className={cn(
-          'bg-white rounded-2xl shadow-xl p-4 mb-4 relative',
-          isPolaroidShaking && 'animate-polaroid-shake'
-        )}
+        className="bg-white rounded-2xl shadow-xl p-4 mb-4 relative"
         style={{ transform: 'rotate(-1deg)' }}
       >
         {/* Photo area - slightly reduced height */}
@@ -491,11 +487,6 @@ export function PolaroidCard({
           show={showStamp}
           playAnimation={playStampAnimation}
           onAnimationComplete={() => setPlayStampAnimation(false)}
-          onImpact={() => {
-            // Trigger polaroid micro-shake at stamp impact
-            setIsPolaroidShaking(true)
-            setTimeout(() => setIsPolaroidShaking(false), 180)
-          }}
         />
       </div>
 
