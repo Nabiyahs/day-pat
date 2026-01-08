@@ -44,6 +44,15 @@ export const ExportablePolaroid = forwardRef<HTMLDivElement, ExportablePolaroidP
       ? new Date(createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       : ''
 
+    // Debug log
+    console.log('[ExportablePolaroid] Rendering with:', {
+      hasPhoto: !!photoDataUrl,
+      photoLength: photoDataUrl?.length,
+      hasStamp: !!stampDataUrl && showStamp,
+      stampLength: stampDataUrl?.length,
+      stickersCount: stickers.length,
+    })
+
     return (
       <div
         ref={ref}
@@ -55,6 +64,7 @@ export const ExportablePolaroid = forwardRef<HTMLDivElement, ExportablePolaroidP
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
           transform: 'rotate(-1deg)',
           fontFamily: "'Inter', 'Noto Sans KR', system-ui, sans-serif",
+          position: 'relative', // CRITICAL: needed for absolute stamp positioning
         }}
       >
         {/* Photo area */}

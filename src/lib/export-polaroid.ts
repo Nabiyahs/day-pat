@@ -5,69 +5,100 @@ import { jsPDF } from 'jspdf'
 import { createRoot } from 'react-dom/client'
 import { createElement } from 'react'
 import { ExportablePolaroid, type ExportData } from '@/components/day/exportable-polaroid'
+import { getSupabaseClient } from '@/lib/supabase/client'
 import type { StickerState } from '@/types/database'
 
 // Stamp image path (must match stamp-overlay.tsx)
 const STAMP_IMAGE_PATH = '/image/seal-image.jpg'
+const BUCKET_NAME = 'entry-photos'
+
+// Debug flag - set to true to enable console logging
+const DEBUG_EXPORT = false
+
+function debugLog(...args: unknown[]) {
+  if (DEBUG_EXPORT) {
+    console.log('[EXPORT DEBUG]', ...args)
+  }
+}
 
 /**
- * Fetch an image URL and convert it to a data URL.
- * This bypasses CORS issues by fetching through the browser.
+ * Download image from Supabase Storage and convert to data URL.
+ * Uses Supabase client's download() which bypasses CORS issues.
  */
-async function imageUrlToDataUrl(url: string): Promise<string | null> {
+async function downloadSupabaseImage(path: string): Promise<string | null> {
+  debugLog('downloadSupabaseImage called with path:', path)
+
   try {
-    // For local images (starting with /), use fetch directly
-    if (url.startsWith('/')) {
-      const response = await fetch(url)
-      const blob = await response.blob()
-      return new Promise((resolve) => {
-        const reader = new FileReader()
-        reader.onloadend = () => resolve(reader.result as string)
-        reader.onerror = () => resolve(null)
-        reader.readAsDataURL(blob)
-      })
+    const supabase = getSupabaseClient()
+    const { data: blob, error } = await supabase.storage
+      .from(BUCKET_NAME)
+      .download(path)
+
+    if (error) {
+      debugLog('Supabase download error:', error.message)
+      return null
     }
 
-    // For remote images, try to fetch with CORS
-    // If CORS fails, fall back to canvas approach
-    try {
-      const response = await fetch(url, {
-        mode: 'cors',
-        credentials: 'omit',
-      })
-      const blob = await response.blob()
-      return new Promise((resolve) => {
-        const reader = new FileReader()
-        reader.onloadend = () => resolve(reader.result as string)
-        reader.onerror = () => resolve(null)
-        reader.readAsDataURL(blob)
-      })
-    } catch {
-      // CORS fetch failed, try canvas approach
-      return new Promise((resolve) => {
-        const img = new Image()
-        img.crossOrigin = 'anonymous'
-        img.onload = () => {
-          try {
-            const canvas = document.createElement('canvas')
-            canvas.width = img.naturalWidth
-            canvas.height = img.naturalHeight
-            const ctx = canvas.getContext('2d')
-            if (ctx) {
-              ctx.drawImage(img, 0, 0)
-              resolve(canvas.toDataURL('image/jpeg', 0.9))
-            } else {
-              resolve(null)
-            }
-          } catch {
-            resolve(null)
-          }
-        }
-        img.onerror = () => resolve(null)
-        img.src = url
-      })
+    if (!blob) {
+      debugLog('Supabase download returned no blob')
+      return null
     }
-  } catch {
+
+    debugLog('Supabase download success, blob size:', blob.size, 'type:', blob.type)
+
+    // Convert blob to data URL
+    return new Promise((resolve) => {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        const result = reader.result as string
+        debugLog('Blob converted to dataUrl, length:', result?.length)
+        resolve(result)
+      }
+      reader.onerror = () => {
+        debugLog('FileReader error')
+        resolve(null)
+      }
+      reader.readAsDataURL(blob)
+    })
+  } catch (error) {
+    debugLog('downloadSupabaseImage error:', error)
+    return null
+  }
+}
+
+/**
+ * Fetch a local image URL and convert it to a data URL.
+ */
+async function fetchLocalImage(url: string): Promise<string | null> {
+  debugLog('fetchLocalImage called with:', url)
+
+  try {
+    const response = await fetch(url)
+    debugLog('Local fetch response status:', response.status)
+
+    if (!response.ok) {
+      debugLog('Local fetch failed:', response.status)
+      return null
+    }
+
+    const blob = await response.blob()
+    debugLog('Local blob size:', blob.size, 'type:', blob.type)
+
+    return new Promise((resolve) => {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        const result = reader.result as string
+        debugLog('Local image converted, dataUrl length:', result?.length)
+        resolve(result)
+      }
+      reader.onerror = () => {
+        debugLog('Local FileReader error')
+        resolve(null)
+      }
+      reader.readAsDataURL(blob)
+    })
+  } catch (error) {
+    debugLog('fetchLocalImage error:', error)
     return null
   }
 }
@@ -108,31 +139,48 @@ async function waitForAllImages(container: HTMLElement): Promise<void> {
 
 /**
  * Prepare export data by converting all images to data URLs.
+ * Uses Supabase download API for photos to bypass CORS issues.
  */
 async function prepareExportData(
-  photoUrl: string | null,
+  photoPath: string | null, // Storage path, not URL
   stickers: StickerState[],
   praise: string | null,
   showStamp: boolean,
   createdAt: string | null
 ): Promise<ExportData> {
-  // Convert photo to data URL
-  const photoDataUrl = photoUrl ? await imageUrlToDataUrl(photoUrl) : null
+  debugLog('=== prepareExportData START ===')
+  debugLog('Input photoPath:', photoPath)
+  debugLog('Input stickers count:', stickers.length)
+  debugLog('Input showStamp:', showStamp)
 
-  // Convert stamp to data URL
-  const stampDataUrl = showStamp ? await imageUrlToDataUrl(STAMP_IMAGE_PATH) : null
+  // Download photo from Supabase Storage (bypasses CORS)
+  const photoDataUrl = photoPath ? await downloadSupabaseImage(photoPath) : null
+  debugLog('Photo conversion result:', photoDataUrl ? `SUCCESS (${photoDataUrl.length} chars)` : 'NULL/FAILED')
+
+  // Fetch stamp from local assets
+  const stampDataUrl = showStamp ? await fetchLocalImage(STAMP_IMAGE_PATH) : null
+  debugLog('Stamp conversion result:', stampDataUrl ? `SUCCESS (${stampDataUrl.length} chars)` : 'NULL/SKIPPED')
 
   // Convert sticker images to data URLs
   const stickersWithDataUrls = await Promise.all(
-    stickers.map(async (sticker) => {
+    stickers.map(async (sticker, i) => {
       if (sticker.src.startsWith('/')) {
-        const dataUrl = await imageUrlToDataUrl(sticker.src)
+        const dataUrl = await fetchLocalImage(sticker.src)
+        debugLog(`Sticker ${i} (image):`, dataUrl ? 'SUCCESS' : 'FAILED')
         return { ...sticker, dataUrl: dataUrl || sticker.src }
       }
       // Emoji stickers don't need conversion
+      debugLog(`Sticker ${i} (emoji):`, sticker.src)
       return sticker
     })
   )
+
+  debugLog('=== prepareExportData END ===')
+  debugLog('Final data:', {
+    hasPhoto: !!photoDataUrl,
+    hasStamp: !!stampDataUrl,
+    stickersCount: stickersWithDataUrls.length,
+  })
 
   return {
     photoDataUrl,
@@ -148,6 +196,16 @@ async function prepareExportData(
  * Render the export view offscreen and capture it as a PNG data URL.
  */
 async function captureExportView(exportData: ExportData, pixelRatio: number = 2): Promise<string> {
+  debugLog('=== captureExportView START ===')
+  debugLog('Export data:', {
+    hasPhoto: !!exportData.photoDataUrl,
+    photoLength: exportData.photoDataUrl?.length,
+    hasStamp: !!exportData.stampDataUrl,
+    stampLength: exportData.stampDataUrl?.length,
+    stickersCount: exportData.stickers.length,
+    showStamp: exportData.showStamp,
+  })
+
   // Create offscreen container
   const container = document.createElement('div')
   container.style.cssText = `
@@ -159,6 +217,7 @@ async function captureExportView(exportData: ExportData, pixelRatio: number = 2)
     z-index: -1;
   `
   document.body.appendChild(container)
+  debugLog('Offscreen container created')
 
   try {
     // Render ExportablePolaroid into the container
@@ -171,6 +230,7 @@ async function captureExportView(exportData: ExportData, pixelRatio: number = 2)
           data: exportData,
           ref: (el: HTMLDivElement | null) => {
             exportRef.current = el
+            debugLog('ExportablePolaroid ref received:', el?.tagName, el?.className)
             // Give React time to render
             setTimeout(resolve, 100)
           },
@@ -178,14 +238,32 @@ async function captureExportView(exportData: ExportData, pixelRatio: number = 2)
       )
     })
 
+    debugLog('React render complete')
+
+    // Debug: inspect the rendered DOM
+    const imgs = container.querySelectorAll('img')
+    debugLog('Images in container:', imgs.length)
+    imgs.forEach((img, i) => {
+      debugLog(`  img[${i}]: src=${img.src?.substring(0, 80)}, complete=${img.complete}, naturalWidth=${img.naturalWidth}`)
+    })
+
     // Wait for all images to load
     await waitForAllImages(container)
+    debugLog('All images loaded')
+
+    // Debug: check images again after waiting
+    imgs.forEach((img, i) => {
+      debugLog(`  img[${i}] after wait: complete=${img.complete}, naturalWidth=${img.naturalWidth}`)
+    })
 
     // Additional delay to ensure rendering is complete
     await new Promise((resolve) => setTimeout(resolve, 200))
 
     // Capture the element
     const targetElement = exportRef.current || container.firstElementChild as HTMLElement
+    debugLog('Target element:', targetElement?.tagName, 'children:', targetElement?.childElementCount)
+    debugLog('Target bounding rect:', targetElement?.getBoundingClientRect())
+
     const dataUrl = await toPng(targetElement, {
       pixelRatio,
       cacheBust: true,
@@ -195,12 +273,16 @@ async function captureExportView(exportData: ExportData, pixelRatio: number = 2)
       },
     })
 
+    debugLog('toPng complete, result length:', dataUrl.length)
+
     // Cleanup
     root.unmount()
     document.body.removeChild(container)
 
+    debugLog('=== captureExportView END ===')
     return dataUrl
   } catch (error) {
+    debugLog('captureExportView ERROR:', error)
     // Cleanup on error
     document.body.removeChild(container)
     throw error
@@ -253,8 +335,8 @@ function getWeekdayName(dateStr: string): string {
 // ============================================================
 
 export interface ExportOptions {
-  /** Photo URL (signed URL from Supabase) */
-  photoUrl: string | null
+  /** Photo storage path (e.g., "uuid.webp") - NOT a URL */
+  photoPath: string | null
   /** Sticker state array */
   stickers: StickerState[]
   /** Caption/praise text */
@@ -272,10 +354,10 @@ export interface ExportOptions {
  * Uses the dedicated export view for reliable capture.
  */
 export async function capturePolaroidAsPng(options: ExportOptions): Promise<string> {
-  const { photoUrl, stickers, praise, showStamp, createdAt } = options
+  const { photoPath, stickers, praise, showStamp, createdAt } = options
 
-  // Prepare export data (convert all images to data URLs)
-  const exportData = await prepareExportData(photoUrl, stickers, praise, showStamp, createdAt)
+  // Prepare export data (download from Supabase and convert to data URLs)
+  const exportData = await prepareExportData(photoPath, stickers, praise, showStamp, createdAt)
 
   // Capture the export view
   return captureExportView(exportData, 2)
@@ -298,7 +380,7 @@ export async function exportPolaroidAsPdf(options: ExportOptions): Promise<void>
 
   // Capture at higher resolution for PDF
   const exportData = await prepareExportData(
-    options.photoUrl,
+    options.photoPath,
     options.stickers,
     options.praise,
     options.showStamp,
@@ -406,8 +488,18 @@ export type ShareResult = {
  * Share polaroid via Web Share API or fallback to download.
  */
 export async function sharePolaroid(options: ExportOptions): Promise<ShareResult> {
+  debugLog('=== sharePolaroid called ===')
+  debugLog('Options:', {
+    photoPath: options.photoPath,
+    stickersCount: options.stickers.length,
+    praise: options.praise?.substring(0, 50),
+    showStamp: options.showStamp,
+    date: options.date,
+  })
+
   try {
     const dataUrl = await capturePolaroidAsPng(options)
+    debugLog('Capture complete, dataUrl length:', dataUrl.length)
     const blob = dataUrlToBlob(dataUrl)
     const file = new File([blob], `day-pat-${options.date}.png`, { type: 'image/png' })
 
