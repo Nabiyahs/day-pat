@@ -32,8 +32,9 @@ export function DayView({ selectedDate, onDateChange }: DayViewProps) {
     setSharing(true)
     try {
       // Prepare export options with all data needed for rendering
+      // Use photo_path (storage path) instead of signed URL to bypass CORS
       const exportOptions: ExportOptions = {
-        photoUrl: photoSignedUrl,
+        photoPath: dayCard.photo_path || null,
         stickers: dayCard.sticker_state || [],
         praise: dayCard.praise || null,
         showStamp: Boolean(dayCard.photo_path),
