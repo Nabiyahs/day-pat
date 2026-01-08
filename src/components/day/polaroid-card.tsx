@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo, forwardRef, useImperativeHandle } from 'react'
 import { startOfDay } from 'date-fns'
 import Moveable from 'react-moveable'
 import { AppIcon } from '@/components/ui/app-icon'
@@ -24,9 +24,14 @@ interface PolaroidCardProps {
   onEditingChange?: (editing: boolean) => void
 }
 
+// Expose methods for parent components (e.g., export)
+export interface PolaroidCardRef {
+  getExportElement: () => HTMLDivElement | null
+}
+
 const PLACEHOLDER_TEXT = "Give your day a pat."
 
-export function PolaroidCard({
+export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(function PolaroidCard({
   dayCard,
   photoSignedUrl,
   date,
@@ -36,8 +41,14 @@ export function PolaroidCard({
   saving,
   saveError,
   onEditingChange,
-}: PolaroidCardProps) {
+}, ref) {
   const placeholder = PLACEHOLDER_TEXT
+  const polaroidContainerRef = useRef<HTMLDivElement>(null)
+
+  // Expose the polaroid container for export
+  useImperativeHandle(ref, () => ({
+    getExportElement: () => polaroidContainerRef.current,
+  }))
 
   // Check if the selected date is in the future (no editing allowed)
   const isFutureDate = useMemo(() => {
@@ -312,6 +323,7 @@ export function PolaroidCard({
     <div className="w-full max-w-[340px] mx-auto relative">
       {/* Polaroid frame - constrained width with balanced padding */}
       <div
+        ref={polaroidContainerRef}
         className="bg-white rounded-2xl shadow-xl p-4 mb-4 relative"
         style={{ transform: 'rotate(-1deg)' }}
       >
@@ -622,4 +634,4 @@ export function PolaroidCard({
       )}
     </div>
   )
-}
+})
