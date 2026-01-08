@@ -61,26 +61,27 @@ export function PolaroidCard({
   // UI state
   const [playStampAnimation, setPlayStampAnimation] = useState(false)
   const [selectedStickerIndex, setSelectedStickerIndex] = useState<number | null>(null)
-  const [localStickers, setLocalStickers] = useState<StickerState[]>(dayCard?.sticker_state || [])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const photoAreaRef = useRef<HTMLDivElement>(null)
   const stickerRefs = useRef<(HTMLDivElement | null)[]>([])
 
-  // Sync local stickers with dayCard only when navigating to a different day
-  // NOT when sticker_state changes (that would cause race condition with optimistic updates)
-  useEffect(() => {
-    setLocalStickers(dayCard?.sticker_state || [])
-  }, [dayCard?.entry_date])
+  // Sticker state: savedStickers (source of truth) vs draftStickers (edit-only working copy)
+  const savedStickers = dayCard?.sticker_state || []
+  const [draftStickers, setDraftStickers] = useState<StickerState[]>([])
 
-  // Use local stickers for rendering (optimistic updates)
-  const stickers = localStickers
+  // Render savedStickers in view mode, draftStickers in edit mode
+  const stickers = isEditing ? draftStickers : savedStickers
 
-  // Clear selection when exiting edit mode
+  // Initialize draft when entering edit mode
   useEffect(() => {
-    if (!isEditing) {
+    if (isEditing) {
+      // Clone savedStickers to draftStickers when entering edit mode
+      setDraftStickers([...savedStickers])
+    } else {
+      // Clear selection when exiting edit mode
       setSelectedStickerIndex(null)
     }
-  }, [isEditing])
+  }, [isEditing]) // Note: savedStickers intentionally not in deps to avoid re-cloning during edit
 
   // Show stamp if entry has a photo (saved entry) AND not in edit mode
   // Stamp hides when editing, reappears with animation on save success
@@ -203,8 +204,8 @@ export function PolaroidCard({
       if (DEBUG) console.log('[PolaroidCard] Will save new praise')
     }
 
-    // Check if stickers changed
-    const stickersChanged = JSON.stringify(localStickers) !== JSON.stringify(dayCard?.sticker_state || [])
+    // Check if stickers changed (compare draft to saved)
+    const stickersChanged = JSON.stringify(draftStickers) !== JSON.stringify(savedStickers)
 
     // Only save if there are changes (photo, caption, or stickers)
     if (Object.keys(updates).length === 0 && !stickersChanged) {
@@ -217,10 +218,10 @@ export function PolaroidCard({
       return
     }
 
-    // Save stickers if changed
+    // Save stickers if changed (draft becomes the new saved state)
     if (stickersChanged) {
       if (DEBUG) console.log('[PolaroidCard] Will save stickers')
-      await onStickersChange(localStickers)
+      await onStickersChange(draftStickers)
     }
 
     // Only call onSave if there are photo/caption updates
@@ -263,25 +264,23 @@ export function PolaroidCard({
     fileInputRef.current?.click()
   }
 
-  const addSticker = async (catalogSticker: CatalogSticker) => {
+  // Add sticker to draft (no server save - saved only on explicit Save action)
+  const addSticker = (catalogSticker: CatalogSticker) => {
     const newSticker: StickerState = {
       emoji: catalogSticker.src, // Store sticker path in emoji field
       x: 0.5, // Center horizontally
       y: 0.4, // Slightly above center
       scale: catalogSticker.defaultScale,
       rotate: catalogSticker.defaultRotation,
-      z: stickers.length + 1,
+      z: draftStickers.length + 1,
     }
-    const newStickers = [...stickers, newSticker]
-    setLocalStickers(newStickers) // Optimistic update for immediate visibility
-    await onStickersChange(newStickers)
+    setDraftStickers(prev => [...prev, newSticker])
   }
 
-  const deleteSticker = async (index: number) => {
-    const newStickers = stickers.filter((_, i) => i !== index)
+  // Delete sticker from draft (no server save - saved only on explicit Save action)
+  const deleteSticker = (index: number) => {
     setSelectedStickerIndex(null)
-    setLocalStickers(newStickers) // Optimistic update for immediate removal
-    await onStickersChange(newStickers)
+    setDraftStickers(prev => prev.filter((_, i) => i !== index))
   }
 
   const handleStickerClick = (index: number, e: React.MouseEvent) => {
@@ -297,10 +296,10 @@ export function PolaroidCard({
     }
   }
 
-  // Update sticker transform from Moveable (local only - no server save)
+  // Update sticker transform from Moveable (draft only - no server save)
   const updateStickerTransform = useCallback(
     (index: number, updates: Partial<StickerState>) => {
-      setLocalStickers(prev => prev.map((s, i) =>
+      setDraftStickers(prev => prev.map((s, i) =>
         i === index ? { ...s, ...updates } : s
       ))
       // NOTE: Do NOT call onStickersChange here - that triggers server save
