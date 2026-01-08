@@ -68,6 +68,7 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
   const [pendingPhotoPath, setPendingPhotoPath] = useState<string | null>(null)
   const [pendingPhotoPreview, setPendingPhotoPreview] = useState<string | null>(null)
   const [praiseDraft, setPraiseDraft] = useState(dayCard?.praise || '')
+  const [pendingPhotoDelete, setPendingPhotoDelete] = useState(false) // Track draft deletion of existing photo
 
   // Upload state
   const [uploading, setUploading] = useState(false)
@@ -109,6 +110,7 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
     // Reset pending photo when dayCard changes
     setPendingPhotoPath(null)
     setPendingPhotoPreview(null)
+    setPendingPhotoDelete(false)
     setIsEditing(false)
     setPlayStampAnimation(false)
     onEditingChange?.(false)
@@ -116,7 +118,8 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
 
   // Determine what photo to display
   // Priority: pendingPhotoPreview (local) > photoSignedUrl (server)
-  const displayPhotoUrl = pendingPhotoPreview || photoSignedUrl
+  // If pendingPhotoDelete is true, don't show the existing photo (draft deletion)
+  const displayPhotoUrl = pendingPhotoPreview || (pendingPhotoDelete ? null : photoSignedUrl)
 
   if (DEBUG && !displayPhotoUrl && (pendingPhotoPreview !== null || photoSignedUrl !== null)) {
     console.log('[PolaroidCard] Photo display state:', {
@@ -141,6 +144,7 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
     // Create local preview immediately
     const localPreviewUrl = URL.createObjectURL(file)
     setPendingPhotoPreview(localPreviewUrl)
+    setPendingPhotoDelete(false) // Reset delete flag when new photo is selected
     if (DEBUG) console.log('[PolaroidCard] Local preview created')
 
     try {
@@ -276,6 +280,24 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
     fileInputRef.current?.click()
   }
 
+  // Delete photo from draft (no server save - only clears local state)
+  // The photo will be removed from DB only when user saves with no photo
+  const handleDeletePhoto = () => {
+    if (!isEditing) return
+    // Clear pending photo preview and path
+    setPendingPhotoPreview(null)
+    setPendingPhotoPath(null)
+    // Mark that we want to delete the existing photo
+    // This hides the existing photo in the UI (draft deletion)
+    setPendingPhotoDelete(true)
+  }
+
+  // Delete comment from draft (no server save - only clears local state)
+  const handleDeleteComment = () => {
+    if (!isEditing) return
+    setPraiseDraft('')
+  }
+
   // Add sticker to draft (no server save - saved only on explicit Save action)
   const addSticker = (catalogSticker: CatalogSticker) => {
     const newSticker: StickerState = {
@@ -339,44 +361,79 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
             <div className="w-full h-[280px] flex items-center justify-center bg-gray-100 animate-pulse">
               <AppIcon name="spinner" className="w-8 h-8 animate-spin text-gray-400" />
             </div>
-          ) : pendingPhotoPreview ? (
-            // Local preview (blob URL) - use regular img since blob URLs can't go through next/image
+          ) : displayPhotoUrl ? (
+            // Photo display - local preview or remote image
             <img
-              src={pendingPhotoPreview}
-              alt="Day photo preview"
-              className="w-full h-[280px] object-cover relative z-0"
-              onClick={isEditing ? handleCameraClick : undefined}
-              style={{ cursor: isEditing ? 'pointer' : 'default' }}
-            />
-          ) : photoSignedUrl ? (
-            // Remote image from Supabase - use regular img for html-to-image export compatibility
-            <img
-              src={photoSignedUrl}
+              src={displayPhotoUrl}
               alt="Day photo"
               className="w-full h-[280px] object-cover"
-              crossOrigin="anonymous"
+              crossOrigin={pendingPhotoPreview ? undefined : "anonymous"}
               onClick={isEditing ? handleCameraClick : undefined}
               style={{ cursor: isEditing ? 'pointer' : 'default' }}
             />
-          ) : dayCard?.photo_path ? (
+          ) : dayCard?.photo_path && !pendingPhotoDelete ? (
             // Skeleton loader - photo exists but signed URL still loading
             <div className="w-full h-[280px] flex items-center justify-center bg-gray-100 animate-pulse">
               <AppIcon name="spinner" className="w-8 h-8 animate-spin text-gray-400" />
             </div>
           ) : (
-            // Empty state - clean, neutral container (no camera icon)
-            // Clickable in edit mode to trigger photo upload
-            <div
-              onClick={isEditing ? handleCameraClick : undefined}
+            // Empty state - camera icon CTA centered in photo area
+            // Clickable to trigger photo upload (enters edit mode if needed)
+            <button
+              onClick={() => {
+                if (!isEditing && !isFutureDate) {
+                  // Enter edit mode first
+                  setIsEditing(true)
+                  onEditingChange?.(true)
+                  setPraiseDraft(dayCard?.praise || '')
+                }
+                // Trigger file picker after a brief delay to ensure edit mode is active
+                setTimeout(() => fileInputRef.current?.click(), 50)
+              }}
+              disabled={uploading || isFutureDate}
               className={cn(
                 'w-full h-[280px] flex items-center justify-center',
-                isEditing && !uploading && 'cursor-pointer'
+                !uploading && !isFutureDate && 'cursor-pointer hover:bg-gray-200/50 transition-colors'
               )}
+              style={{ minWidth: '44px', minHeight: '44px' }}
+              aria-label="Add photo"
             >
-              {uploading && (
+              {uploading ? (
                 <AppIcon name="spinner" className="w-10 h-10 animate-spin text-gray-400" />
+              ) : (
+                <AppIcon name="camera" className="w-12 h-12 text-gray-400" />
               )}
-            </div>
+            </button>
+          )}
+
+          {/* Photo delete X button - only in edit mode when photo exists */}
+          {isEditing && displayPhotoUrl && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                handleDeletePhoto()
+              }}
+              className="absolute top-2 right-2 w-9 h-9 flex items-center justify-center transition-colors"
+              style={{
+                zIndex: 100, // Above stamp and stickers
+                minWidth: '36px',
+                minHeight: '36px',
+              }}
+              aria-label="Delete photo"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                style={{
+                  color: '#C45A20', // Darker orange for visibility
+                  filter: 'drop-shadow(0 0 2px rgba(255,255,255,0.8))', // Subtle white outline for contrast on bright photos
+                }}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           )}
 
           {/* Upload error message */}
@@ -526,6 +583,13 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
             </button>
           )}
 
+          {/* Stamp overlay - positioned inside photo area (bottom-right) */}
+          <StampOverlay
+            show={showStamp}
+            playAnimation={playStampAnimation}
+            onAnimationComplete={() => setPlayStampAnimation(false)}
+          />
+
           <input
             ref={fileInputRef}
             type="file"
@@ -538,14 +602,44 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
         {/* Caption and footer - matches reference layout */}
         <div className="px-2">
           {isEditing ? (
-            <input
-              type="text"
-              value={praiseDraft}
-              onChange={(e) => setPraiseDraft(e.target.value)}
-              placeholder={placeholder}
-              className="w-full text-center text-gray-700 font-medium leading-relaxed mb-3 bg-transparent border-b border-gray-200 focus:border-pink-400 outline-none py-1"
-              maxLength={150}
-            />
+            <div className="relative mb-3">
+              <input
+                type="text"
+                value={praiseDraft}
+                onChange={(e) => setPraiseDraft(e.target.value)}
+                placeholder={placeholder}
+                className="w-full text-center text-gray-700 font-medium leading-relaxed bg-transparent border-b border-gray-200 focus:border-pink-400 outline-none py-1 pr-8"
+                maxLength={150}
+              />
+              {/* Comment delete X button - aligned to right side of first line */}
+              {praiseDraft && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleDeleteComment()
+                  }}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center transition-colors"
+                  style={{
+                    minWidth: '32px',
+                    minHeight: '32px',
+                  }}
+                  aria-label="Clear comment"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    style={{
+                      color: '#C45A20', // Darker orange for visibility
+                      filter: 'drop-shadow(0 0 1px rgba(255,255,255,0.6))', // Subtle outline
+                    }}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
           ) : (
             <p
               className={cn(
@@ -649,13 +743,6 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
             <AppIcon name="spinner" className="w-4 h-4 animate-spin text-pink-500" />
           </div>
         )}
-
-        {/* Stamp overlay - Day View only */}
-        <StampOverlay
-          show={showStamp}
-          playAnimation={playStampAnimation}
-          onAnimationComplete={() => setPlayStampAnimation(false)}
-        />
       </div>
 
       {/* Sticker picker bottom sheet - visible in edit mode */}
