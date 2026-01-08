@@ -65,6 +65,12 @@ export function useDayCard(date: string) {
     if (DEBUG) console.log('[useDayCard] Edit state changed:', editing)
   }, [])
 
+  // Reset editing state when date changes to prevent stale state
+  useEffect(() => {
+    isEditingRef.current = false
+    if (DEBUG) console.log('[useDayCard] Date changed, reset editing state:', date)
+  }, [date])
+
   // Fetch signed URL when photo_path changes
   const fetchSignedUrl = useCallback(async (path: string | null): Promise<string | null> => {
     if (!path) {
@@ -88,26 +94,44 @@ export function useDayCard(date: string) {
 
     if (DEBUG) console.log('[useDayCard] Fetching entry for date:', date)
 
-    try {
-      setLoading(true)
+    setLoading(true)
+    setError(null)
 
-      // Query from 'entries' table with correct column names
+    try {
+      // Check authentication first
+      const { data: authData, error: authError } = await supabase.auth.getUser()
+      if (authError || !authData.user) {
+        if (DEBUG) console.log('[useDayCard] No authenticated user, skipping fetch')
+        setDayCard(null)
+        setPhotoSignedUrl(null)
+        setLoading(false)
+        return
+      }
+
+      const userId = authData.user.id
+      if (DEBUG) console.log('[useDayCard] Authenticated user:', userId)
+
+      // Query from 'entries' table with explicit user_id filter for reliability
       const { data, error: fetchError } = await supabase
         .from('entries')
         .select('id, user_id, entry_date, praise, photo_path, is_liked, sticker_state, created_at')
+        .eq('user_id', userId)
         .eq('entry_date', date)
         .maybeSingle()
 
       if (fetchError) {
         console.error('[useDayCard] DB fetch error:', fetchError)
+        setError('Failed to load entry. Please refresh.')
         throw fetchError
       }
 
       if (data) {
         const card = toDayCard(data)
         if (DEBUG) console.log('[useDayCard] Fetched entry:', {
+          id: data.id,
           photo_path: data.photo_path,
-          praise: data.praise?.slice(0, 20)
+          praise: data.praise?.slice(0, 20),
+          is_liked: data.is_liked
         })
         setDayCard(card)
 
@@ -122,11 +146,14 @@ export function useDayCard(date: string) {
       }
     } catch (err) {
       console.error('[useDayCard] Fetch error:', err)
-      // Don't expose raw error to UI - just log it
+      // Set error state so UI can display it
+      if (!error) {
+        setError('Failed to load entry.')
+      }
     } finally {
       setLoading(false)
     }
-  }, [date, supabase, fetchSignedUrl])
+  }, [date, supabase, fetchSignedUrl, error])
 
   useEffect(() => {
     fetchDayCard()

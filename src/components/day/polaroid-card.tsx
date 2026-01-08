@@ -16,6 +16,7 @@ interface PolaroidCardProps {
   dayCard: (DayCard & { is_liked?: boolean }) | null
   photoSignedUrl: string | null
   date: string
+  loading?: boolean
   onSave: (updates: { photo_url?: string | null; caption?: string | null; sticker_state?: StickerState[] }) => Promise<{ success: boolean; error?: string; refreshError?: string }>
   onToggleLike?: () => Promise<{ success: boolean; error?: string }>
   onShare?: () => Promise<void>
@@ -36,6 +37,7 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
   dayCard,
   photoSignedUrl,
   date,
+  loading,
   onSave,
   onToggleLike,
   onShare,
@@ -332,7 +334,12 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
           className="bg-gray-100 rounded-xl overflow-hidden mb-3 relative"
           onClick={handlePhotoAreaClick}
         >
-          {displayPhotoUrl ? (
+          {loading ? (
+            // Loading state - data is being fetched
+            <div className="w-full h-[280px] flex items-center justify-center bg-gray-100 animate-pulse">
+              <AppIcon name="spinner" className="w-8 h-8 animate-spin text-gray-400" />
+            </div>
+          ) : displayPhotoUrl ? (
             <>
               <img
                 src={displayPhotoUrl}
@@ -356,7 +363,7 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
               </button>
             </>
           ) : dayCard?.photo_path ? (
-            // Skeleton loader - photo exists but URL still loading
+            // Skeleton loader - photo exists but signed URL still loading
             <div className="w-full h-[280px] flex items-center justify-center bg-gray-100 animate-pulse">
               <AppIcon name="spinner" className="w-8 h-8 animate-spin text-gray-400" />
             </div>

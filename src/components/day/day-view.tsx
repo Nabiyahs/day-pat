@@ -23,7 +23,7 @@ export function DayView({ selectedDate, onDateChange }: DayViewProps) {
   const [sharing, setSharing] = useState(false)
   const { toast, showToast, hideToast } = useToast()
 
-  const { dayCard, photoSignedUrl, saving: cardSaving, error, upsertDayCard, toggleLike, setEditingState } = useDayCard(dateStr)
+  const { dayCard, photoSignedUrl, loading, saving: cardSaving, error, upsertDayCard, toggleLike, setEditingState } = useDayCard(dateStr)
 
   // Export handlers
   const handleExportPng = async () => {
@@ -140,6 +140,7 @@ export function DayView({ selectedDate, onDateChange }: DayViewProps) {
           dayCard={dayCard}
           photoSignedUrl={photoSignedUrl}
           date={dateStr}
+          loading={loading}
           onSave={handleSave}
           onToggleLike={toggleLike}
           onShare={handleShareFromActionBar}
