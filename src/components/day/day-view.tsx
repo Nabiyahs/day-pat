@@ -1,10 +1,12 @@
 'use client'
 
+import { useRef, useState } from 'react'
 import { format } from 'date-fns'
 import { AppIcon } from '@/components/ui/app-icon'
 import { useDayCard } from '@/hooks/use-day-card'
 import { formatDateString, parseDateString } from '@/lib/utils'
-import { PolaroidCard } from './polaroid-card'
+import { exportPolaroidAsPng, exportPolaroidAsPdf, sharePolaroid } from '@/lib/export-polaroid'
+import { PolaroidCard, type PolaroidCardRef } from './polaroid-card'
 
 interface DayViewProps {
   selectedDate: string
@@ -15,8 +17,44 @@ interface DayViewProps {
 export function DayView({ selectedDate, onDateChange }: DayViewProps) {
   const date = parseDateString(selectedDate)
   const dateStr = formatDateString(date)
+  const polaroidRef = useRef<PolaroidCardRef>(null)
+  const [exporting, setExporting] = useState(false)
 
   const { dayCard, photoSignedUrl, saving: cardSaving, error, upsertDayCard, toggleLike, setEditingState } = useDayCard(dateStr)
+
+  // Export handlers
+  const handleExportPng = async () => {
+    const element = polaroidRef.current?.getExportElement()
+    if (!element) return
+    setExporting(true)
+    try {
+      await exportPolaroidAsPng(element, dateStr)
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const handleExportPdf = async () => {
+    const element = polaroidRef.current?.getExportElement()
+    if (!element) return
+    setExporting(true)
+    try {
+      await exportPolaroidAsPdf(element, dateStr)
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const handleShare = async () => {
+    const element = polaroidRef.current?.getExportElement()
+    if (!element) return
+    setExporting(true)
+    try {
+      await sharePolaroid(element, dateStr)
+    } finally {
+      setExporting(false)
+    }
+  }
 
   const goToPrevDay = () => {
     const prev = new Date(date)
@@ -70,18 +108,61 @@ export function DayView({ selectedDate, onDateChange }: DayViewProps) {
       {/* Polaroid Card - constrained width with side margins */}
       <div className="px-4">
         <PolaroidCard
-        dayCard={dayCard}
-        photoSignedUrl={photoSignedUrl}
-        date={dateStr}
-        onSave={handleSave}
-        onStickersChange={async (stickers) => {
-          await upsertDayCard({ sticker_state: stickers })
-        }}
-        onToggleLike={toggleLike}
-        saving={cardSaving}
-        saveError={error}
-        onEditingChange={setEditingState}
+          ref={polaroidRef}
+          dayCard={dayCard}
+          photoSignedUrl={photoSignedUrl}
+          date={dateStr}
+          onSave={handleSave}
+          onStickersChange={async (stickers) => {
+            await upsertDayCard({ sticker_state: stickers })
+          }}
+          onToggleLike={toggleLike}
+          saving={cardSaving}
+          saveError={error}
+          onEditingChange={setEditingState}
         />
+
+        {/* Export/Share buttons - only shown when entry has a photo */}
+        {dayCard?.photo_path && (
+          <div className="flex justify-center gap-3 mt-4">
+            <button
+              onClick={handleShare}
+              disabled={exporting}
+              className="flex items-center gap-2 px-4 py-2 bg-[#F27430] text-white text-sm font-medium rounded-full hover:bg-[#E06320] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {exporting ? (
+                <AppIcon name="spinner" className="w-4 h-4 animate-spin" />
+              ) : (
+                <AppIcon name="share" className="w-4 h-4" />
+              )}
+              Share
+            </button>
+            <button
+              onClick={handleExportPng}
+              disabled={exporting}
+              className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 text-sm font-medium rounded-full border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {exporting ? (
+                <AppIcon name="spinner" className="w-4 h-4 animate-spin" />
+              ) : (
+                <AppIcon name="download" className="w-4 h-4" />
+              )}
+              PNG
+            </button>
+            <button
+              onClick={handleExportPdf}
+              disabled={exporting}
+              className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 text-sm font-medium rounded-full border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {exporting ? (
+                <AppIcon name="spinner" className="w-4 h-4 animate-spin" />
+              ) : (
+                <AppIcon name="file-text" className="w-4 h-4" />
+              )}
+              PDF
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

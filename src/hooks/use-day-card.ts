@@ -7,6 +7,29 @@ import type { DayCard, StickerState } from '@/types/database'
 
 const DEBUG = process.env.NODE_ENV === 'development'
 
+// Safely parse sticker_state from database JSON
+function parseStickerState(data: unknown): StickerState[] {
+  if (!data) return []
+  try {
+    // Handle string JSON (shouldn't happen with JSONB but be safe)
+    const parsed = typeof data === 'string' ? JSON.parse(data) : data
+    if (!Array.isArray(parsed)) return []
+    // Validate each sticker has required fields
+    return parsed.filter((s): s is StickerState =>
+      typeof s === 'object' && s !== null &&
+      typeof s.emoji === 'string' &&
+      typeof s.x === 'number' &&
+      typeof s.y === 'number' &&
+      typeof s.scale === 'number' &&
+      typeof s.rotate === 'number' &&
+      typeof s.z === 'number'
+    )
+  } catch {
+    console.warn('[useDayCard] Failed to parse sticker_state:', data)
+    return []
+  }
+}
+
 // Convert entries table row to DayCard state
 // Field names now match DB directly - no confusing mapping
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -17,7 +40,7 @@ function toDayCard(row: any): DayCard & { is_liked: boolean } {
     entry_date: row.entry_date,
     photo_path: row.photo_path, // Storage path (e.g., "uuid.webp"), NOT a URL
     praise: row.praise,
-    sticker_state: [],
+    sticker_state: parseStickerState(row.sticker_state),
     created_at: row.created_at,
     is_liked: row.is_liked || false,
   }
@@ -71,7 +94,7 @@ export function useDayCard(date: string) {
       // Query from 'entries' table with correct column names
       const { data, error: fetchError } = await supabase
         .from('entries')
-        .select('id, user_id, entry_date, praise, photo_path, is_liked, created_at')
+        .select('id, user_id, entry_date, praise, photo_path, is_liked, sticker_state, created_at')
         .eq('entry_date', date)
         .maybeSingle()
 
@@ -117,7 +140,7 @@ export function useDayCard(date: string) {
   const upsertDayCard = async (updates: {
     photo_url?: string | null // Will be saved as photo_path
     caption?: string | null   // Will be saved as praise
-    sticker_state?: StickerState[] // Ignored - not in entries table
+    sticker_state?: StickerState[] // Will be saved as sticker_state JSONB
   }): Promise<{ success: boolean; error?: string; refreshError?: string }> => {
     console.log('[useDayCard] ═══════════════════════════════════════════════════')
     console.log('[useDayCard] SAVE FLOW STARTED')
@@ -193,13 +216,24 @@ export function useDayCard(date: string) {
 
     // Build the payload OUTSIDE try block for debugging
     // updates.caption is the new value, dayCard?.praise is the existing value
-    const payload = {
+    const payload: {
+      user_id: string
+      entry_date: string
+      photo_path: string
+      praise: string
+      sticker_state?: StickerState[]
+    } = {
       user_id: user.id,
       entry_date: date,
       photo_path: effectivePhotoPath,
       praise: updates.caption !== undefined
         ? (updates.caption || '')
         : (dayCard?.praise || ''),
+    }
+
+    // Include sticker_state if provided
+    if (updates.sticker_state !== undefined) {
+      payload.sticker_state = updates.sticker_state
     }
 
     console.log('[useDayCard] ═══════════════════════════════════════')
@@ -230,7 +264,7 @@ export function useDayCard(date: string) {
       // Using .maybeSingle() to avoid errors when RLS SELECT policy has issues
       const { data: fetchedData, error: fetchError } = await supabase
         .from('entries')
-        .select('id, user_id, entry_date, praise, photo_path, is_liked, created_at')
+        .select('id, user_id, entry_date, praise, photo_path, is_liked, sticker_state, created_at')
         .eq('user_id', user.id)
         .eq('entry_date', date)
         .maybeSingle()
