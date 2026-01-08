@@ -4,14 +4,30 @@ import { toPng } from 'html-to-image'
 import { jsPDF } from 'jspdf'
 
 /**
- * Wait for all images within a container to load
+ * Wait for all images within a container to fully load and decode
  */
 async function waitForImages(container: HTMLElement): Promise<void> {
   const images = container.querySelectorAll('img')
-  const promises = Array.from(images).map((img) => {
-    if (img.complete) return Promise.resolve()
+  const promises = Array.from(images).map(async (img) => {
+    // If already loaded, ensure it's decoded
+    if (img.complete && img.naturalWidth > 0) {
+      try {
+        await img.decode()
+      } catch {
+        // Decode failed, but image may still render
+      }
+      return
+    }
+    // Wait for load then decode
     return new Promise<void>((resolve) => {
-      img.onload = () => resolve()
+      img.onload = async () => {
+        try {
+          await img.decode()
+        } catch {
+          // Decode failed, but image may still render
+        }
+        resolve()
+      }
       img.onerror = () => resolve() // Don't block on failed images
     })
   })
@@ -27,18 +43,24 @@ export async function captureElementAsPng(
 ): Promise<string> {
   const pixelRatio = options?.pixelRatio ?? 2 // Default 2x for crisp output
 
-  // Wait for all images to load
+  // Wait for all images to load and decode
   await waitForImages(element)
 
-  // Small delay to ensure rendering is complete
-  await new Promise((resolve) => setTimeout(resolve, 100))
+  // Longer delay to ensure rendering is complete (especially for cross-origin images)
+  await new Promise((resolve) => setTimeout(resolve, 200))
 
-  // Capture the element
+  // Capture the element with CORS handling
   const dataUrl = await toPng(element, {
     pixelRatio,
     cacheBust: true,
-    // Include external images (stickers)
     includeQueryParams: true,
+    // Fetch options for cross-origin images
+    fetchRequestInit: {
+      mode: 'cors',
+      credentials: 'omit',
+    },
+    // Skip fonts that may cause issues
+    skipFonts: true,
   })
 
   return dataUrl
