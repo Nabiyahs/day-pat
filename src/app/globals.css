@@ -123,10 +123,10 @@ body {
 
 /* Stamp "thump" animation for Day View polaroid
    3-phase: approach → impact (squash) → settle (no rebound)
-   Total duration: 420ms
-   - Approach: ~200ms (0-48%) - stamp descends with perspective feel
-   - Impact: ~100ms (48-72%) - squash on press
-   - Settle: ~120ms (72-100%) - subtle ink settle */
+   Total duration: 1100ms (longer for visual emphasis)
+   - Approach: ~530ms (0-48%) - stamp descends with perspective feel
+   - Impact: ~265ms (48-72%) - squash on press
+   - Settle: ~305ms (72-100%) - subtle ink settle */
 @keyframes stamp-thump {
   /* Phase 1: Approach - dropping from above with perspective (larger = closer) */
   0% {
@@ -169,7 +169,7 @@ body {
 }
 
 .animate-stamp-thump {
-  animation: stamp-thump 0.42s ease-out forwards;
+  animation: stamp-thump 1.1s ease-out forwards;
 }
 
 /* Disable stamp animation for users who prefer reduced motion */

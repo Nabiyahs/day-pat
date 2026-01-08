@@ -6,7 +6,7 @@ import { AppIcon } from '@/components/ui/app-icon'
 import { Toast, useToast } from '@/components/ui/toast'
 import { useDayCard } from '@/hooks/use-day-card'
 import { formatDateString, parseDateString } from '@/lib/utils'
-import { exportPolaroidAsPng, exportPolaroidAsPdf, sharePolaroid } from '@/lib/export-polaroid'
+import { sharePolaroid } from '@/lib/export-polaroid'
 import { PolaroidCard, type PolaroidCardRef } from './polaroid-card'
 
 interface DayViewProps {
@@ -19,45 +19,10 @@ export function DayView({ selectedDate, onDateChange }: DayViewProps) {
   const date = parseDateString(selectedDate)
   const dateStr = formatDateString(date)
   const polaroidRef = useRef<PolaroidCardRef>(null)
-  const [exporting, setExporting] = useState(false)
   const [sharing, setSharing] = useState(false)
   const { toast, showToast, hideToast } = useToast()
 
   const { dayCard, photoSignedUrl, loading, saving: cardSaving, error, upsertDayCard, toggleLike, setEditingState } = useDayCard(dateStr)
-
-  // Export handlers
-  const handleExportPng = async () => {
-    const element = polaroidRef.current?.getExportElement()
-    if (!element) return
-    setExporting(true)
-    try {
-      await exportPolaroidAsPng(element, dateStr)
-    } finally {
-      setExporting(false)
-    }
-  }
-
-  const handleExportPdf = async () => {
-    const element = polaroidRef.current?.getExportElement()
-    if (!element) return
-    setExporting(true)
-    try {
-      await exportPolaroidAsPdf(element, dateStr)
-    } finally {
-      setExporting(false)
-    }
-  }
-
-  const handleShare = async () => {
-    const element = polaroidRef.current?.getExportElement()
-    if (!element) return
-    setExporting(true)
-    try {
-      await sharePolaroid(element, dateStr)
-    } finally {
-      setExporting(false)
-    }
-  }
 
   // Share handler for action bar (with toast feedback)
   const handleShareFromActionBar = async () => {
@@ -149,48 +114,6 @@ export function DayView({ selectedDate, onDateChange }: DayViewProps) {
           saveError={error}
           onEditingChange={setEditingState}
         />
-
-        {/* Export/Share buttons - only shown when entry has a photo */}
-        {dayCard?.photo_path && (
-          <div className="flex justify-center gap-3 mt-4">
-            <button
-              onClick={handleShare}
-              disabled={exporting}
-              className="flex items-center gap-2 px-4 py-2 bg-[#F27430] text-white text-sm font-medium rounded-full hover:bg-[#E06320] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {exporting ? (
-                <AppIcon name="spinner" className="w-4 h-4 animate-spin" />
-              ) : (
-                <AppIcon name="share" className="w-4 h-4" />
-              )}
-              Share
-            </button>
-            <button
-              onClick={handleExportPng}
-              disabled={exporting}
-              className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 text-sm font-medium rounded-full border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {exporting ? (
-                <AppIcon name="spinner" className="w-4 h-4 animate-spin" />
-              ) : (
-                <AppIcon name="download" className="w-4 h-4" />
-              )}
-              PNG
-            </button>
-            <button
-              onClick={handleExportPdf}
-              disabled={exporting}
-              className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 text-sm font-medium rounded-full border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {exporting ? (
-                <AppIcon name="spinner" className="w-4 h-4 animate-spin" />
-              ) : (
-                <AppIcon name="file-text" className="w-4 h-4" />
-              )}
-              PDF
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Toast notification */}

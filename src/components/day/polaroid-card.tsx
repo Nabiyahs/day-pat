@@ -340,28 +340,13 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
               <AppIcon name="spinner" className="w-8 h-8 animate-spin text-gray-400" />
             </div>
           ) : displayPhotoUrl ? (
-            <>
-              <img
-                src={displayPhotoUrl}
-                alt="Day photo"
-                className="w-full h-[280px] object-cover relative z-0"
-              />
-              {/* Change photo button - only clickable in edit mode */}
-              <button
-                onClick={handleCameraClick}
-                disabled={uploading || !isEditing}
-                className={cn(
-                  'absolute bottom-3 right-3 p-2 bg-white/80 backdrop-blur-sm rounded-full shadow transition-colors z-20',
-                  isEditing ? 'hover:bg-white cursor-pointer' : 'opacity-50 cursor-not-allowed'
-                )}
-              >
-                {uploading ? (
-                  <AppIcon name="spinner" className="w-4 h-4 animate-spin text-gray-600" />
-                ) : (
-                  <AppIcon name="camera" className="w-4 h-4 text-gray-600" />
-                )}
-              </button>
-            </>
+            <img
+              src={displayPhotoUrl}
+              alt="Day photo"
+              className="w-full h-[280px] object-cover relative z-0"
+              onClick={isEditing ? handleCameraClick : undefined}
+              style={{ cursor: isEditing ? 'pointer' : 'default' }}
+            />
           ) : dayCard?.photo_path ? (
             // Skeleton loader - photo exists but signed URL still loading
             <div className="w-full h-[280px] flex items-center justify-center bg-gray-100 animate-pulse">
@@ -564,18 +549,16 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
             </p>
           )}
 
-          {/* Footer actions - matches reference: time + edit/share/like/save buttons */}
-          {/* Icon order: Pencil (edit) / Paper Plane (share) / Heart (like) */}
-          {/* Tap targets: min 44x44px with clear separation */}
+          {/* Footer actions - time on left, icons aligned right with tight spacing */}
           <div className="flex items-center justify-between text-xs text-gray-400">
             <span>{dayCard?.created_at ? new Date(dayCard.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0">
               {/* Edit (pencil) button - hidden for future dates */}
               {!isFutureDate && (
                 <button
                   onClick={handleEditClick}
                   className={cn(
-                    'w-11 h-11 flex items-center justify-center rounded-lg transition-colors',
+                    'w-9 h-9 flex items-center justify-center rounded-lg transition-colors',
                     isEditing ? 'text-[#F27430]' : 'text-gray-400 hover:text-[#F27430] hover:bg-gray-100'
                   )}
                   aria-label="Edit diary entry"
@@ -591,7 +574,7 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
                   onClick={onShare}
                   disabled={sharing}
                   className={cn(
-                    'w-11 h-11 flex items-center justify-center rounded-lg transition-colors',
+                    'w-9 h-9 flex items-center justify-center rounded-lg transition-colors',
                     sharing
                       ? 'text-gray-300 cursor-wait'
                       : 'text-gray-400 hover:text-[#F27430] hover:bg-gray-100'
@@ -612,7 +595,7 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
                 <button
                   onClick={onToggleLike}
                   className={cn(
-                    'w-11 h-11 flex items-center justify-center rounded-lg transition-colors',
+                    'w-9 h-9 flex items-center justify-center rounded-lg transition-colors',
                     dayCard.is_liked
                       ? 'text-red-500'
                       : 'text-gray-400 hover:text-[#F27430] hover:bg-gray-100'
@@ -633,7 +616,7 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
                   onClick={handleSaveClick}
                   disabled={saving || uploading}
                   className={cn(
-                    'w-11 h-11 flex items-center justify-center rounded-lg transition-colors',
+                    'w-9 h-9 flex items-center justify-center rounded-lg transition-colors',
                     saving || uploading
                       ? 'text-gray-300'
                       : 'text-[#F27430] hover:text-[#E06320] hover:bg-orange-50'

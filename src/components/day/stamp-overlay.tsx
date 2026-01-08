@@ -4,8 +4,8 @@ import { useEffect, useState, useCallback } from 'react'
 import { cn } from '@/lib/utils'
 
 // Animation timing constants (must match globals.css keyframes)
-const ANIMATION_DURATION = 420 // Total animation duration in ms
-const IMPACT_TIMING = 252 // When impact squash happens (60% of 420ms)
+const ANIMATION_DURATION = 1100 // Total animation duration in ms (longer for emphasis)
+const IMPACT_TIMING = 660 // When impact squash happens (60% of 1100ms)
 
 // Cache-busting version for seal image (update when image file changes)
 const SEAL_IMAGE_VERSION = '20260108'
@@ -79,7 +79,7 @@ export function StampOverlay({
   return (
     <div
       className={cn(
-        'absolute bottom-12 right-2 z-30 pointer-events-none',
+        'absolute top-[180px] right-3 z-30 pointer-events-none',
         isAnimating && 'animate-stamp-thump'
       )}
     >
