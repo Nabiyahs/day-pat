@@ -246,7 +246,7 @@ export function PolaroidCard({
 
   const addSticker = async (catalogSticker: CatalogSticker) => {
     const newSticker: StickerState = {
-      emoji: catalogSticker.src, // Store SVG path in emoji field
+      emoji: catalogSticker.src, // Store sticker path in emoji field
       x: 0.5, // Center horizontally
       y: 0.4, // Slightly above center
       scale: catalogSticker.defaultScale,
@@ -359,7 +359,7 @@ export function PolaroidCard({
 
           {/* Stickers overlay - positioned absolutely within photo area */}
           {stickers.map((sticker, index) => {
-            const isSvgSticker = sticker.emoji.startsWith('/')
+            const isImageSticker = sticker.emoji.startsWith('/')
             const isSelected = isEditing && selectedStickerIndex === index
             return (
               <div
@@ -378,7 +378,7 @@ export function PolaroidCard({
                 }}
                 onClick={(e) => handleStickerClick(index, e)}
               >
-                {isSvgSticker ? (
+                {isImageSticker ? (
                   <img
                     src={sticker.emoji}
                     alt="sticker"
