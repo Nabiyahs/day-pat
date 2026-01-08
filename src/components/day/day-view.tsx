@@ -6,7 +6,7 @@ import { AppIcon } from '@/components/ui/app-icon'
 import { Toast, useToast } from '@/components/ui/toast'
 import { useDayCard } from '@/hooks/use-day-card'
 import { formatDateString, parseDateString } from '@/lib/utils'
-import { sharePolaroid } from '@/lib/export-polaroid'
+import { sharePolaroid, type ExportOptions } from '@/lib/export-polaroid'
 import { PolaroidCard, type PolaroidCardRef } from './polaroid-card'
 
 interface DayViewProps {
@@ -26,11 +26,22 @@ export function DayView({ selectedDate, onDateChange }: DayViewProps) {
 
   // Share handler for action bar (with toast feedback)
   const handleShareFromActionBar = async () => {
-    const element = polaroidRef.current?.getExportElement()
-    if (!element) return
+    // Must have a saved photo to share
+    if (!dayCard?.photo_path) return
+
     setSharing(true)
     try {
-      const result = await sharePolaroid(element, dateStr)
+      // Prepare export options with all data needed for rendering
+      const exportOptions: ExportOptions = {
+        photoUrl: photoSignedUrl,
+        stickers: dayCard.sticker_state || [],
+        praise: dayCard.praise || null,
+        showStamp: Boolean(dayCard.photo_path),
+        createdAt: dayCard.created_at || null,
+        date: dateStr,
+      }
+
+      const result = await sharePolaroid(exportOptions)
       if (result.success) {
         if (result.method === 'shared') {
           showToast('Ready to share!', 'success')

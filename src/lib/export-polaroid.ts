@@ -2,90 +2,213 @@
 
 import { toPng } from 'html-to-image'
 import { jsPDF } from 'jspdf'
+import { createRoot } from 'react-dom/client'
+import { createElement } from 'react'
+import { ExportablePolaroid, type ExportData } from '@/components/day/exportable-polaroid'
+import type { StickerState } from '@/types/database'
+
+// Stamp image path (must match stamp-overlay.tsx)
+const STAMP_IMAGE_PATH = '/image/seal-image.jpg'
 
 /**
- * Wait for web fonts to load before capturing
- * This ensures Korean (Noto Sans KR) and other fonts render correctly
+ * Fetch an image URL and convert it to a data URL.
+ * This bypasses CORS issues by fetching through the browser.
  */
-async function waitForFonts(): Promise<void> {
+async function imageUrlToDataUrl(url: string): Promise<string | null> {
   try {
-    // Wait for all fonts to be ready (including Noto Sans KR for Korean)
-    await document.fonts.ready
-    // Additional delay to ensure font rendering is complete
-    await new Promise((resolve) => setTimeout(resolve, 100))
+    // For local images (starting with /), use fetch directly
+    if (url.startsWith('/')) {
+      const response = await fetch(url)
+      const blob = await response.blob()
+      return new Promise((resolve) => {
+        const reader = new FileReader()
+        reader.onloadend = () => resolve(reader.result as string)
+        reader.onerror = () => resolve(null)
+        reader.readAsDataURL(blob)
+      })
+    }
+
+    // For remote images, try to fetch with CORS
+    // If CORS fails, fall back to canvas approach
+    try {
+      const response = await fetch(url, {
+        mode: 'cors',
+        credentials: 'omit',
+      })
+      const blob = await response.blob()
+      return new Promise((resolve) => {
+        const reader = new FileReader()
+        reader.onloadend = () => resolve(reader.result as string)
+        reader.onerror = () => resolve(null)
+        reader.readAsDataURL(blob)
+      })
+    } catch {
+      // CORS fetch failed, try canvas approach
+      return new Promise((resolve) => {
+        const img = new Image()
+        img.crossOrigin = 'anonymous'
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas')
+            canvas.width = img.naturalWidth
+            canvas.height = img.naturalHeight
+            const ctx = canvas.getContext('2d')
+            if (ctx) {
+              ctx.drawImage(img, 0, 0)
+              resolve(canvas.toDataURL('image/jpeg', 0.9))
+            } else {
+              resolve(null)
+            }
+          } catch {
+            resolve(null)
+          }
+        }
+        img.onerror = () => resolve(null)
+        img.src = url
+      })
+    }
   } catch {
-    // Fonts API not supported, continue anyway
+    return null
   }
 }
 
 /**
- * Wait for all images within a container to fully load and decode
+ * Wait for an image element to fully load and decode.
  */
-async function waitForImages(container: HTMLElement): Promise<void> {
-  const images = container.querySelectorAll('img')
-  const promises = Array.from(images).map(async (img) => {
-    // If already loaded, ensure it's decoded
-    if (img.complete && img.naturalWidth > 0) {
+async function waitForImageLoad(img: HTMLImageElement): Promise<void> {
+  if (img.complete && img.naturalWidth > 0) {
+    try {
+      await img.decode()
+    } catch {
+      // Decode failed but image may still work
+    }
+    return
+  }
+
+  return new Promise((resolve) => {
+    img.onload = async () => {
       try {
         await img.decode()
       } catch {
-        // Decode failed, but image may still render
+        // Decode failed but image may still work
       }
-      return
+      resolve()
     }
-    // Wait for load then decode
-    return new Promise<void>((resolve) => {
-      img.onload = async () => {
-        try {
-          await img.decode()
-        } catch {
-          // Decode failed, but image may still render
-        }
-        resolve()
-      }
-      img.onerror = () => resolve() // Don't block on failed images
-    })
+    img.onerror = () => resolve()
   })
-  await Promise.all(promises)
 }
 
 /**
- * Capture a DOM element as a high-resolution PNG data URL
+ * Wait for all images in a container to load.
  */
-export async function captureElementAsPng(
-  element: HTMLElement,
-  options?: { pixelRatio?: number }
-): Promise<string> {
-  const pixelRatio = options?.pixelRatio ?? 2 // Default 2x for crisp output
-
-  // Wait for fonts to load (critical for Korean text)
-  await waitForFonts()
-
-  // Wait for all images to load and decode
-  await waitForImages(element)
-
-  // Longer delay to ensure rendering is complete
-  await new Promise((resolve) => setTimeout(resolve, 200))
-
-  // Capture the element with proper font and CORS handling
-  const dataUrl = await toPng(element, {
-    pixelRatio,
-    cacheBust: true,
-    includeQueryParams: true,
-    // Fetch options for cross-origin images
-    fetchRequestInit: {
-      mode: 'cors',
-      credentials: 'omit',
-    },
-    // Enable font embedding for Korean text support
-    skipFonts: false,
-  })
-
-  return dataUrl
+async function waitForAllImages(container: HTMLElement): Promise<void> {
+  const images = container.querySelectorAll('img')
+  await Promise.all(Array.from(images).map(waitForImageLoad))
 }
 
 /**
- * Download a data URL as a file
+ * Prepare export data by converting all images to data URLs.
+ */
+async function prepareExportData(
+  photoUrl: string | null,
+  stickers: StickerState[],
+  praise: string | null,
+  showStamp: boolean,
+  createdAt: string | null
+): Promise<ExportData> {
+  // Convert photo to data URL
+  const photoDataUrl = photoUrl ? await imageUrlToDataUrl(photoUrl) : null
+
+  // Convert stamp to data URL
+  const stampDataUrl = showStamp ? await imageUrlToDataUrl(STAMP_IMAGE_PATH) : null
+
+  // Convert sticker images to data URLs
+  const stickersWithDataUrls = await Promise.all(
+    stickers.map(async (sticker) => {
+      if (sticker.src.startsWith('/')) {
+        const dataUrl = await imageUrlToDataUrl(sticker.src)
+        return { ...sticker, dataUrl: dataUrl || sticker.src }
+      }
+      // Emoji stickers don't need conversion
+      return sticker
+    })
+  )
+
+  return {
+    photoDataUrl,
+    stampDataUrl,
+    praise,
+    stickers: stickersWithDataUrls,
+    showStamp,
+    createdAt,
+  }
+}
+
+/**
+ * Render the export view offscreen and capture it as a PNG data URL.
+ */
+async function captureExportView(exportData: ExportData, pixelRatio: number = 2): Promise<string> {
+  // Create offscreen container
+  const container = document.createElement('div')
+  container.style.cssText = `
+    position: fixed;
+    left: -9999px;
+    top: -9999px;
+    width: 340px;
+    background: white;
+    z-index: -1;
+  `
+  document.body.appendChild(container)
+
+  try {
+    // Render ExportablePolaroid into the container
+    const root = createRoot(container)
+    const exportRef = { current: null as HTMLDivElement | null }
+
+    await new Promise<void>((resolve) => {
+      root.render(
+        createElement(ExportablePolaroid, {
+          data: exportData,
+          ref: (el: HTMLDivElement | null) => {
+            exportRef.current = el
+            // Give React time to render
+            setTimeout(resolve, 100)
+          },
+        })
+      )
+    })
+
+    // Wait for all images to load
+    await waitForAllImages(container)
+
+    // Additional delay to ensure rendering is complete
+    await new Promise((resolve) => setTimeout(resolve, 200))
+
+    // Capture the element
+    const targetElement = exportRef.current || container.firstElementChild as HTMLElement
+    const dataUrl = await toPng(targetElement, {
+      pixelRatio,
+      cacheBust: true,
+      backgroundColor: 'white',
+      style: {
+        transform: 'rotate(-1deg)',
+      },
+    })
+
+    // Cleanup
+    root.unmount()
+    document.body.removeChild(container)
+
+    return dataUrl
+  } catch (error) {
+    // Cleanup on error
+    document.body.removeChild(container)
+    throw error
+  }
+}
+
+/**
+ * Download a data URL as a file.
  */
 export function downloadDataUrl(dataUrl: string, filename: string): void {
   const link = document.createElement('a')
@@ -95,7 +218,7 @@ export function downloadDataUrl(dataUrl: string, filename: string): void {
 }
 
 /**
- * Convert data URL to Blob
+ * Convert data URL to Blob.
  */
 function dataUrlToBlob(dataUrl: string): Blob {
   const arr = dataUrl.split(',')
@@ -110,56 +233,84 @@ function dataUrlToBlob(dataUrl: string): Blob {
 }
 
 /**
- * Format date for PDF header (YYYY.MM.DD format)
+ * Format date for PDF header (YYYY.MM.DD format).
  */
 function formatPdfDate(dateStr: string): string {
-  // dateStr is in YYYY-MM-DD format
   const [year, month, day] = dateStr.split('-')
   return `${year}.${month}.${day}`
 }
 
 /**
- * Get weekday name from date string
+ * Get weekday name from date string.
  */
 function getWeekdayName(dateStr: string): string {
   const date = new Date(dateStr)
   return date.toLocaleDateString('en-US', { weekday: 'long' })
 }
 
-/**
- * Export polaroid as PNG and download
- */
-export async function exportPolaroidAsPng(
-  element: HTMLElement,
+// ============================================================
+// PUBLIC API
+// ============================================================
+
+export interface ExportOptions {
+  /** Photo URL (signed URL from Supabase) */
+  photoUrl: string | null
+  /** Sticker state array */
+  stickers: StickerState[]
+  /** Caption/praise text */
+  praise: string | null
+  /** Whether to show the stamp */
+  showStamp: boolean
+  /** Created at timestamp */
+  createdAt: string | null
+  /** Date string (YYYY-MM-DD) for filename */
   date: string
-): Promise<void> {
-  const dataUrl = await captureElementAsPng(element)
-  const filename = `day-pat-${date}.png`
+}
+
+/**
+ * Capture the polaroid as a PNG data URL.
+ * Uses the dedicated export view for reliable capture.
+ */
+export async function capturePolaroidAsPng(options: ExportOptions): Promise<string> {
+  const { photoUrl, stickers, praise, showStamp, createdAt } = options
+
+  // Prepare export data (convert all images to data URLs)
+  const exportData = await prepareExportData(photoUrl, stickers, praise, showStamp, createdAt)
+
+  // Capture the export view
+  return captureExportView(exportData, 2)
+}
+
+/**
+ * Export polaroid as PNG and download.
+ */
+export async function exportPolaroidAsPng(options: ExportOptions): Promise<void> {
+  const dataUrl = await capturePolaroidAsPng(options)
+  const filename = `day-pat-${options.date}.png`
   downloadDataUrl(dataUrl, filename)
 }
 
 /**
- * Export polaroid as PDF with pretty template and download
- *
- * Template design:
- * - A4 format with clean margins (24mm)
- * - Header: Big date title (YYYY.MM.DD) + weekday subtitle
- * - Main: Polaroid image with subtle shadow effect
- * - Footer: App name + generated timestamp + page number
+ * Export polaroid as PDF with pretty template and download.
  */
-export async function exportPolaroidAsPdf(
-  element: HTMLElement,
-  date: string
-): Promise<void> {
-  // Capture polaroid at 3x resolution for crisp PDF rendering
-  const dataUrl = await captureElementAsPng(element, { pixelRatio: 3 })
+export async function exportPolaroidAsPdf(options: ExportOptions): Promise<void> {
+  const { date } = options
+
+  // Capture at higher resolution for PDF
+  const exportData = await prepareExportData(
+    options.photoUrl,
+    options.stickers,
+    options.praise,
+    options.showStamp,
+    options.createdAt
+  )
+  const dataUrl = await captureExportView(exportData, 3)
 
   // A4 dimensions in mm: 210 x 297
   const pageWidth = 210
   const pageHeight = 297
-  const margin = 24 // Clean margins
+  const margin = 24
 
-  // Create PDF
   const pdf = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -176,71 +327,60 @@ export async function exportPolaroidAsPdf(
   // ========== HEADER SECTION ==========
   const headerY = margin
 
-  // Date title (YYYY.MM.DD) - large, bold
   pdf.setFontSize(28)
   pdf.setFont('helvetica', 'bold')
-  pdf.setTextColor(31, 41, 55) // gray-800
+  pdf.setTextColor(31, 41, 55)
   const formattedDate = formatPdfDate(date)
   pdf.text(formattedDate, pageWidth / 2, headerY, { align: 'center' })
 
-  // Weekday subtitle
   pdf.setFontSize(14)
   pdf.setFont('helvetica', 'normal')
-  pdf.setTextColor(107, 114, 128) // gray-500
+  pdf.setTextColor(107, 114, 128)
   const weekday = getWeekdayName(date)
   pdf.text(weekday, pageWidth / 2, headerY + 10, { align: 'center' })
 
-  // Decorative line under header
-  pdf.setDrawColor(229, 231, 235) // gray-200
+  pdf.setDrawColor(229, 231, 235)
   pdf.setLineWidth(0.5)
   pdf.line(margin + 20, headerY + 16, pageWidth - margin - 20, headerY + 16)
 
   // ========== POLAROID IMAGE SECTION ==========
   const contentStartY = headerY + 28
-  const contentEndY = pageHeight - margin - 20 // Leave space for footer
+  const contentEndY = pageHeight - margin - 20
   const availableHeight = contentEndY - contentStartY
   const availableWidth = pageWidth - 2 * margin
 
-  // Calculate image dimensions to fit within available space
   const imgAspect = img.width / img.height
   let imgWidth = availableWidth
   let imgHeight = imgWidth / imgAspect
 
-  // Constrain to available height
   if (imgHeight > availableHeight) {
     imgHeight = availableHeight
     imgWidth = imgHeight * imgAspect
   }
 
-  // Max width for polaroid aesthetic (not too wide)
   const maxPolaroidWidth = 140
   if (imgWidth > maxPolaroidWidth) {
     imgWidth = maxPolaroidWidth
     imgHeight = imgWidth / imgAspect
   }
 
-  // Center the image horizontally
   const imgX = (pageWidth - imgWidth) / 2
-  // Position image with some top margin from header
   const imgY = contentStartY + 4
 
-  // Draw subtle shadow effect for polaroid feel
-  pdf.setFillColor(200, 200, 200) // Light gray shadow
+  // Draw subtle shadow
+  pdf.setFillColor(200, 200, 200)
   pdf.roundedRect(imgX + 1.5, imgY + 1.5, imgWidth, imgHeight, 2, 2, 'F')
 
-  // Add the polaroid image
   pdf.addImage(dataUrl, 'PNG', imgX, imgY, imgWidth, imgHeight)
 
   // ========== FOOTER SECTION ==========
   const footerY = pageHeight - margin
 
-  // App name
   pdf.setFontSize(10)
   pdf.setFont('helvetica', 'normal')
-  pdf.setTextColor(156, 163, 175) // gray-400
+  pdf.setTextColor(156, 163, 175)
   pdf.text('Day Pat', margin, footerY)
 
-  // Generated timestamp
   const timestamp = new Date().toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
@@ -250,11 +390,9 @@ export async function exportPolaroidAsPdf(
   })
   pdf.text(`Generated: ${timestamp}`, pageWidth - margin, footerY, { align: 'right' })
 
-  // Page number (centered)
   pdf.setFontSize(9)
   pdf.text('1', pageWidth / 2, footerY, { align: 'center' })
 
-  // Save the PDF
   pdf.save(`day-pat-${date}.pdf`)
 }
 
@@ -265,39 +403,31 @@ export type ShareResult = {
 }
 
 /**
- * Share polaroid via Web Share API or fallback to download
- * Returns result object with success status and method used
+ * Share polaroid via Web Share API or fallback to download.
  */
-export async function sharePolaroid(
-  element: HTMLElement,
-  date: string
-): Promise<ShareResult> {
+export async function sharePolaroid(options: ExportOptions): Promise<ShareResult> {
   try {
-    const dataUrl = await captureElementAsPng(element)
+    const dataUrl = await capturePolaroidAsPng(options)
     const blob = dataUrlToBlob(dataUrl)
-    const file = new File([blob], `day-pat-${date}.png`, { type: 'image/png' })
+    const file = new File([blob], `day-pat-${options.date}.png`, { type: 'image/png' })
 
-    // Check if Web Share API supports sharing files
     if (navigator.canShare?.({ files: [file] })) {
       try {
         await navigator.share({
           files: [file],
           title: 'My Day Pat',
-          text: `My day on ${date}`,
+          text: `My day on ${options.date}`,
         })
         return { success: true, method: 'shared' }
       } catch (err) {
-        // User cancelled the share dialog
         if ((err as Error).name === 'AbortError') {
           return { success: false, method: 'cancelled' }
         }
-        // Share failed, fall back to download
         console.warn('Share failed, falling back to download:', err)
       }
     }
 
-    // Fallback: download the image
-    downloadDataUrl(dataUrl, `day-pat-${date}.png`)
+    downloadDataUrl(dataUrl, `day-pat-${options.date}.png`)
     return { success: true, method: 'downloaded' }
   } catch (err) {
     console.error('Share/download failed:', err)
@@ -307,4 +437,21 @@ export async function sharePolaroid(
       error: err instanceof Error ? err.message : 'Failed to create image',
     }
   }
+}
+
+// ============================================================
+// LEGACY API (for backward compatibility)
+// ============================================================
+
+/**
+ * @deprecated Use capturePolaroidAsPng with ExportOptions instead.
+ * This legacy function is kept for backward compatibility.
+ */
+export async function captureElementAsPng(
+  _element: HTMLElement,
+  _options?: { pixelRatio?: number }
+): Promise<string> {
+  console.warn('captureElementAsPng is deprecated. Use capturePolaroidAsPng with ExportOptions instead.')
+  // Return empty data URL as this should not be used
+  return 'data:image/png;base64,'
 }
