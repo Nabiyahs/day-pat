@@ -203,8 +203,11 @@ export function PolaroidCard({
       if (DEBUG) console.log('[PolaroidCard] Will save new praise')
     }
 
-    // Only save if there are changes
-    if (Object.keys(updates).length === 0) {
+    // Check if stickers changed
+    const stickersChanged = JSON.stringify(localStickers) !== JSON.stringify(dayCard?.sticker_state || [])
+
+    // Only save if there are changes (photo, caption, or stickers)
+    if (Object.keys(updates).length === 0 && !stickersChanged) {
       // No changes, just exit edit mode
       if (DEBUG) console.log('[PolaroidCard] No changes, exiting edit mode')
       setIsEditing(false)
@@ -214,37 +217,45 @@ export function PolaroidCard({
       return
     }
 
-    if (DEBUG) console.log('[PolaroidCard] Calling onSave with updates:', {
-      photo_url: updates.photo_url ? `${updates.photo_url.substring(0, 40)}...` : undefined,
-      caption: updates.caption !== undefined ? `(${(updates.caption as string)?.length || 0} chars)` : undefined,
-    })
+    // Save stickers if changed
+    if (stickersChanged) {
+      if (DEBUG) console.log('[PolaroidCard] Will save stickers')
+      await onStickersChange(localStickers)
+    }
 
-    const result = await onSave(updates)
+    // Only call onSave if there are photo/caption updates
+    if (Object.keys(updates).length > 0) {
+      if (DEBUG) console.log('[PolaroidCard] Calling onSave with updates:', {
+        photo_url: updates.photo_url ? `${updates.photo_url.substring(0, 40)}...` : undefined,
+        caption: updates.caption !== undefined ? `(${(updates.caption as string)?.length || 0} chars)` : undefined,
+      })
 
-    if (DEBUG) console.log('[PolaroidCard] onSave result:', result)
+      const result = await onSave(updates)
 
-    if (result.success) {
-      if (DEBUG) console.log('[PolaroidCard] Save successful, exiting edit mode')
-      // Clear pending state and exit edit mode
-      setPendingPhotoPath(null)
-      setPendingPhotoPreview(null)
-      setIsEditing(false)
-      onEditingChange?.(false)
+      if (DEBUG) console.log('[PolaroidCard] onSave result:', result)
 
-      // Trigger stamp animation after successful save
-      setPlayStampAnimation(true)
+      if (!result.success) {
+        if (DEBUG) console.log('[PolaroidCard] Save failed, staying in edit mode')
+        return // Stay in edit mode on failure
+      }
 
       // Handle refresh warning separately (not a save failure)
       if (result.refreshError) {
         if (DEBUG) console.log('[PolaroidCard] Refresh warning:', result.refreshError)
-        // Show as a warning, not an error - save succeeded
         setUploadError(result.refreshError)
         setTimeout(() => setUploadError(null), 5000)
       }
-    } else {
-      if (DEBUG) console.log('[PolaroidCard] Save failed, staying in edit mode')
     }
-    // On failure, stay in edit mode (saveError will be shown)
+
+    // Success - exit edit mode
+    if (DEBUG) console.log('[PolaroidCard] Save successful, exiting edit mode')
+    setPendingPhotoPath(null)
+    setPendingPhotoPreview(null)
+    setIsEditing(false)
+    onEditingChange?.(false)
+
+    // Trigger stamp animation after successful save
+    setPlayStampAnimation(true)
   }
 
   const handleCameraClick = () => {
@@ -286,16 +297,16 @@ export function PolaroidCard({
     }
   }
 
-  // Update sticker transform from Moveable
+  // Update sticker transform from Moveable (local only - no server save)
   const updateStickerTransform = useCallback(
     (index: number, updates: Partial<StickerState>) => {
-      const newStickers = stickers.map((s, i) =>
+      setLocalStickers(prev => prev.map((s, i) =>
         i === index ? { ...s, ...updates } : s
-      )
-      setLocalStickers(newStickers) // Optimistic update for immediate feedback
-      onStickersChange(newStickers)
+      ))
+      // NOTE: Do NOT call onStickersChange here - that triggers server save
+      // Stickers are saved when user explicitly presses Save button
     },
-    [stickers, onStickersChange]
+    []
   )
 
   return (
@@ -401,21 +412,6 @@ export function PolaroidCard({
                 ) : (
                   <span className="text-3xl">{sticker.emoji}</span>
                 )}
-                {/* Delete button - only shown for selected sticker in edit mode */}
-                {isSelected && (
-                  <button
-                    className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-md z-10"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      deleteSticker(index)
-                    }}
-                    aria-label="Delete sticker"
-                  >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                )}
               </div>
             )
           })}
@@ -491,6 +487,28 @@ export function PolaroidCard({
                 }
               }}
             />
+          )}
+
+          {/* Delete button - rendered separately to avoid Moveable blocking clicks */}
+          {isEditing && selectedStickerIndex !== null && stickers[selectedStickerIndex] && (
+            <button
+              className="absolute w-7 h-7 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-full flex items-center justify-center shadow-lg"
+              style={{
+                left: `calc(${stickers[selectedStickerIndex].x * 100}% + 30px)`,
+                top: `calc(${stickers[selectedStickerIndex].y * 100}% - 30px)`,
+                transform: 'translate(-50%, -50%)',
+                zIndex: 100,
+              }}
+              onClick={(e) => {
+                e.stopPropagation()
+                deleteSticker(selectedStickerIndex)
+              }}
+              aria-label="Delete sticker"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           )}
 
           <input
