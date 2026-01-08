@@ -1,0 +1,373 @@
+[
+  {
+    "id": "1f1e8-1f1f1",
+    "src": "/sticker/1F1E8-1F1F1.svg",
+    "name": "1F1E8-1F1F1",
+    "defaultScale": 1.0,
+    "defaultRotation": -2
+  },
+  {
+    "id": "1f1ed-1f1f0",
+    "src": "/sticker/1F1ED-1F1F0.svg",
+    "name": "1F1ED-1F1F0",
+    "defaultScale": 1.0,
+    "defaultRotation": -5
+  },
+  {
+    "id": "1f3c3-1f3fe-200d-2642-fe0f-200d-27a1-fe0f",
+    "src": "/sticker/1F3C3-1F3FE-200D-2642-FE0F-200D-27A1-FE0F.svg",
+    "name": "1F3C3-1F3FE-200D-2642-FE0F-200D-27A1-FE0F",
+    "defaultScale": 1.0,
+    "defaultRotation": -3
+  },
+  {
+    "id": "1f442-1f3ff",
+    "src": "/sticker/1F442-1F3FF.svg",
+    "name": "1F442-1F3FF",
+    "defaultScale": 1.0,
+    "defaultRotation": -7
+  },
+  {
+    "id": "1f44c-1f3fd",
+    "src": "/sticker/1F44C-1F3FD.svg",
+    "name": "1F44C-1F3FD",
+    "defaultScale": 1.0,
+    "defaultRotation": -1
+  },
+  {
+    "id": "1f468-1f3fc-200d-1f37c",
+    "src": "/sticker/1F468-1F3FC-200D-1F37C.svg",
+    "name": "1F468-1F3FC-200D-1F37C",
+    "defaultScale": 1.0,
+    "defaultRotation": -4
+  },
+  {
+    "id": "1f468-1f3fc-200d-1f91d-200d-1f468-1f3ff",
+    "src": "/sticker/1F468-1F3FC-200D-1F91D-200D-1F468-1F3FF.svg",
+    "name": "1F468-1F3FC-200D-1F91D-200D-1F468-1F3FF",
+    "defaultScale": 1.0,
+    "defaultRotation": -6
+  },
+  {
+    "id": "1f468-1f3fc-200d-1f9bc",
+    "src": "/sticker/1F468-1F3FC-200D-1F9BC.svg",
+    "name": "1F468-1F3FC-200D-1F9BC",
+    "defaultScale": 1.0,
+    "defaultRotation": -2
+  },
+  {
+    "id": "1f468-1f3fd-200d-2764-fe0f-200d-1f48b-200d-1f468-1f3fe",
+    "src": "/sticker/1F468-1F3FD-200D-2764-FE0F-200D-1F48B-200D-1F468-1F3FE.svg",
+    "name": "1F468-1F3FD-200D-2764-FE0F-200D-1F48B-200D-1F468-1F3FE",
+    "defaultScale": 1.0,
+    "defaultRotation": -8
+  },
+  {
+    "id": "1f469-1f3ff-200d-1f91d-200d-1f468-1f3fe",
+    "src": "/sticker/1F469-1F3FF-200D-1F91D-200D-1F468-1F3FE.svg",
+    "name": "1F469-1F3FF-200D-1F91D-200D-1F468-1F3FE",
+    "defaultScale": 1.0,
+    "defaultRotation": -3
+  },
+  {
+    "id": "1f470-1f3fd-200d-2640-fe0f",
+    "src": "/sticker/1F470-1F3FD-200D-2640-FE0F.svg",
+    "name": "1F470-1F3FD-200D-2640-FE0F",
+    "defaultScale": 1.0,
+    "defaultRotation": -5
+  },
+  {
+    "id": "1f482-1f3fe-200d-2640-fe0f",
+    "src": "/sticker/1F482-1F3FE-200D-2640-FE0F.svg",
+    "name": "1F482-1F3FE-200D-2640-FE0F",
+    "defaultScale": 1.0,
+    "defaultRotation": -1
+  },
+  {
+    "id": "1f486-1f3fe",
+    "src": "/sticker/1F486-1F3FE.svg",
+    "name": "1F486-1F3FE",
+    "defaultScale": 1.0,
+    "defaultRotation": -7
+  },
+  {
+    "id": "1f644",
+    "src": "/sticker/1F644.svg",
+    "name": "1F644",
+    "defaultScale": 1.0,
+    "defaultRotation": -4
+  },
+  {
+    "id": "1f64b",
+    "src": "/sticker/1F64B.svg",
+    "name": "1F64B",
+    "defaultScale": 1.0,
+    "defaultRotation": -2
+  },
+  {
+    "id": "1f64f-1f3fb",
+    "src": "/sticker/1F64F-1F3FB.svg",
+    "name": "1F64F-1F3FB",
+    "defaultScale": 1.0,
+    "defaultRotation": -6
+  },
+  {
+    "id": "1f687",
+    "src": "/sticker/1F687.svg",
+    "name": "1F687",
+    "defaultScale": 1.0,
+    "defaultRotation": -3
+  },
+  {
+    "id": "1f68a",
+    "src": "/sticker/1F68A.svg",
+    "name": "1F68A",
+    "defaultScale": 1.0,
+    "defaultRotation": -9
+  },
+  {
+    "id": "1f693",
+    "src": "/sticker/1F693.svg",
+    "name": "1F693",
+    "defaultScale": 1.0,
+    "defaultRotation": -5
+  },
+  {
+    "id": "1f69e",
+    "src": "/sticker/1F69E.svg",
+    "name": "1F69E",
+    "defaultScale": 1.0,
+    "defaultRotation": -1
+  },
+  {
+    "id": "1f6b3",
+    "src": "/sticker/1F6B3.svg",
+    "name": "1F6B3",
+    "defaultScale": 1.0,
+    "defaultRotation": -8
+  },
+  {
+    "id": "1f6b5-1f3fe-200d-2642-fe0f",
+    "src": "/sticker/1F6B5-1F3FE-200D-2642-FE0F.svg",
+    "name": "1F6B5-1F3FE-200D-2642-FE0F",
+    "defaultScale": 1.0,
+    "defaultRotation": -4
+  },
+  {
+    "id": "1f6b6-1f3fb-200d-2640-fe0f-200d-27a1-fe0f",
+    "src": "/sticker/1F6B6-1F3FB-200D-2640-FE0F-200D-27A1-FE0F.svg",
+    "name": "1F6B6-1F3FB-200D-2640-FE0F-200D-27A1-FE0F",
+    "defaultScale": 1.0,
+    "defaultRotation": -2
+  },
+  {
+    "id": "1f6be",
+    "src": "/sticker/1F6BE.svg",
+    "name": "1F6BE",
+    "defaultScale": 1.0,
+    "defaultRotation": -6
+  },
+  {
+    "id": "1f90c-1f3fe",
+    "src": "/sticker/1F90C-1F3FE.svg",
+    "name": "1F90C-1F3FE",
+    "defaultScale": 1.0,
+    "defaultRotation": -3
+  },
+  {
+    "id": "1f937-1f3fe-200d-2642-fe0f",
+    "src": "/sticker/1F937-1F3FE-200D-2642-FE0F.svg",
+    "name": "1F937-1F3FE-200D-2642-FE0F",
+    "defaultScale": 1.0,
+    "defaultRotation": -7
+  },
+  {
+    "id": "1f9b6-1f3fd",
+    "src": "/sticker/1F9B6-1F3FD.svg",
+    "name": "1F9B6-1F3FD",
+    "defaultScale": 1.0,
+    "defaultRotation": -1
+  },
+  {
+    "id": "1f9b9-1f3fe-200d-2640-fe0f",
+    "src": "/sticker/1F9B9-1F3FE-200D-2640-FE0F.svg",
+    "name": "1F9B9-1F3FE-200D-2640-FE0F",
+    "defaultScale": 1.0,
+    "defaultRotation": -5
+  },
+  {
+    "id": "1f9d1-1f3fc-200d-1f9bd-200d-27a1-fe0f",
+    "src": "/sticker/1F9D1-1F3FC-200D-1F9BD-200D-27A1-FE0F.svg",
+    "name": "1F9D1-1F3FC-200D-1F9BD-200D-27A1-FE0F",
+    "defaultScale": 1.0,
+    "defaultRotation": -9
+  },
+  {
+    "id": "1f9d1-1f3fd-200d-1f373",
+    "src": "/sticker/1F9D1-1F3FD-200D-1F373.svg",
+    "name": "1F9D1-1F3FD-200D-1F373",
+    "defaultScale": 1.0,
+    "defaultRotation": -4
+  },
+  {
+    "id": "1f9d1-1f3fd-200d-1f3a4",
+    "src": "/sticker/1F9D1-1F3FD-200D-1F3A4.svg",
+    "name": "1F9D1-1F3FD-200D-1F3A4",
+    "defaultScale": 1.0,
+    "defaultRotation": -2
+  },
+  {
+    "id": "1f9d1-1f3fd-200d-1f9b3",
+    "src": "/sticker/1F9D1-1F3FD-200D-1F9B3.svg",
+    "name": "1F9D1-1F3FD-200D-1F9B3",
+    "defaultScale": 1.0,
+    "defaultRotation": -8
+  },
+  {
+    "id": "1f9d1-1f3ff-200d-1f9bc-200d-27a1-fe0f",
+    "src": "/sticker/1F9D1-1F3FF-200D-1F9BC-200D-27A1-FE0F.svg",
+    "name": "1F9D1-1F3FF-200D-1F9BC-200D-27A1-FE0F",
+    "defaultScale": 1.0,
+    "defaultRotation": -3
+  },
+  {
+    "id": "1f9d1-1f3ff-200d-2764-fe0f-200d-1f48b-200d-1f9d1-1f3fb",
+    "src": "/sticker/1F9D1-1F3FF-200D-2764-FE0F-200D-1F48B-200D-1F9D1-1F3FB.svg",
+    "name": "1F9D1-1F3FF-200D-2764-FE0F-200D-1F48B-200D-1F9D1-1F3FB",
+    "defaultScale": 1.0,
+    "defaultRotation": -6
+  },
+  {
+    "id": "1f9d8-1f3fd",
+    "src": "/sticker/1F9D8-1F3FD.svg",
+    "name": "1F9D8-1F3FD",
+    "defaultScale": 1.0,
+    "defaultRotation": -1
+  },
+  {
+    "id": "1f9dc-1f3fe-200d-2640-fe0f",
+    "src": "/sticker/1F9DC-1F3FE-200D-2640-FE0F.svg",
+    "name": "1F9DC-1F3FE-200D-2640-FE0F",
+    "defaultScale": 1.0,
+    "defaultRotation": -5
+  },
+  {
+    "id": "1f9dd-1f3fe",
+    "src": "/sticker/1F9DD-1F3FE.svg",
+    "name": "1F9DD-1F3FE",
+    "defaultScale": 1.0,
+    "defaultRotation": -7
+  },
+  {
+    "id": "1fa71",
+    "src": "/sticker/1FA71.svg",
+    "name": "1FA71",
+    "defaultScale": 1.0,
+    "defaultRotation": -2
+  },
+  {
+    "id": "1faa6",
+    "src": "/sticker/1FAA6.svg",
+    "name": "1FAA6",
+    "defaultScale": 1.0,
+    "defaultRotation": -9
+  },
+  {
+    "id": "1fac4-1f3fb",
+    "src": "/sticker/1FAC4-1F3FB.svg",
+    "name": "1FAC4-1F3FB",
+    "defaultScale": 1.0,
+    "defaultRotation": -4
+  },
+  {
+    "id": "2198",
+    "src": "/sticker/2198.svg",
+    "name": "2198",
+    "defaultScale": 1.0,
+    "defaultRotation": -3
+  },
+  {
+    "id": "2601",
+    "src": "/sticker/2601.svg",
+    "name": "2601",
+    "defaultScale": 1.0,
+    "defaultRotation": -6
+  },
+  {
+    "id": "2615",
+    "src": "/sticker/2615.svg",
+    "name": "2615",
+    "defaultScale": 1.0,
+    "defaultRotation": -1
+  },
+  {
+    "id": "26f9-1f3ff-200d-2642-fe0f",
+    "src": "/sticker/26F9-1F3FF-200D-2642-FE0F.svg",
+    "name": "26F9-1F3FF-200D-2642-FE0F",
+    "defaultScale": 1.0,
+    "defaultRotation": -8
+  },
+  {
+    "id": "2b21-fe0f-200d-1f7e7",
+    "src": "/sticker/2B21-FE0F-200D-1F7E7.svg",
+    "name": "2B21-FE0F-200D-1F7E7",
+    "defaultScale": 1.0,
+    "defaultRotation": -5
+  },
+  {
+    "id": "2b21-fe0f-200d-1f7ea",
+    "src": "/sticker/2B21-FE0F-200D-1F7EA.svg",
+    "name": "2B21-FE0F-200D-1F7EA",
+    "defaultScale": 1.0,
+    "defaultRotation": -2
+  },
+  {
+    "id": "e141",
+    "src": "/sticker/E141.svg",
+    "name": "E141",
+    "defaultScale": 1.0,
+    "defaultRotation": -7
+  },
+  {
+    "id": "e155",
+    "src": "/sticker/E155.svg",
+    "name": "E155",
+    "defaultScale": 1.0,
+    "defaultRotation": -4
+  },
+  {
+    "id": "e182",
+    "src": "/sticker/E182.svg",
+    "name": "E182",
+    "defaultScale": 1.0,
+    "defaultRotation": -9
+  },
+  {
+    "id": "e1c2",
+    "src": "/sticker/E1C2.svg",
+    "name": "E1C2",
+    "defaultScale": 1.0,
+    "defaultRotation": -3
+  },
+  {
+    "id": "e1cd",
+    "src": "/sticker/E1CD.svg",
+    "name": "E1CD",
+    "defaultScale": 1.0,
+    "defaultRotation": -6
+  },
+  {
+    "id": "e343",
+    "src": "/sticker/E343.svg",
+    "name": "E343",
+    "defaultScale": 1.0,
+    "defaultRotation": -1
+  },
+  {
+    "id": "e380",
+    "src": "/sticker/E380.svg",
+    "name": "E380",
+    "defaultScale": 1.0,
+    "defaultRotation": -5
+  }
+]
