@@ -119,10 +119,17 @@ export function DayViewModal({ isOpen, onClose, selectedDate, onDateChange }: Da
 
             {/* Day View Content - scrollable */}
             <div className="flex-1 overflow-y-auto overscroll-contain px-2 pb-6">
-              <DayView
-                selectedDate={selectedDate}
-                onDateChange={onDateChange}
-              />
+              {/* Only render DayView when we have a valid date */}
+              {selectedDate ? (
+                <DayView
+                  selectedDate={selectedDate}
+                  onDateChange={onDateChange}
+                />
+              ) : (
+                <div className="flex items-center justify-center h-40">
+                  <p className="text-gray-400">Loading...</p>
+                </div>
+              )}
             </div>
           </motion.div>
         </>
