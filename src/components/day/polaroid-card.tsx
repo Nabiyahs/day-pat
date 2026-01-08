@@ -444,7 +444,7 @@ export function PolaroidCard({
                 if (!currentSticker) return
 
                 // Calculate new scale with limits
-                const newScale = Math.max(0.3, Math.min(2.0, currentSticker.scale * scale[0]))
+                const newScale = Math.max(0.4, Math.min(2.0, currentSticker.scale * scale[0]))
 
                 // Apply transform directly for smooth visual feedback
                 target.style.transform = `translate(-50%, -50%) scale(${newScale}) rotate(${currentSticker.rotate}deg)`
@@ -457,7 +457,7 @@ export function PolaroidCard({
                 const transform = target.style.transform
                 const scaleMatch = transform.match(/scale\(([^)]+)\)/)
                 if (scaleMatch) {
-                  const newScale = Math.max(0.3, Math.min(2.0, parseFloat(scaleMatch[1])))
+                  const newScale = Math.max(0.4, Math.min(2.0, parseFloat(scaleMatch[1])))
                   updateStickerTransform(selectedStickerIndex, { scale: newScale })
                 }
               }}
