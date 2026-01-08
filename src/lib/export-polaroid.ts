@@ -11,13 +11,25 @@ export type { ExportData } from '@/components/day/exportable-polaroid'
 const STAMP_IMAGE_PATH = '/image/seal-image.jpg'
 const BUCKET_NAME = 'entry-photos'
 
-// Canvas export dimensions
-const CANVAS_WIDTH = 340 * 2  // 2x for retina quality
-const CANVAS_HEIGHT = 440 * 2 // Approximate polaroid height
+// Canvas export dimensions - polaroid size (2x for retina)
+const POLAROID_WIDTH = 340 * 2
+const POLAROID_HEIGHT = 440 * 2
 const PHOTO_AREA_HEIGHT = 280 * 2
 const PADDING = 16 * 2
 const CORNER_RADIUS = 16 * 2
 const PHOTO_CORNER_RADIUS = 12 * 2
+
+// Outer padding for export canvas (prevents clipping on SNS)
+const EXPORT_PADDING = 80 * 2 // 80px on each side (scaled)
+const EXPORT_WIDTH = POLAROID_WIDTH + EXPORT_PADDING * 2
+const EXPORT_HEIGHT = POLAROID_HEIGHT + EXPORT_PADDING * 2
+
+// Brand text settings
+const BRAND_TEXT = 'DayPat'
+const BRAND_COLOR = '#F27430'
+const BRAND_FONT_FAMILY = "'Caveat', cursive"
+// Background color (warm cream to match app theme)
+const EXPORT_BACKGROUND_COLOR = '#FFFDF8'
 
 /**
  * Download image from Supabase Storage and convert to data URL.
@@ -217,10 +229,35 @@ async function prepareExportData(
 }
 
 /**
+ * Wait for fonts to be loaded before drawing text.
+ */
+async function ensureFontsLoaded(): Promise<void> {
+  if (typeof document === 'undefined') return
+
+  try {
+    // Wait for all fonts to be ready
+    await document.fonts.ready
+
+    // Specifically load the Caveat font we need for the brand text
+    await document.fonts.load(`bold 48px ${BRAND_FONT_FAMILY}`)
+    console.log('[EXPORT] Fonts loaded successfully')
+  } catch (e) {
+    console.warn('[EXPORT] Font loading warning:', e)
+    // Continue even if font loading fails - canvas will use fallback
+  }
+}
+
+/**
  * CANVAS COMPOSITION EXPORT
  *
  * This function bypasses html-to-image and directly draws all elements
  * onto a canvas. This is more reliable as it doesn't depend on DOM capture.
+ *
+ * The export includes:
+ * - Outer padding to prevent clipping on SNS platforms
+ * - Warm cream background
+ * - Centered polaroid with shadow
+ * - DayPat brand text in top-left
  */
 async function captureWithCanvas(data: InternalExportData): Promise<string> {
   console.log('=== CANVAS COMPOSITION EXPORT ===')
@@ -232,32 +269,43 @@ async function captureWithCanvas(data: InternalExportData): Promise<string> {
     praise: data.praise?.substring(0, 30),
   })
 
-  // Create canvas
+  // Ensure fonts are loaded before drawing
+  await ensureFontsLoaded()
+
+  // Create canvas with export dimensions (includes outer padding)
   const canvas = document.createElement('canvas')
-  canvas.width = CANVAS_WIDTH
-  canvas.height = CANVAS_HEIGHT
+  canvas.width = EXPORT_WIDTH
+  canvas.height = EXPORT_HEIGHT
   const ctx = canvas.getContext('2d')!
 
   // Scale factor (for retina)
   const scale = 2
 
-  // Draw shadow first (offset by a few pixels)
+  // Fill background with warm cream color
+  ctx.fillStyle = EXPORT_BACKGROUND_COLOR
+  ctx.fillRect(0, 0, EXPORT_WIDTH, EXPORT_HEIGHT)
+
+  // Calculate polaroid position (centered with padding)
+  const polaroidX = EXPORT_PADDING
+  const polaroidY = EXPORT_PADDING
+
+  // Draw polaroid shadow first (offset by a few pixels)
   ctx.save()
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.25)'
-  ctx.shadowBlur = 50 * scale
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.18)'
+  ctx.shadowBlur = 40 * scale
   ctx.shadowOffsetX = 0
-  ctx.shadowOffsetY = 25 * scale
+  ctx.shadowOffsetY = 20 * scale
 
   // White polaroid background with rounded corners
   ctx.fillStyle = 'white'
-  roundedRectPath(ctx, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT, CORNER_RADIUS)
+  roundedRectPath(ctx, polaroidX, polaroidY, POLAROID_WIDTH, POLAROID_HEIGHT, CORNER_RADIUS)
   ctx.fill()
   ctx.restore()
 
   // Photo area background (gray)
-  const photoX = PADDING
-  const photoY = PADDING
-  const photoWidth = CANVAS_WIDTH - 2 * PADDING
+  const photoX = polaroidX + PADDING
+  const photoY = polaroidY + PADDING
+  const photoWidth = POLAROID_WIDTH - 2 * PADDING
   const photoHeight = PHOTO_AREA_HEIGHT
 
   ctx.fillStyle = '#f3f4f6'
@@ -347,7 +395,7 @@ async function captureWithCanvas(data: InternalExportData): Promise<string> {
   ctx.fillStyle = data.praise ? '#374151' : '#9ca3af'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'top'
-  ctx.fillText(captionText, CANVAS_WIDTH / 2, captionY)
+  ctx.fillText(captionText, polaroidX + POLAROID_WIDTH / 2, captionY)
 
   // Draw footer (time)
   const footerY = captionY + 36 * scale
@@ -357,16 +405,17 @@ async function captureWithCanvas(data: InternalExportData): Promise<string> {
   ctx.font = `${12 * scale}px "Inter", system-ui, sans-serif`
   ctx.fillStyle = '#9ca3af'
   ctx.textAlign = 'left'
-  ctx.fillText(timeText, PADDING + 8 * scale, footerY)
+  ctx.fillText(timeText, polaroidX + PADDING + 8 * scale, footerY)
 
-  // Draw stamp if available
+  // Draw stamp if available (positioned inside photo area, bottom-right)
   if (data.showStamp && data.stampDataUrl) {
     console.log('[EXPORT] Loading stamp image...')
     try {
       const stampImg = await loadImage(data.stampDataUrl)
       const stampSize = 88 * scale
-      const stampX = CANVAS_WIDTH - PADDING - stampSize
-      const stampY = CANVAS_HEIGHT - 48 * scale - stampSize
+      // Position stamp at bottom-right of photo area (matching stamp-overlay.tsx: bottom-3 right-3)
+      const stampX = photoX + photoWidth - stampSize - 12 * scale // right-3 = 12px
+      const stampY = photoY + photoHeight - stampSize - 12 * scale // bottom-3 = 12px
 
       // Draw stamp with circular clip and shadow
       ctx.save()
@@ -385,6 +434,29 @@ async function captureWithCanvas(data: InternalExportData): Promise<string> {
       console.error('[EXPORT] Failed to load stamp:', e)
     }
   }
+
+  // Draw DayPat brand text in top-left corner of export
+  // Using Caveat font (same as app header) with #F27430 color
+  const brandFontSize = 46 * scale // Responsive size that balances visibility and aesthetics
+  ctx.save()
+  ctx.font = `bold ${brandFontSize}px ${BRAND_FONT_FAMILY}`
+  ctx.fillStyle = BRAND_COLOR
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'top'
+
+  // Position: top-left of export canvas, with safe padding from edges
+  const brandExportX = 32 * scale // 32px from left edge of export
+  const brandExportY = 28 * scale // 28px from top edge of export
+
+  // Add subtle shadow for legibility against the cream background (very subtle)
+  ctx.shadowColor = 'rgba(255, 255, 255, 0.8)'
+  ctx.shadowBlur = 2 * scale
+  ctx.shadowOffsetX = 0
+  ctx.shadowOffsetY = 0
+
+  ctx.fillText(BRAND_TEXT, brandExportX, brandExportY)
+  ctx.restore()
+  console.log('[EXPORT] Brand text drawn')
 
   // Export canvas as PNG
   const dataUrl = canvas.toDataURL('image/png')
