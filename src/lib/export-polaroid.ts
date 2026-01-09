@@ -58,7 +58,7 @@ const POLAROID_LAYOUT = {
   footer: {
     y: 424, // height - 16
     sloganFontSize: 11,
-    heartSize: 16,
+    heartSize: 14, // Slightly smaller than Day View's 16px for better visual match in export
   },
 
   // Watermark (FIXED)
