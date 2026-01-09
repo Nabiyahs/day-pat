@@ -95,25 +95,55 @@ const welcomeScreenStyles = `
   }
 `
 
-// Inline script to provide hide function and auto-hide fallback
-// This script runs before React hydration to ensure __hideWelcomeScreen is available
+// Inline script to provide hide function with MINIMUM DISPLAY TIME
+// This script runs before React hydration to ensure functions are available
+// CRITICAL: Welcome must stay visible for at least MIN_DISPLAY_MS to avoid "flash"
 const welcomeScreenScript = `
-  window.__hideWelcomeScreen = function() {
+  // Track when welcome screen was mounted (immediately on script execution)
+  window.__WELCOME_MOUNTED_AT = Date.now();
+
+  // Minimum time welcome must be visible (prevents "flash" feeling)
+  var MIN_DISPLAY_MS = 900;
+
+  // Hide function with minimum display time enforcement
+  window.__hideWelcomeScreen = function(minMs) {
+    // Use provided minMs or default to MIN_DISPLAY_MS
+    var requiredMs = typeof minMs === 'number' ? minMs : MIN_DISPLAY_MS;
     var el = document.getElementById('welcome-screen');
-    if (el && !el.classList.contains('hide')) {
+    if (!el || el.classList.contains('hide')) return;
+
+    var elapsed = Date.now() - window.__WELCOME_MOUNTED_AT;
+    var remaining = Math.max(0, requiredMs - elapsed);
+
+    // If we haven't shown welcome long enough, wait
+    if (remaining > 0) {
+      setTimeout(function() {
+        if (el && !el.classList.contains('hide')) {
+          el.classList.add('hide');
+          setTimeout(function() {
+            if (el && el.parentNode) el.parentNode.removeChild(el);
+          }, 400);
+        }
+      }, remaining);
+    } else {
+      // Already shown long enough, hide immediately
       el.classList.add('hide');
-      // Remove from DOM after transition completes (350ms + buffer)
       setTimeout(function() {
         if (el && el.parentNode) el.parentNode.removeChild(el);
       }, 400);
     }
   };
-  // Fallback: auto-hide after 5 seconds if app doesn't call hide
-  setTimeout(function() { window.__hideWelcomeScreen(); }, 5000);
-  // Also hide on window load as additional safety
-  window.addEventListener('load', function() {
-    setTimeout(function() { window.__hideWelcomeScreen(); }, 150);
-  });
+
+  // Safety fallback: auto-hide after 6 seconds no matter what
+  setTimeout(function() {
+    var el = document.getElementById('welcome-screen');
+    if (el && !el.classList.contains('hide')) {
+      el.classList.add('hide');
+      setTimeout(function() {
+        if (el && el.parentNode) el.parentNode.removeChild(el);
+      }, 400);
+    }
+  }, 6000);
 `
 
 export default function RootLayout({
