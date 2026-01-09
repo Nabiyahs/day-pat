@@ -176,7 +176,7 @@ export default function RootLayout({
         <div id="welcome-screen">
           <div className="welcome-content">
             <h1 className="welcome-title">DayPat</h1>
-            <p className="welcome-subtitle">EVERYDAY DESERVES A PAT.</p>
+            <p className="welcome-subtitle">EVERY DAY DESERVES A PAT.</p>
           </div>
         </div>
         {/* Inline script for hide function - runs before React hydration */}

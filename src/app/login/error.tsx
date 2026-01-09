@@ -50,7 +50,7 @@ export default function LoginError({
           <h1 className="text-5xl font-bold text-[#F27430] mb-3" style={{ fontFamily: 'Caveat, cursive' }}>
             DayPat
           </h1>
-          <p className="text-[#F27430] text-sm">EVERYDAY DESERVES A PAT.</p>
+          <p className="text-[#F27430] text-sm">EVERY DAY DESERVES A PAT.</p>
         </div>
 
         {/* Error Card */}

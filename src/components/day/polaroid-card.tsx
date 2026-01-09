@@ -672,18 +672,13 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
             </p>
           )}
 
-          {/* Footer actions - time/slogan on left, icons aligned right with tight spacing */}
+          {/* Footer actions - slogan on left, icons aligned right with tight spacing */}
           <div className="flex items-center justify-between text-xs text-gray-400">
-            {isExporting ? (
-              <span
-                data-export-slogan="true"
-                style={{ fontFamily: "'Open Sans', sans-serif", color: '#F27430', fontWeight: 500, fontSize: '11px' }}
-              >
-                EVERY DAY DESERVES A PAT.
-              </span>
-            ) : (
-              <span data-timestamp="true">{dayCard?.created_at ? new Date(dayCard.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
-            )}
+            <span
+              style={{ fontFamily: "'Open Sans', sans-serif", color: '#F27430', fontWeight: 500, fontSize: '11px' }}
+            >
+              EVERY DAY DESERVES A PAT.
+            </span>
             <div className="flex items-center gap-0">
               {/* Edit (pencil) button - hidden for future dates, excluded from export */}
               {!isFutureDate && (

@@ -296,7 +296,7 @@ function LoginFormContent() {
         {/* Header - outside card */}
         <div className="text-center mb-12">
           <h1 className="text-5xl font-bold text-[#F27430] mb-3" style={{ fontFamily: 'Caveat, cursive' }}>DayPat</h1>
-          <p className="text-[#F27430] text-sm">EVERYDAY DESERVES A PAT.</p>
+          <p className="text-[#F27430] text-sm">EVERY DAY DESERVES A PAT.</p>
         </div>
 
         <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-xl p-8">
@@ -683,7 +683,7 @@ function LoginFallback() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-12">
           <h1 className="text-5xl font-bold text-[#F27430] mb-3" style={{ fontFamily: 'Caveat, cursive' }}>DayPat</h1>
-          <p className="text-[#F27430] text-sm">EVERYDAY DESERVES A PAT.</p>
+          <p className="text-[#F27430] text-sm">EVERY DAY DESERVES A PAT.</p>
         </div>
         <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-xl p-8">
           <div className="text-center">
