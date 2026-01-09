@@ -12,14 +12,72 @@ export type { ExportData } from '@/components/day/exportable-polaroid'
 const STAMP_IMAGE_PATH = '/image/seal-image.jpg'
 const BUCKET_NAME = 'entry-photos'
 
-// Base polaroid dimensions (unscaled, 1x)
-const BASE_POLAROID_WIDTH = 340
-const BASE_POLAROID_HEIGHT = 440
-const BASE_PHOTO_AREA_HEIGHT = 280
-const BASE_PADDING = 16
-// Square corners (no rounded corners)
-const BASE_CORNER_RADIUS = 0
-const BASE_PHOTO_CORNER_RADIUS = 0
+// =============================================================================
+// FIXED POLAROID LAYOUT - NEVER CHANGE BASED ON CONTENT
+// =============================================================================
+// These dimensions are ABSOLUTE and must NEVER be modified based on:
+// - Comment text length
+// - Photo existence
+// - SNS target ratio
+// - Any other content-dependent factor
+
+const POLAROID_LAYOUT = {
+  // Overall polaroid dimensions (FIXED)
+  width: 340,
+  height: 440,
+  padding: 16,
+  cornerRadius: 0,
+
+  // Photo area (FIXED - never changes)
+  photo: {
+    x: 16,      // padding
+    y: 16,      // padding
+    width: 308, // 340 - 2*16
+    height: 280,
+    cornerRadius: 0,
+  },
+
+  // Comment area (FIXED - text clips if too long)
+  comment: {
+    x: 16,
+    y: 314,     // photo.y + photo.height + 18
+    width: 308,
+    height: 80, // Fixed height - text MUST fit or be clipped
+    fontSize: 14,
+    lineHeight: 1.4,
+    maxLines: 4, // Maximum lines before truncation with ellipsis
+    fontFamily: '"Inter", "Noto Sans KR", system-ui, sans-serif',
+    fontWeight: 500,
+  },
+
+  // Footer area (FIXED)
+  footer: {
+    y: 424, // height - 16
+    sloganFontSize: 11,
+    heartSize: 16,
+  },
+
+  // Watermark (FIXED)
+  watermark: {
+    x: 28,  // photo.x + 12
+    y: 28,  // photo.y + 12
+    fontSize: 20,
+  },
+
+  // Stamp (FIXED)
+  stamp: {
+    size: 70,
+    margin: 10,
+  },
+} as const
+
+// Legacy constants for backward compatibility
+const BASE_POLAROID_WIDTH = POLAROID_LAYOUT.width
+const BASE_POLAROID_HEIGHT = POLAROID_LAYOUT.height
+const BASE_PHOTO_AREA_HEIGHT = POLAROID_LAYOUT.photo.height
+const BASE_PADDING = POLAROID_LAYOUT.padding
+const BASE_CORNER_RADIUS = POLAROID_LAYOUT.cornerRadius
+const BASE_PHOTO_CORNER_RADIUS = POLAROID_LAYOUT.photo.cornerRadius
 
 // Brand text settings
 const BRAND_TEXT = 'DayPat'
@@ -194,6 +252,152 @@ function roundedRectPath(
   ctx.lineTo(x, y + radius)
   ctx.quadraticCurveTo(x, y, x + radius, y)
   ctx.closePath()
+}
+
+// =============================================================================
+// TEXT WRAPPING UTILITIES (for fixed-height comment box)
+// =============================================================================
+
+/**
+ * Wrap text to fit within a maximum width.
+ * Returns an array of lines that fit within maxWidth.
+ *
+ * @param ctx - Canvas context (font must be set before calling)
+ * @param text - Text to wrap
+ * @param maxWidth - Maximum width in pixels
+ * @returns Array of text lines
+ */
+function wrapText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number
+): string[] {
+  if (!text) return []
+
+  const words = text.split('')  // Split by character for better Korean support
+  const lines: string[] = []
+  let currentLine = ''
+
+  for (const char of words) {
+    const testLine = currentLine + char
+    const metrics = ctx.measureText(testLine)
+
+    if (metrics.width > maxWidth && currentLine.length > 0) {
+      lines.push(currentLine)
+      currentLine = char
+    } else {
+      currentLine = testLine
+    }
+  }
+
+  if (currentLine) {
+    lines.push(currentLine)
+  }
+
+  return lines
+}
+
+/**
+ * Truncate lines array to maxLines, adding ellipsis to the last line if needed.
+ *
+ * @param ctx - Canvas context (font must be set before calling)
+ * @param lines - Array of text lines
+ * @param maxLines - Maximum number of lines
+ * @param maxWidth - Maximum width for ellipsis fitting
+ * @returns Truncated lines array
+ */
+function truncateWithEllipsis(
+  ctx: CanvasRenderingContext2D,
+  lines: string[],
+  maxLines: number,
+  maxWidth: number
+): string[] {
+  if (lines.length <= maxLines) {
+    return lines
+  }
+
+  const truncated = lines.slice(0, maxLines)
+  let lastLine = truncated[truncated.length - 1]
+
+  // Add ellipsis, truncating if necessary to fit
+  const ellipsis = '…'
+  while (lastLine.length > 0) {
+    const testLine = lastLine + ellipsis
+    if (ctx.measureText(testLine).width <= maxWidth) {
+      truncated[truncated.length - 1] = testLine
+      break
+    }
+    lastLine = lastLine.slice(0, -1)
+  }
+
+  return truncated
+}
+
+/**
+ * Draw wrapped text within a fixed box, with clipping and ellipsis truncation.
+ * The box dimensions are FIXED - text is clipped if it exceeds the box.
+ *
+ * @param ctx - Canvas context
+ * @param text - Text to draw
+ * @param box - Fixed box dimensions { x, y, width, height }
+ * @param options - Font and styling options
+ */
+function drawTextInFixedBox(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  box: { x: number; y: number; width: number; height: number },
+  options: {
+    fontSize: number
+    lineHeight: number
+    maxLines: number
+    fontFamily: string
+    fontWeight: number
+    color: string
+    align: CanvasTextAlign
+    placeholder?: string
+    placeholderColor?: string
+  }
+): void {
+  const { fontSize, lineHeight, maxLines, fontFamily, fontWeight, color, align, placeholder, placeholderColor } = options
+  const lineHeightPx = fontSize * lineHeight
+
+  // Set font
+  ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`
+
+  // Use placeholder if no text
+  const displayText = text || placeholder || ''
+  const displayColor = text ? color : (placeholderColor || '#9ca3af')
+
+  // Wrap text
+  const lines = wrapText(ctx, displayText, box.width - 8) // Small padding
+
+  // Truncate with ellipsis if exceeds maxLines
+  const truncatedLines = truncateWithEllipsis(ctx, lines, maxLines, box.width - 8)
+
+  // Clip to box area (safety measure)
+  ctx.save()
+  ctx.beginPath()
+  ctx.rect(box.x, box.y, box.width, box.height)
+  ctx.clip()
+
+  // Draw text
+  ctx.fillStyle = displayColor
+  ctx.textAlign = align
+  ctx.textBaseline = 'top'
+
+  const startX = align === 'center' ? box.x + box.width / 2 : box.x
+  let currentY = box.y
+
+  for (const line of truncatedLines) {
+    // Stop if we would draw outside the box
+    if (currentY + lineHeightPx > box.y + box.height) {
+      break
+    }
+    ctx.fillText(line, startX, currentY)
+    currentY += lineHeightPx
+  }
+
+  ctx.restore()
 }
 
 /**
@@ -403,10 +607,10 @@ async function renderPolaroidBaseCanvas(
     ctx.restore()
   }
 
-  // Draw DayPat watermark at TOP-LEFT of PHOTO area
+  // Draw DayPat watermark at TOP-LEFT of PHOTO area (FIXED position from POLAROID_LAYOUT)
+  const { watermark } = POLAROID_LAYOUT
   ctx.save()
-  const watermarkFontSize = 20
-  ctx.font = `600 ${watermarkFontSize}px ${BRAND_FONT_FAMILY}`
+  ctx.font = `600 ${watermark.fontSize}px ${BRAND_FONT_FAMILY}`
   ctx.fillStyle = BRAND_COLOR
   ctx.textAlign = 'left'
   ctx.textBaseline = 'top'
@@ -414,18 +618,18 @@ async function renderPolaroidBaseCanvas(
   ctx.shadowBlur = 3
   ctx.shadowOffsetX = 0
   ctx.shadowOffsetY = 1
-  ctx.fillText(BRAND_TEXT, photoX + 12, photoY + 12)
+  ctx.fillText(BRAND_TEXT, watermark.x, watermark.y)
   ctx.restore()
   console.log('[EXPORT] DayPat watermark drawn')
 
-  // Draw stamp if available
+  // Draw stamp if available (FIXED size and position from POLAROID_LAYOUT)
+  const { stamp } = POLAROID_LAYOUT
   if (data.showStamp && data.stampDataUrl) {
     console.log('[EXPORT] Loading stamp image...')
     try {
       const stampImg = await loadImage(data.stampDataUrl)
-      const stampSize = 70
-      const stampX = photoX + photoWidth - stampSize - 10
-      const stampY = photoY + photoHeight - stampSize - 10
+      const stampX = photoX + photoWidth - stamp.size - stamp.margin
+      const stampY = photoY + photoHeight - stamp.size - stamp.margin
 
       ctx.save()
       ctx.shadowColor = 'rgba(0, 0, 0, 0.1)'
@@ -433,10 +637,10 @@ async function renderPolaroidBaseCanvas(
       ctx.shadowOffsetY = 6
 
       ctx.beginPath()
-      ctx.arc(stampX + stampSize / 2, stampY + stampSize / 2, stampSize / 2, 0, Math.PI * 2)
+      ctx.arc(stampX + stamp.size / 2, stampY + stamp.size / 2, stamp.size / 2, 0, Math.PI * 2)
       ctx.clip()
 
-      ctx.drawImage(stampImg, stampX, stampY, stampSize, stampSize)
+      ctx.drawImage(stampImg, stampX, stampY, stamp.size, stamp.size)
       ctx.restore()
       console.log('[EXPORT] Stamp drawn successfully')
     } catch (e) {
@@ -444,21 +648,34 @@ async function renderPolaroidBaseCanvas(
     }
   }
 
-  // Draw caption text
-  const captionY = photoY + photoHeight + 18
-  const captionText = data.praise || 'Give your day a pat.'
-  ctx.font = `500 14px "Inter", "Noto Sans KR", system-ui, sans-serif`
-  ctx.fillStyle = data.praise ? '#374151' : '#9ca3af'
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'top'
-  ctx.fillText(captionText, BASE_POLAROID_WIDTH / 2, captionY)
+  // Draw caption text in FIXED box (never expands based on content)
+  // Uses POLAROID_LAYOUT.comment for all dimensions - these are FIXED constants
+  const { comment } = POLAROID_LAYOUT
+  drawTextInFixedBox(
+    ctx,
+    data.praise || '',
+    { x: comment.x, y: comment.y, width: comment.width, height: comment.height },
+    {
+      fontSize: comment.fontSize,
+      lineHeight: comment.lineHeight,
+      maxLines: comment.maxLines,
+      fontFamily: comment.fontFamily,
+      fontWeight: comment.fontWeight,
+      color: '#374151',
+      align: 'center',
+      placeholder: 'Give your day a pat.',
+      placeholderColor: '#9ca3af',
+    }
+  )
+  console.log('[EXPORT] Caption drawn in fixed box:', comment.width, 'x', comment.height)
 
-  // Draw footer: slogan on left, heart icon on right
-  const footerY = BASE_POLAROID_HEIGHT - 16
+  // Draw footer: slogan on left, heart icon on right (FIXED positions from POLAROID_LAYOUT)
+  const { footer } = POLAROID_LAYOUT
+  const footerY = footer.y
 
   // Draw slogan
   ctx.save()
-  ctx.font = `500 11px ${SLOGAN_FONT_FAMILY}`
+  ctx.font = `500 ${footer.sloganFontSize}px ${SLOGAN_FONT_FAMILY}`
   ctx.fillStyle = BRAND_COLOR
   ctx.textAlign = 'left'
   ctx.textBaseline = 'middle'
@@ -466,8 +683,8 @@ async function renderPolaroidBaseCanvas(
   ctx.restore()
   console.log('[EXPORT] Slogan drawn')
 
-  // Draw heart icon
-  const heartSize = 16
+  // Draw heart icon (FIXED size and position)
+  const heartSize = footer.heartSize
   const heartX = BASE_POLAROID_WIDTH - padding - heartSize / 2
   const heartY = footerY
 
