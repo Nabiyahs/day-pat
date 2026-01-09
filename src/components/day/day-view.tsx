@@ -8,7 +8,15 @@ import { Toast, useToast } from '@/components/ui/toast'
 import { useDayCard } from '@/hooks/use-day-card'
 import { useSwipeNav } from '@/hooks/use-swipe-nav'
 import { formatDateString, parseDateString } from '@/lib/utils'
+import {
+  nextPaint,
+  waitForImages,
+  prepareImagesForCapture,
+  replaceImageSrcsWithDataUrls,
+} from '@/lib/image-utils'
 import { PolaroidCard, type PolaroidCardRef } from './polaroid-card'
+
+const DEBUG = process.env.NODE_ENV === 'development'
 
 // Export target dimensions
 const EXPORT_TARGETS = {
@@ -21,6 +29,9 @@ type ExportTarget = keyof typeof EXPORT_TARGETS
 
 // Background color for letterbox areas
 const EXPORT_BG_COLOR = '#FFFDF8'
+
+// Timeout for image preloading (ms)
+const IMAGE_PRELOAD_TIMEOUT = 4000
 
 interface DayViewProps {
   selectedDate: string
@@ -42,70 +53,130 @@ export function DayView({ selectedDate, onDateChange }: DayViewProps) {
   /**
    * Capture Day View as image and scale to target canvas with "contain" fit.
    * Returns a data URL of the final image.
+   *
+   * Key steps to ensure images appear in capture:
+   * 1. Wait for document fonts
+   * 2. Wait for layout/paint stabilization
+   * 3. Preload all images and convert to dataURLs (CORS safety)
+   * 4. Create offscreen clone with dataURL images
+   * 5. Wait for clone images to load
+   * 6. Capture the clone
    */
   const captureDayView = async (target: ExportTarget): Promise<string> => {
     const element = dayViewRef.current
     if (!element) throw new Error('Day View element not found')
 
-    // Ensure fonts are loaded before capture
+    if (DEBUG) console.log('[DayView] Starting capture for target:', target)
+
+    // Step 1: Ensure fonts are loaded
     await document.fonts.ready
+    if (DEBUG) console.log('[DayView] Fonts ready')
 
-    // Capture the Day View at high resolution (2x for quality)
-    const pixelRatio = 2
-    const dataUrl = await toPng(element, {
-      pixelRatio,
-      backgroundColor: EXPORT_BG_COLOR,
-      cacheBust: true,
-    })
+    // Step 2: Wait for layout/paint stabilization
+    await nextPaint()
+    if (DEBUG) console.log('[DayView] Paint stabilized')
 
-    // Load the captured image
-    const img = new Image()
-    await new Promise<void>((resolve, reject) => {
-      img.onload = () => resolve()
-      img.onerror = reject
-      img.src = dataUrl
-    })
+    // Step 3: Preload all images and convert to dataURLs (CORS safety)
+    // This ensures external images (Supabase storage) don't cause tainted canvas issues
+    const imageUrlMap = await prepareImagesForCapture(element, { timeoutMs: IMAGE_PRELOAD_TIMEOUT })
+    if (DEBUG) console.log('[DayView] Images preloaded:', imageUrlMap.size)
 
-    // Get target dimensions
-    const targetDim = EXPORT_TARGETS[target]
-    const canvas = document.createElement('canvas')
-    canvas.width = targetDim.width
-    canvas.height = targetDim.height
-    const ctx = canvas.getContext('2d')!
+    // Step 4: Create offscreen clone with dataURL images
+    const clone = element.cloneNode(true) as HTMLElement
+    clone.style.position = 'absolute'
+    clone.style.left = '-9999px'
+    clone.style.top = '0'
+    document.body.appendChild(clone)
 
-    // Fill background
-    ctx.fillStyle = EXPORT_BG_COLOR
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
+    try {
+      // Replace image srcs with dataURLs in the clone
+      replaceImageSrcsWithDataUrls(clone, imageUrlMap)
+      if (DEBUG) console.log('[DayView] Clone images replaced with dataURLs')
 
-    // Calculate "contain" scaling - maximize size while maintaining aspect ratio
-    const srcW = img.naturalWidth
-    const srcH = img.naturalHeight
-    const scale = Math.min(targetDim.width / srcW, targetDim.height / srcH)
-    const drawW = srcW * scale
-    const drawH = srcH * scale
-    const offsetX = (targetDim.width - drawW) / 2
-    const offsetY = (targetDim.height - drawH) / 2
+      // Step 5: Wait for clone images to fully load
+      await nextPaint()
+      await waitForImages(clone, { timeoutMs: 3000 })
+      if (DEBUG) console.log('[DayView] Clone images loaded')
 
-    // Draw the captured image centered with contain scaling
-    ctx.drawImage(img, offsetX, offsetY, drawW, drawH)
+      // Step 6: Capture the clone at high resolution (2x for quality)
+      const pixelRatio = 2
+      const dataUrl = await toPng(clone, {
+        pixelRatio,
+        backgroundColor: EXPORT_BG_COLOR,
+        cacheBust: true,
+        skipFonts: false,
+      })
+      if (DEBUG) console.log('[DayView] Clone captured')
 
-    return canvas.toDataURL('image/png')
+      // Load the captured image
+      const img = new Image()
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve()
+        img.onerror = reject
+        img.src = dataUrl
+      })
+
+      // Get target dimensions
+      const targetDim = EXPORT_TARGETS[target]
+      const canvas = document.createElement('canvas')
+      canvas.width = targetDim.width
+      canvas.height = targetDim.height
+      const ctx = canvas.getContext('2d')!
+
+      // Fill background
+      ctx.fillStyle = EXPORT_BG_COLOR
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+      // Calculate "contain" scaling - maximize size while maintaining aspect ratio
+      const srcW = img.naturalWidth
+      const srcH = img.naturalHeight
+      const scale = Math.min(targetDim.width / srcW, targetDim.height / srcH)
+      const drawW = srcW * scale
+      const drawH = srcH * scale
+      const offsetX = (targetDim.width - drawW) / 2
+      const offsetY = (targetDim.height - drawH) / 2
+
+      // Draw the captured image centered with contain scaling
+      ctx.drawImage(img, offsetX, offsetY, drawW, drawH)
+
+      if (DEBUG) console.log('[DayView] Final canvas created')
+      return canvas.toDataURL('image/png')
+    } finally {
+      // Always clean up the clone
+      document.body.removeChild(clone)
+      if (DEBUG) console.log('[DayView] Clone cleaned up')
+    }
   }
 
   // Share handler for action bar (with toast feedback)
   const handleShareFromActionBar = async () => {
-    // Must have a saved photo to share
-    if (!dayCard?.photo_path) return
+    // Prevent duplicate clicks while sharing is in progress
+    if (sharing) {
+      if (DEBUG) console.log('[DayView] Share blocked - already sharing')
+      return
+    }
 
+    // Must have a saved photo to share
+    if (!dayCard?.photo_path) {
+      if (DEBUG) console.log('[DayView] Share blocked - no photo')
+      return
+    }
+
+    if (DEBUG) console.log('[DayView] Starting share flow')
+
+    // Set loading states BEFORE any async operations
     setSharing(true)
     setIsExporting(true)
 
-    // Small delay to ensure React re-renders with isExporting=true
-    await new Promise(resolve => setTimeout(resolve, 50))
-
     try {
+      // Small delay to ensure React re-renders with isExporting=true
+      // This allows the slogan to appear instead of timestamp
+      await new Promise(resolve => setTimeout(resolve, 100))
+
       // Capture Day View as image (default to instagram_post 1:1)
+      if (DEBUG) console.log('[DayView] Capturing Day View...')
       const dataUrl = await captureDayView('instagram_post')
+      if (DEBUG) console.log('[DayView] Capture complete')
 
       // Convert to blob for sharing
       const response = await fetch(dataUrl)
@@ -114,27 +185,33 @@ export function DayView({ selectedDate, onDateChange }: DayViewProps) {
 
       // Try Web Share API first
       if (navigator.canShare?.({ files: [file] })) {
+        if (DEBUG) console.log('[DayView] Using Web Share API')
         try {
           await navigator.share({ files: [file] })
           showToast('Successfully done!', 'success')
         } catch (err) {
           if ((err as Error).name === 'AbortError') {
-            // User cancelled - don't show toast
+            // User cancelled - don't show toast, but this is NOT an error
+            if (DEBUG) console.log('[DayView] Share cancelled by user')
           } else {
             // Share failed, fallback to download
+            if (DEBUG) console.log('[DayView] Share failed, falling back to download:', err)
             downloadDataUrl(dataUrl, `day-pat-${dateStr}.png`)
             showToast('Successfully done!', 'success')
           }
         }
       } else {
         // Fallback to download
+        if (DEBUG) console.log('[DayView] Web Share not available, downloading')
         downloadDataUrl(dataUrl, `day-pat-${dateStr}.png`)
         showToast('Successfully done!', 'success')
       }
     } catch (err) {
-      console.error('Share failed:', err)
+      console.error('[DayView] Share failed:', err)
       showToast('Something went wrong', 'error')
     } finally {
+      // ALWAYS reset loading states, regardless of success/failure/cancel
+      if (DEBUG) console.log('[DayView] Share flow complete, resetting states')
       setIsExporting(false)
       setSharing(false)
     }
