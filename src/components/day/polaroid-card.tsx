@@ -80,6 +80,7 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
   const fileInputRef = useRef<HTMLInputElement>(null)
   const photoAreaRef = useRef<HTMLDivElement>(null)
   const stickerRefs = useRef<(HTMLDivElement | null)[]>([])
+  const prevDateRef = useRef<string>(date) // Track previous date for animation reset logic
 
   // Sticker state: savedStickers (source of truth) vs draftStickers (edit-only working copy)
   const savedStickers = dayCard?.sticker_state || []
@@ -104,17 +105,26 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
   const showStamp = Boolean(dayCard?.photo_path) && !isEditing
 
   // Sync praise draft when dayCard changes (e.g., date navigation)
+  // Only reset playStampAnimation when DATE changes (navigation), not when dayCard refreshes after save
   useEffect(() => {
-    if (DEBUG) console.log('[PolaroidCard] dayCard changed, resetting state. entry_date:', dayCard?.entry_date)
+    const dateChanged = prevDateRef.current !== date
+    if (DEBUG) console.log('[PolaroidCard] dayCard/date changed, dateChanged:', dateChanged, 'entry_date:', dayCard?.entry_date)
+
     setPraiseDraft(dayCard?.praise || '')
     // Reset pending photo when dayCard changes
     setPendingPhotoPath(null)
     setPendingPhotoPreview(null)
     setPendingPhotoDelete(false)
     setIsEditing(false)
-    setPlayStampAnimation(false)
     onEditingChange?.(false)
-  }, [dayCard?.praise, dayCard?.entry_date, onEditingChange])
+
+    // Only reset stamp animation when navigating to a different date
+    // NOT when dayCard refreshes after save on the same date
+    if (dateChanged) {
+      setPlayStampAnimation(false)
+      prevDateRef.current = date
+    }
+  }, [date, dayCard?.praise, dayCard?.entry_date, onEditingChange])
 
   // Determine what photo to display
   // Priority: pendingPhotoPreview (local) > photoSignedUrl (server)
