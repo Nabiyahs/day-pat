@@ -498,6 +498,120 @@ async function fetchMonthEntries(year: number, month: number): Promise<Map<strin
 }
 
 // ============================================================
+// DATA FILTERING UTILITIES
+// ============================================================
+
+/**
+ * Check if an entry has any meaningful data.
+ * Data exists if: praise, photo_path, stickers (non-empty), or show_stamp is true.
+ */
+function hasEntryData(entry: {
+  praise?: string | null
+  photo_path?: string | null
+  stickers?: unknown[] | null
+  show_stamp?: boolean | null
+}): boolean {
+  if (entry.praise && entry.praise.trim().length > 0) return true
+  if (entry.photo_path) return true
+  if (entry.stickers && Array.isArray(entry.stickers) && entry.stickers.length > 0) return true
+  if (entry.show_stamp) return true
+  return false
+}
+
+/**
+ * Fetch all dates that have data within a date range (single DB query).
+ * Returns a Set of date strings (YYYY-MM-DD) for efficient lookup.
+ */
+export async function fetchDatesWithDataInRange(
+  fromDate: string,
+  toDate: string
+): Promise<Set<string>> {
+  const supabase = getSupabaseClient()
+
+  const { data: entries, error } = await supabase
+    .from('entries')
+    .select('entry_date, praise, photo_path, stickers, show_stamp')
+    .gte('entry_date', fromDate)
+    .lte('entry_date', toDate)
+
+  const datesWithData = new Set<string>()
+
+  if (error || !entries) {
+    console.error('[ViewRenderer] fetchDatesWithDataInRange error:', error?.message)
+    return datesWithData
+  }
+
+  for (const entry of entries) {
+    if (hasEntryData(entry)) {
+      datesWithData.add(entry.entry_date)
+    }
+  }
+
+  console.log('[ViewRenderer] Dates with data in range:', datesWithData.size)
+  return datesWithData
+}
+
+/**
+ * Get dates with data as an array (for Day export).
+ */
+export async function getDateKeysWithDataInRange(
+  fromDate: string,
+  toDate: string
+): Promise<string[]> {
+  const datesSet = await fetchDatesWithDataInRange(fromDate, toDate)
+  // Sort dates chronologically
+  return Array.from(datesSet).sort()
+}
+
+/**
+ * Get week anchors that have at least one day with data.
+ */
+export async function getWeeksWithAnyData(
+  fromDate: string,
+  toDate: string
+): Promise<Date[]> {
+  const datesWithData = await fetchDatesWithDataInRange(fromDate, toDate)
+  const weekAnchors = generateWeekAnchors(fromDate, toDate)
+
+  // Filter weeks that have at least one day with data
+  return weekAnchors.filter((anchor) => {
+    const weekStart = startOfWeek(anchor, { weekStartsOn: 1 })
+    // Check all 7 days of the week
+    for (let i = 0; i < 7; i++) {
+      const day = addDays(weekStart, i)
+      const dateStr = formatDateString(day)
+      if (datesWithData.has(dateStr)) {
+        return true
+      }
+    }
+    return false
+  })
+}
+
+/**
+ * Get month anchors that have at least one day with data.
+ */
+export async function getMonthsWithAnyData(
+  fromDate: string,
+  toDate: string
+): Promise<Array<{ year: number; month: number }>> {
+  const datesWithData = await fetchDatesWithDataInRange(fromDate, toDate)
+  const monthAnchors = generateMonthAnchors(fromDate, toDate)
+
+  // Filter months that have at least one day with data
+  return monthAnchors.filter(({ year, month }) => {
+    // Check if any date in this month has data
+    for (const dateStr of datesWithData) {
+      const date = new Date(dateStr + 'T00:00:00')
+      if (date.getFullYear() === year && date.getMonth() === month) {
+        return true
+      }
+    }
+    return false
+  })
+}
+
+// ============================================================
 // DAY PAGE RENDERER
 // ============================================================
 
@@ -1633,14 +1747,22 @@ function generateMonthAnchors(fromStr: string, toStr: string): Array<{ year: num
 /**
  * Render Day pages for a date range.
  * Each day = 1 PDF page (polaroid style).
+ * Only includes days that have data (praise, photo, stickers, or stamp).
  */
 export async function renderDayRangePages(fromDate: string, toDate: string): Promise<PageImage[]> {
   console.log('[ViewRenderer] renderDayRangePages:', fromDate, 'to', toDate)
-  const dates = generateDateRange(fromDate, toDate)
+
+  // Get only dates that have data (single DB query)
+  const datesWithData = await getDateKeysWithDataInRange(fromDate, toDate)
+  console.log('[ViewRenderer] Days with data:', datesWithData.length)
+
+  if (datesWithData.length === 0) {
+    return [] // No data in range
+  }
+
   const allPages: PageImage[] = []
 
-  for (const date of dates) {
-    const dateStr = formatDateString(date)
+  for (const dateStr of datesWithData) {
     const pages = await renderDayPageImages(dateStr)
     allPages.push(...pages)
   }
@@ -1657,13 +1779,22 @@ export async function renderDayRangePages(fromDate: string, toDate: string): Pro
 /**
  * Render Week pages for a date range.
  * Uses multi-page pagination for each week if needed.
+ * Only includes weeks that have at least one day with data.
  */
 export async function renderWeekRangePages(fromDate: string, toDate: string): Promise<PageImage[]> {
   console.log('[ViewRenderer] renderWeekRangePages:', fromDate, 'to', toDate)
-  const weekAnchors = generateWeekAnchors(fromDate, toDate)
+
+  // Get only weeks that have data (single DB query)
+  const weeksWithData = await getWeeksWithAnyData(fromDate, toDate)
+  console.log('[ViewRenderer] Weeks with data:', weeksWithData.length)
+
+  if (weeksWithData.length === 0) {
+    return [] // No data in range
+  }
+
   const allPages: PageImage[] = []
 
-  for (const anchor of weekAnchors) {
+  for (const anchor of weeksWithData) {
     const pages = await renderWeekPageImages(anchor)
     allPages.push(...pages)
   }
@@ -1680,13 +1811,22 @@ export async function renderWeekRangePages(fromDate: string, toDate: string): Pr
 /**
  * Render Month pages for a date range.
  * Each month = 1 PDF page (calendar grid).
+ * Only includes months that have at least one day with data.
  */
 export async function renderMonthRangePages(fromDate: string, toDate: string): Promise<PageImage[]> {
   console.log('[ViewRenderer] renderMonthRangePages:', fromDate, 'to', toDate)
-  const monthAnchors = generateMonthAnchors(fromDate, toDate)
+
+  // Get only months that have data (single DB query)
+  const monthsWithData = await getMonthsWithAnyData(fromDate, toDate)
+  console.log('[ViewRenderer] Months with data:', monthsWithData.length)
+
+  if (monthsWithData.length === 0) {
+    return [] // No data in range
+  }
+
   const allPages: PageImage[] = []
 
-  for (const { year, month } of monthAnchors) {
+  for (const { year, month } of monthsWithData) {
     const pages = await renderMonthPageImages(year, month)
     allPages.push(...pages)
   }

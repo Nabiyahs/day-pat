@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { jsPDF } from 'jspdf'
 import { AppIcon } from '@/components/ui/app-icon'
-import { DateWheelPicker } from '@/components/ui/date-wheel-picker'
+import { DateRangePicker } from '@/components/ui/date-wheel-picker'
 import { cn } from '@/lib/utils'
 import { buildPdfPages, type ExportMode, type PageImage } from '@/lib/export-view-renderer'
 import { format, subMonths } from 'date-fns'
@@ -12,19 +12,21 @@ import { format, subMonths } from 'date-fns'
  * View-Based Export Modal with Date Range Selection
  *
  * Export Types:
- * - Day: One polaroid per day in range
- * - Week: Multi-page week views for each week in range
- * - Month: Calendar grid for each month in range
+ * - Day: One polaroid per day in range (only days with data)
+ * - Week: Multi-page week views for each week in range (only weeks with data)
+ * - Month: Calendar grid for each month in range (only months with data)
  * - Favorites: Polaroid grid of favorited entries in range
  *
  * Date Range: Independent from main page toggle state
+ * - To date defaults to TODAY
+ * - From date defaults to 1 month before today
  */
 
 interface ExportModalProps {
   isOpen: boolean
   onClose: () => void
   activeView: 'day' | 'week' | 'month'
-  selectedDate: string // YYYY-MM-DD format (used as default for date range)
+  selectedDate: string // YYYY-MM-DD format (used as fallback)
 }
 
 // Export mode options - simplified to just value and label
@@ -66,6 +68,11 @@ function getFilename(mode: ExportMode, fromDate: string, toDate: string): string
 function formatDateDisplay(dateStr: string): string {
   const date = new Date(dateStr + 'T00:00:00')
   return format(date, 'yyyy/M/d')
+}
+
+// Get today's date as YYYY-MM-DD
+function getTodayStr(): string {
+  return format(new Date(), 'yyyy-MM-dd')
 }
 
 // Generate PDF from page images
@@ -133,27 +140,29 @@ export function ExportModal({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [progress, setProgress] = useState<string>('')
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false)
 
-  // Date range state - default to last 30 days
-  const defaultTo = selectedDate
-  const defaultFrom = useMemo(() => {
-    const date = new Date(selectedDate + 'T00:00:00')
-    return format(subMonths(date, 1), 'yyyy-MM-dd')
-  }, [selectedDate])
+  // Date range state - To defaults to TODAY, From defaults to 1 month before
+  const [fromDate, setFromDate] = useState(() => {
+    const today = new Date()
+    return format(subMonths(today, 1), 'yyyy-MM-dd')
+  })
+  const [toDate, setToDate] = useState(() => getTodayStr())
 
-  const [fromDate, setFromDate] = useState(defaultFrom)
-  const [toDate, setToDate] = useState(defaultTo)
-
-  // Reset state when modal opens
+  // Reset state when modal opens - ALWAYS set To to today
   useEffect(() => {
     if (isOpen) {
+      const today = getTodayStr()
+      const oneMonthAgo = format(subMonths(new Date(), 1), 'yyyy-MM-dd')
+
       setError(null)
       setProgress('')
       setExportMode(initialMode)
-      setFromDate(defaultFrom)
-      setToDate(defaultTo)
+      setFromDate(oneMonthAgo)
+      setToDate(today)
+      setIsDatePickerOpen(false)
     }
-  }, [isOpen, initialMode, defaultFrom, defaultTo])
+  }, [isOpen, initialMode])
 
   // Validate date range
   const isValidRange = useMemo(() => {
@@ -187,7 +196,10 @@ export function ExportModal({
       })
 
       if (pages.length === 0) {
-        throw new Error('No content to export for the selected date range')
+        // No data in the selected range
+        setError('No data to export for the selected date range.')
+        setLoading(false)
+        return
       }
 
       // Generate PDF
@@ -257,39 +269,45 @@ export function ExportModal({
             </div>
           </div>
 
-          {/* Date Range Selection - Wheel Pickers */}
+          {/* Date Range Selection - Single line click-to-expand */}
           <div className="space-y-3">
             <label className="block text-sm font-semibold text-gray-700">
               Date Range
             </label>
 
-            <div className="grid grid-cols-2 gap-3">
-              {/* From Date */}
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">From</label>
-                <DateWheelPicker
-                  value={fromDate}
-                  onChange={setFromDate}
+            {/* Single line display - clickable */}
+            <button
+              type="button"
+              disabled={loading}
+              onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
+              className={cn(
+                'w-full p-3 rounded-xl border text-left transition-all flex items-center justify-between',
+                isDatePickerOpen
+                  ? 'border-[#F27430] bg-orange-50'
+                  : 'border-gray-200 hover:border-gray-300 bg-white'
+              )}
+            >
+              <span className="font-medium text-gray-800">{dateRangeDisplay}</span>
+              <AppIcon
+                name="chevron-down"
+                className={cn(
+                  'w-4 h-4 text-gray-400 transition-transform',
+                  isDatePickerOpen && 'rotate-180'
+                )}
+              />
+            </button>
+
+            {/* Expandable Date Range Picker */}
+            {isDatePickerOpen && (
+              <div className="border border-gray-200 rounded-xl p-3 bg-gray-50">
+                <DateRangePicker
+                  fromDate={fromDate}
+                  toDate={toDate}
+                  onFromChange={setFromDate}
+                  onToChange={setToDate}
                   disabled={loading}
                 />
               </div>
-
-              {/* To Date */}
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">To</label>
-                <DateWheelPicker
-                  value={toDate}
-                  onChange={setToDate}
-                  disabled={loading}
-                />
-              </div>
-            </div>
-
-            {/* Date Range Invalid Warning */}
-            {!isValidRange && fromDate && toDate && (
-              <p className="text-xs text-red-500">
-                "From" date must be before or equal to "To" date
-              </p>
             )}
           </div>
 

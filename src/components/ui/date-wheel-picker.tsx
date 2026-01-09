@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { cn } from '@/lib/utils'
+import { format } from 'date-fns'
 
 /**
  * DateWheelPicker - A wheel/scroll-style date picker with Year/Month/Day columns.
@@ -232,6 +233,112 @@ export function DateWheelPicker({
         value={day}
         onChange={(newDay) => updateDate(year, month, newDay)}
         disabled={disabled}
+      />
+    </div>
+  )
+}
+
+// ============================================================
+// DATE RANGE PICKER (combines From/To with tabs)
+// ============================================================
+
+interface DateRangePickerProps {
+  fromDate: string // YYYY-MM-DD
+  toDate: string // YYYY-MM-DD
+  onFromChange: (date: string) => void
+  onToChange: (date: string) => void
+  disabled?: boolean
+  minYear?: number
+  maxYear?: number
+}
+
+/**
+ * DateRangePicker - A combined date range picker with From/To tabs.
+ * Shows a single wheel picker with tab toggle for From/To selection.
+ */
+export function DateRangePicker({
+  fromDate,
+  toDate,
+  onFromChange,
+  onToChange,
+  disabled = false,
+  minYear = 2020,
+  maxYear = 2035,
+}: DateRangePickerProps) {
+  const [activeTab, setActiveTab] = useState<'from' | 'to'>('from')
+
+  const currentDate = activeTab === 'from' ? fromDate : toDate
+  const setCurrentDate = activeTab === 'from' ? onFromChange : onToChange
+
+  // Handle date change with auto-correction for invalid ranges
+  const handleDateChange = useCallback(
+    (newDate: string) => {
+      if (activeTab === 'from') {
+        // If from > to, adjust to = from
+        if (newDate > toDate) {
+          onFromChange(newDate)
+          onToChange(newDate)
+        } else {
+          onFromChange(newDate)
+        }
+      } else {
+        // If to < from, adjust from = to
+        if (newDate < fromDate) {
+          onFromChange(newDate)
+          onToChange(newDate)
+        } else {
+          onToChange(newDate)
+        }
+      }
+    },
+    [activeTab, fromDate, toDate, onFromChange, onToChange]
+  )
+
+  // Format date for display (YYYY/M/D)
+  const formatDateDisplay = (dateStr: string): string => {
+    const date = new Date(dateStr + 'T00:00:00')
+    return format(date, 'yyyy/M/d')
+  }
+
+  return (
+    <div className="space-y-3">
+      {/* From/To Tab Toggle */}
+      <div className="flex gap-1 p-1 bg-gray-100 rounded-lg">
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => setActiveTab('from')}
+          className={cn(
+            'flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all',
+            activeTab === 'from'
+              ? 'bg-white text-gray-900 shadow-sm'
+              : 'text-gray-500 hover:text-gray-700'
+          )}
+        >
+          From: {formatDateDisplay(fromDate)}
+        </button>
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => setActiveTab('to')}
+          className={cn(
+            'flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all',
+            activeTab === 'to'
+              ? 'bg-white text-gray-900 shadow-sm'
+              : 'text-gray-500 hover:text-gray-700'
+          )}
+        >
+          To: {formatDateDisplay(toDate)}
+        </button>
+      </div>
+
+      {/* Wheel Picker */}
+      <DateWheelPicker
+        value={currentDate}
+        onChange={handleDateChange}
+        disabled={disabled}
+        minYear={minYear}
+        maxYear={maxYear}
       />
     </div>
   )
