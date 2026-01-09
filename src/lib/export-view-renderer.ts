@@ -782,6 +782,25 @@ interface WeekCardMeasurement {
 }
 
 /**
+ * A "slice" of a week card that fits on a single page.
+ * When a card's caption is too long, it gets split into multiple slices.
+ */
+interface WeekCardSlice {
+  /** Original card measurement */
+  card: WeekCardMeasurement
+  /** Height of this slice */
+  sliceHeight: number
+  /** Which caption lines to render (start index, inclusive) */
+  captionStartLine: number
+  /** Which caption lines to render (end index, exclusive) */
+  captionEndLine: number
+  /** Is this the first slice of the card? (shows photo and date) */
+  isFirstSlice: boolean
+  /** Is this the last slice of the card? (no continuation indicator) */
+  isLastSlice: boolean
+}
+
+/**
  * Measure all week cards and calculate their heights.
  */
 function measureWeekCards(
@@ -823,28 +842,173 @@ function measureWeekCards(
 }
 
 /**
+ * Calculate how many caption lines can fit in available height.
+ */
+function calculateFittingCaptionLines(
+  availableHeight: number,
+  includePhotoAndDate: boolean
+): number {
+  const lineHeight = WEEK_LAYOUT.fontSize.caption * WEEK_LAYOUT.lineHeight
+  const baseHeight = includePhotoAndDate
+    ? WEEK_LAYOUT.cardPadding * 2 + WEEK_LAYOUT.photoHeight + WEEK_LAYOUT.cardPadding
+    : WEEK_LAYOUT.cardPadding * 2 // Just padding for continuation
+  const heightForCaption = availableHeight - baseHeight
+  return Math.max(0, Math.floor(heightForCaption / lineHeight))
+}
+
+/**
+ * Calculate slice height based on caption lines.
+ */
+function calculateSliceHeight(
+  numCaptionLines: number,
+  isFirstSlice: boolean
+): number {
+  const lineHeight = WEEK_LAYOUT.fontSize.caption * WEEK_LAYOUT.lineHeight
+  const captionHeight = numCaptionLines * lineHeight
+
+  if (isFirstSlice) {
+    // First slice includes photo and date
+    const baseHeight = WEEK_LAYOUT.cardPadding * 2 + WEEK_LAYOUT.photoHeight
+    return baseHeight + (numCaptionLines > 0 ? captionHeight + WEEK_LAYOUT.cardPadding : 0)
+  } else {
+    // Continuation slice - just caption with padding
+    return WEEK_LAYOUT.cardPadding * 2 + captionHeight
+  }
+}
+
+/**
  * Split week cards into pages based on available height.
  * Uses greedy algorithm to maximize density without clipping.
+ *
+ * KEY FEATURE: When a single card's caption exceeds page height,
+ * the card is split into multiple "slices" across pages.
+ * This ensures NO text is ever clipped.
  */
 function splitIntoPages(
   measurements: WeekCardMeasurement[],
   availableHeight: number
-): WeekCardMeasurement[][] {
-  const pages: WeekCardMeasurement[][] = []
-  let currentPage: WeekCardMeasurement[] = []
+): WeekCardSlice[][] {
+  const pages: WeekCardSlice[][] = []
+  let currentPage: WeekCardSlice[] = []
   let currentHeight = 0
 
   for (const card of measurements) {
-    const cardWithGap = card.cardHeight + WEEK_LAYOUT.cardGap
+    const totalCaptionLines = card.captionLines.length
 
-    if (currentHeight + card.cardHeight > availableHeight && currentPage.length > 0) {
-      // Start new page
-      pages.push(currentPage)
-      currentPage = [card]
-      currentHeight = cardWithGap
+    // Check if card fits entirely on current page
+    if (currentHeight + card.cardHeight <= availableHeight || currentPage.length === 0) {
+      // Check if card fits on this page (or if page is empty, we must start here)
+      if (currentHeight + card.cardHeight <= availableHeight) {
+        // Whole card fits
+        currentPage.push({
+          card,
+          sliceHeight: card.cardHeight,
+          captionStartLine: 0,
+          captionEndLine: totalCaptionLines,
+          isFirstSlice: true,
+          isLastSlice: true,
+        })
+        currentHeight += card.cardHeight + WEEK_LAYOUT.cardGap
+      } else {
+        // Card doesn't fit but page is empty - need to split this card
+        let remainingLines = totalCaptionLines
+        let currentStartLine = 0
+        let isFirst = true
+
+        while (remainingLines > 0 || isFirst) {
+          const availableOnPage = currentPage.length === 0 ? availableHeight : availableHeight - currentHeight
+          const fittingLines = calculateFittingCaptionLines(availableOnPage, isFirst)
+
+          if (fittingLines <= 0 && currentPage.length > 0) {
+            // No room on current page, start new page
+            pages.push(currentPage)
+            currentPage = []
+            currentHeight = 0
+            continue
+          }
+
+          const linesToRender = Math.min(fittingLines, remainingLines)
+          const endLine = currentStartLine + linesToRender
+          const sliceHeight = calculateSliceHeight(linesToRender, isFirst)
+          const isLast = endLine >= totalCaptionLines
+
+          currentPage.push({
+            card,
+            sliceHeight,
+            captionStartLine: currentStartLine,
+            captionEndLine: endLine,
+            isFirstSlice: isFirst,
+            isLastSlice: isLast,
+          })
+
+          currentHeight += sliceHeight + WEEK_LAYOUT.cardGap
+          currentStartLine = endLine
+          remainingLines = totalCaptionLines - endLine
+          isFirst = false
+
+          if (!isLast) {
+            // More caption to render, start new page
+            pages.push(currentPage)
+            currentPage = []
+            currentHeight = 0
+          }
+        }
+      }
     } else {
-      currentPage.push(card)
-      currentHeight += cardWithGap
+      // Card doesn't fit on current page - start new page
+      pages.push(currentPage)
+      currentPage = []
+      currentHeight = 0
+
+      // Now add the card (possibly splitting if needed)
+      if (card.cardHeight <= availableHeight) {
+        // Whole card fits on new page
+        currentPage.push({
+          card,
+          sliceHeight: card.cardHeight,
+          captionStartLine: 0,
+          captionEndLine: totalCaptionLines,
+          isFirstSlice: true,
+          isLastSlice: true,
+        })
+        currentHeight = card.cardHeight + WEEK_LAYOUT.cardGap
+      } else {
+        // Card is too tall even for a full page - split it
+        let remainingLines = totalCaptionLines
+        let currentStartLine = 0
+        let isFirst = true
+
+        while (remainingLines > 0 || isFirst) {
+          const fittingLines = calculateFittingCaptionLines(availableHeight, isFirst)
+          const linesToRender = isFirst
+            ? Math.min(fittingLines, remainingLines)
+            : Math.min(fittingLines, remainingLines)
+          const endLine = currentStartLine + linesToRender
+          const sliceHeight = calculateSliceHeight(linesToRender, isFirst)
+          const isLast = endLine >= totalCaptionLines
+
+          currentPage.push({
+            card,
+            sliceHeight: Math.min(sliceHeight, availableHeight),
+            captionStartLine: currentStartLine,
+            captionEndLine: endLine,
+            isFirstSlice: isFirst,
+            isLastSlice: isLast,
+          })
+
+          currentStartLine = endLine
+          remainingLines = totalCaptionLines - endLine
+          isFirst = false
+
+          if (!isLast) {
+            pages.push(currentPage)
+            currentPage = []
+            currentHeight = 0
+          } else {
+            currentHeight = sliceHeight + WEEK_LAYOUT.cardGap
+          }
+        }
+      }
     }
   }
 
@@ -856,15 +1020,20 @@ function splitIntoPages(
 }
 
 /**
- * Draw a single week card on the canvas.
+ * Draw a week card slice on the canvas.
+ *
+ * A slice is a portion of a card that fits on a single page.
+ * - First slice: shows photo, date, and first N caption lines
+ * - Continuation slice: shows only caption lines with "..." header
  */
-async function drawWeekCard(
+async function drawWeekCardSlice(
   ctx: CanvasRenderingContext2D,
-  card: WeekCardMeasurement,
+  slice: WeekCardSlice,
   x: number,
   y: number,
   width: number
 ): Promise<number> {
+  const { card, sliceHeight, captionStartLine, captionEndLine, isFirstSlice, isLastSlice } = slice
   const isCurrentDay = isToday(card.date)
   const hasEntry = card.entry && (card.entry.thumbDataUrl || card.entry.caption)
   const dayIndex = (card.date.getDay() + 6) % 7 // Convert to Monday-based
@@ -875,12 +1044,12 @@ async function drawWeekCard(
     ctx.shadowColor = 'rgba(0, 0, 0, 0.1)'
     ctx.shadowBlur = 10
     ctx.shadowOffsetY = 4
-    roundedRectPath(ctx, x, y, width, card.cardHeight, 16)
+    roundedRectPath(ctx, x, y, width, sliceHeight, 16)
     ctx.fill()
     ctx.shadowColor = 'transparent'
   } else {
     ctx.fillStyle = 'rgba(255, 255, 255, 0.6)'
-    roundedRectPath(ctx, x, y, width, card.cardHeight, 16)
+    roundedRectPath(ctx, x, y, width, sliceHeight, 16)
     ctx.fill()
     // Dashed border
     ctx.strokeStyle = isCurrentDay ? BRAND_COLOR : '#d1d5db'
@@ -894,102 +1063,143 @@ async function drawWeekCard(
   if (isCurrentDay && hasEntry) {
     ctx.strokeStyle = BRAND_COLOR
     ctx.lineWidth = 3
-    roundedRectPath(ctx, x, y, width, card.cardHeight, 16)
+    roundedRectPath(ctx, x, y, width, sliceHeight, 16)
     ctx.stroke()
   }
 
-  // Date column
   const dateX = x + WEEK_LAYOUT.cardPadding
-  const dateY = y + WEEK_LAYOUT.cardPadding
-
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'top'
-
-  // Day name
-  ctx.font = `bold ${WEEK_LAYOUT.fontSize.dayName}px ${WEEK_LAYOUT.fontFamily}`
-  ctx.fillStyle = isCurrentDay ? BRAND_COLOR : (hasEntry ? '#6b7280' : '#9ca3af')
-  ctx.fillText(WEEKDAYS[dayIndex], dateX + WEEK_LAYOUT.dateColumnWidth / 2, dateY)
-
-  // Day number
-  ctx.font = `bold ${WEEK_LAYOUT.fontSize.dayNumber}px ${WEEK_LAYOUT.fontFamily}`
-  ctx.fillStyle = isCurrentDay ? BRAND_COLOR : (hasEntry ? '#1f2937' : '#9ca3af')
-  ctx.fillText(card.date.getDate().toString(), dateX + WEEK_LAYOUT.dateColumnWidth / 2, dateY + 20)
-
-  // Photo area
   const photoX = dateX + WEEK_LAYOUT.dateColumnWidth + WEEK_LAYOUT.cardPadding
-  const photoY = y + WEEK_LAYOUT.cardPadding
   const photoWidth = width - WEEK_LAYOUT.dateColumnWidth - WEEK_LAYOUT.cardPadding * 3
 
-  if (card.entry?.thumbDataUrl) {
-    try {
-      const img = await loadImage(card.entry.thumbDataUrl)
-      ctx.save()
-      roundedRectPath(ctx, photoX, photoY, photoWidth, WEEK_LAYOUT.photoHeight, 12)
-      ctx.clip()
+  if (isFirstSlice) {
+    // First slice: show date column, photo, and caption lines
+    const dateY = y + WEEK_LAYOUT.cardPadding
+    const photoY = y + WEEK_LAYOUT.cardPadding
 
-      // Cover fit
-      const imgAspect = img.naturalWidth / img.naturalHeight
-      const areaAspect = photoWidth / WEEK_LAYOUT.photoHeight
-      let drawWidth: number, drawHeight: number, drawPx: number, drawPy: number
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'top'
 
-      if (imgAspect > areaAspect) {
-        drawHeight = WEEK_LAYOUT.photoHeight
-        drawWidth = drawHeight * imgAspect
-        drawPx = photoX - (drawWidth - photoWidth) / 2
-        drawPy = photoY
-      } else {
-        drawWidth = photoWidth
-        drawHeight = drawWidth / imgAspect
-        drawPx = photoX
-        drawPy = photoY - (drawHeight - WEEK_LAYOUT.photoHeight) / 2
+    // Day name
+    ctx.font = `bold ${WEEK_LAYOUT.fontSize.dayName}px ${WEEK_LAYOUT.fontFamily}`
+    ctx.fillStyle = isCurrentDay ? BRAND_COLOR : (hasEntry ? '#6b7280' : '#9ca3af')
+    ctx.fillText(WEEKDAYS[dayIndex], dateX + WEEK_LAYOUT.dateColumnWidth / 2, dateY)
+
+    // Day number
+    ctx.font = `bold ${WEEK_LAYOUT.fontSize.dayNumber}px ${WEEK_LAYOUT.fontFamily}`
+    ctx.fillStyle = isCurrentDay ? BRAND_COLOR : (hasEntry ? '#1f2937' : '#9ca3af')
+    ctx.fillText(card.date.getDate().toString(), dateX + WEEK_LAYOUT.dateColumnWidth / 2, dateY + 20)
+
+    // Photo area
+    if (card.entry?.thumbDataUrl) {
+      try {
+        const img = await loadImage(card.entry.thumbDataUrl)
+        ctx.save()
+        roundedRectPath(ctx, photoX, photoY, photoWidth, WEEK_LAYOUT.photoHeight, 12)
+        ctx.clip()
+
+        // Cover fit
+        const imgAspect = img.naturalWidth / img.naturalHeight
+        const areaAspect = photoWidth / WEEK_LAYOUT.photoHeight
+        let drawWidth: number, drawHeight: number, drawPx: number, drawPy: number
+
+        if (imgAspect > areaAspect) {
+          drawHeight = WEEK_LAYOUT.photoHeight
+          drawWidth = drawHeight * imgAspect
+          drawPx = photoX - (drawWidth - photoWidth) / 2
+          drawPy = photoY
+        } else {
+          drawWidth = photoWidth
+          drawHeight = drawWidth / imgAspect
+          drawPx = photoX
+          drawPy = photoY - (drawHeight - WEEK_LAYOUT.photoHeight) / 2
+        }
+
+        ctx.drawImage(img, drawPx, drawPy, drawWidth, drawHeight)
+        ctx.restore()
+      } catch (e) {
+        console.error('[ViewRenderer] Failed to draw week card photo:', e)
+        drawRoundedRect(ctx, photoX, photoY, photoWidth, WEEK_LAYOUT.photoHeight, 12, '#f3f4f6')
       }
-
-      ctx.drawImage(img, drawPx, drawPy, drawWidth, drawHeight)
-      ctx.restore()
-    } catch (e) {
-      console.error('[ViewRenderer] Failed to draw week card photo:', e)
-      // Draw placeholder
+    } else {
+      // Empty photo placeholder
       drawRoundedRect(ctx, photoX, photoY, photoWidth, WEEK_LAYOUT.photoHeight, 12, '#f3f4f6')
+      ctx.fillStyle = '#d1d5db'
+      ctx.font = `bold 48px ${WEEK_LAYOUT.fontFamily}`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText('+', photoX + photoWidth / 2, photoY + WEEK_LAYOUT.photoHeight / 2)
+    }
+
+    // Caption lines (first slice portion)
+    if (captionEndLine > captionStartLine) {
+      ctx.font = `500 ${WEEK_LAYOUT.fontSize.caption}px ${WEEK_LAYOUT.fontFamily}`
+      ctx.fillStyle = '#4b5563'
+      ctx.textAlign = 'left'
+      ctx.textBaseline = 'top'
+
+      let captionY = photoY + WEEK_LAYOUT.photoHeight + WEEK_LAYOUT.cardPadding
+      const linesToRender = card.captionLines.slice(captionStartLine, captionEndLine)
+
+      for (const line of linesToRender) {
+        ctx.fillText(line, photoX, captionY)
+        captionY += WEEK_LAYOUT.fontSize.caption * WEEK_LAYOUT.lineHeight
+      }
+    } else if (!hasEntry) {
+      ctx.font = `500 ${WEEK_LAYOUT.fontSize.caption}px ${WEEK_LAYOUT.fontFamily}`
+      ctx.fillStyle = '#9ca3af'
+      ctx.textAlign = 'left'
+      ctx.textBaseline = 'top'
+      ctx.fillText('No entry yet', photoX, y + WEEK_LAYOUT.cardPadding + WEEK_LAYOUT.photoHeight + WEEK_LAYOUT.cardPadding)
+    }
+
+    // Continuation indicator if not last slice
+    if (!isLastSlice) {
+      ctx.font = `italic 500 ${WEEK_LAYOUT.fontSize.caption}px ${WEEK_LAYOUT.fontFamily}`
+      ctx.fillStyle = '#9ca3af'
+      ctx.textAlign = 'right'
+      ctx.fillText('(continued...)', x + width - WEEK_LAYOUT.cardPadding, y + sliceHeight - WEEK_LAYOUT.cardPadding - 10)
     }
   } else {
-    // Empty photo placeholder
-    drawRoundedRect(ctx, photoX, photoY, photoWidth, WEEK_LAYOUT.photoHeight, 12, '#f3f4f6')
-    ctx.fillStyle = '#d1d5db'
-    ctx.font = `bold 48px ${WEEK_LAYOUT.fontFamily}`
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillText('+', photoX + photoWidth / 2, photoY + WEEK_LAYOUT.photoHeight / 2)
-  }
-
-  // Caption (NO truncation - full text rendered)
-  if (card.captionLines.length > 0) {
-    ctx.font = `500 ${WEEK_LAYOUT.fontSize.caption}px ${WEEK_LAYOUT.fontFamily}`
-    ctx.fillStyle = '#4b5563'
+    // Continuation slice: show continuation header and remaining caption
     ctx.textAlign = 'left'
     ctx.textBaseline = 'top'
 
-    let captionY = photoY + WEEK_LAYOUT.photoHeight + WEEK_LAYOUT.cardPadding
+    // Continuation header with date reference
+    ctx.font = `italic 500 ${WEEK_LAYOUT.fontSize.caption}px ${WEEK_LAYOUT.fontFamily}`
+    ctx.fillStyle = '#9ca3af'
+    const headerText = `${WEEKDAYS[dayIndex]} ${card.date.getDate()} (continued)`
+    ctx.fillText(headerText, photoX, y + WEEK_LAYOUT.cardPadding)
 
-    for (const line of card.captionLines) {
+    // Caption lines (continuation portion)
+    ctx.font = `500 ${WEEK_LAYOUT.fontSize.caption}px ${WEEK_LAYOUT.fontFamily}`
+    ctx.fillStyle = '#4b5563'
+
+    let captionY = y + WEEK_LAYOUT.cardPadding + WEEK_LAYOUT.fontSize.caption * WEEK_LAYOUT.lineHeight + 8
+    const linesToRender = card.captionLines.slice(captionStartLine, captionEndLine)
+
+    for (const line of linesToRender) {
       ctx.fillText(line, photoX, captionY)
       captionY += WEEK_LAYOUT.fontSize.caption * WEEK_LAYOUT.lineHeight
     }
-  } else if (!hasEntry) {
-    ctx.font = `500 ${WEEK_LAYOUT.fontSize.caption}px ${WEEK_LAYOUT.fontFamily}`
-    ctx.fillStyle = '#9ca3af'
-    ctx.textAlign = 'left'
-    ctx.textBaseline = 'top'
-    ctx.fillText('No entry yet', photoX, photoY + WEEK_LAYOUT.photoHeight + WEEK_LAYOUT.cardPadding)
+
+    // Continuation indicator if not last slice
+    if (!isLastSlice) {
+      ctx.font = `italic 500 ${WEEK_LAYOUT.fontSize.caption}px ${WEEK_LAYOUT.fontFamily}`
+      ctx.fillStyle = '#9ca3af'
+      ctx.textAlign = 'right'
+      ctx.fillText('(continued...)', x + width - WEEK_LAYOUT.cardPadding, y + sliceHeight - WEEK_LAYOUT.cardPadding - 10)
+    }
   }
 
-  return card.cardHeight
+  return sliceHeight
 }
 
 /**
- * Render a single week page.
+ * Render a single week page with slices.
+ * Supports multi-page pagination with card slicing (no text clipping).
  */
 async function renderWeekPage(
-  cards: WeekCardMeasurement[],
+  slices: WeekCardSlice[],
   weekNumber: number,
   weekStart: Date,
   weekEnd: Date,
@@ -1027,13 +1237,13 @@ async function renderWeekPage(
     ctx.fillText(`Page ${pageNumber}/${totalPages}`, PDF_PAGE.width - PDF_PAGE.margin, PDF_PAGE.margin + 35)
   }
 
-  // Draw cards
+  // Draw card slices
   let currentY = PDF_PAGE.margin + PDF_PAGE.headerHeight
   const cardX = PDF_PAGE.margin
 
-  for (const card of cards) {
-    await drawWeekCard(ctx, card, cardX, currentY, WEEK_LAYOUT.cardWidth)
-    currentY += card.cardHeight + WEEK_LAYOUT.cardGap
+  for (const slice of slices) {
+    await drawWeekCardSlice(ctx, slice, cardX, currentY, WEEK_LAYOUT.cardWidth)
+    currentY += slice.sliceHeight + WEEK_LAYOUT.cardGap
   }
 
   // Footer
@@ -1078,11 +1288,12 @@ export async function renderWeekPageImages(anchorDate: Date): Promise<PageImage[
   // Calculate available height for cards
   const availableHeight = PDF_PAGE.height - PDF_PAGE.margin * 2 - PDF_PAGE.headerHeight - 40
 
-  // Split into pages
+  // Split into pages (cards may be split into slices if captions are long)
   const pages = splitIntoPages(measurements, availableHeight)
   const totalPages = pages.length
 
-  console.log('[ViewRenderer] Week pages:', totalPages, 'cards distributed:', pages.map(p => p.length))
+  console.log('[ViewRenderer] Week pages:', totalPages, 'slices per page:', pages.map(p => p.length))
+  console.log('[ViewRenderer] Available height:', availableHeight, 'px')
 
   // Render each page
   const pageImages: PageImage[] = []
