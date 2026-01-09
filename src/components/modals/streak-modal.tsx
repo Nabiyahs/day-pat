@@ -68,8 +68,8 @@ export function StreakModal({
           <div className="relative flex items-center justify-center mb-2">
             {/* Enlarged flame icon */}
             <AppIcon name="flame" className="w-28 h-28 text-orange-500" />
-            {/* Streak count positioned to partially overlap bottom of flame */}
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/4 whitespace-nowrap">
+            {/* Streak count positioned slightly below center of flame */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 translate-y-[14px] whitespace-nowrap">
               <span className={cn(
                 "font-bold text-gray-800 leading-none",
                 currentStreak >= 100 ? "text-3xl" : "text-4xl"
