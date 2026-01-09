@@ -66,14 +66,36 @@ export async function middleware(request: NextRequest) {
     return response
   }
 
+  /**
+   * Helper to create a redirect response that preserves cookies.
+   * CRITICAL: Supabase auth cookies must be forwarded for session to work after redirect.
+   */
+  const createRedirect = (destinationPath: string) => {
+    const url = request.nextUrl.clone()
+    url.pathname = destinationPath
+    const redirectResponse = NextResponse.redirect(url)
+
+    // Copy all cookies from the response to the redirect response
+    response.cookies.getAll().forEach(cookie => {
+      redirectResponse.cookies.set(cookie.name, cookie.value, {
+        path: cookie.path,
+        domain: cookie.domain,
+        maxAge: cookie.maxAge,
+        httpOnly: cookie.httpOnly,
+        secure: cookie.secure,
+        sameSite: cookie.sameSite as 'strict' | 'lax' | 'none' | undefined,
+      })
+    })
+
+    return redirectResponse
+  }
+
   // Root path - onboarding page
   // Logged-in users: redirect to /app
   // Logged-out users: allow access to onboarding page
   if (pathname === '/') {
     if (user) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/app'
-      return NextResponse.redirect(url)
+      return createRedirect('/app')
     }
     // Allow logged-out users to see onboarding
     return response
@@ -81,25 +103,18 @@ export async function middleware(request: NextRequest) {
 
   // Protected routes - redirect to login if not authenticated
   if (!user && pathname.startsWith('/app')) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
+    return createRedirect('/login')
   }
 
   // Redirect authenticated users away from login page
   if (user && pathname === '/login') {
-    const url = request.nextUrl.clone()
-    url.pathname = '/app'
-    return NextResponse.redirect(url)
+    return createRedirect('/app')
   }
 
   // Block old locale routes - redirect to non-locale version
   if (pathname.startsWith('/ko') || pathname.startsWith('/en')) {
-    const url = request.nextUrl.clone()
-    // Strip /ko or /en prefix
     const cleanPath = pathname.replace(/^\/(ko|en)/, '') || '/'
-    url.pathname = cleanPath
-    return NextResponse.redirect(url)
+    return createRedirect(cleanPath)
   }
 
   return response
