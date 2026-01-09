@@ -46,9 +46,9 @@ export function DayView({ selectedDate, onDateChange }: DayViewProps) {
       const result = await sharePolaroid(exportOptions)
       if (result.success) {
         if (result.method === 'shared') {
-          showToast('저장되었습니다.', 'success')
+          showToast('Successfully done!', 'success')
         } else if (result.method === 'downloaded') {
-          showToast('저장되었습니다.', 'success')
+          showToast('Successfully done!', 'success')
         }
       } else if (result.method === 'failed') {
         showToast(result.error || 'Failed to create image', 'error')
