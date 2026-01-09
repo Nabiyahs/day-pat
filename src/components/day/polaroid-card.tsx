@@ -242,12 +242,14 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
 
     // Only save if there are changes (photo, caption, or stickers)
     if (Object.keys(updates).length === 0) {
-      // No changes, just exit edit mode
-      if (DEBUG) console.log('[PolaroidCard] No changes, exiting edit mode')
+      // No changes, just exit edit mode but still play stamp animation
+      if (DEBUG) console.log('[PolaroidCard] No changes, exiting edit mode with stamp animation')
       setIsEditing(false)
       onEditingChange?.(false)
       setPendingPhotoPath(null)
       setPendingPhotoPreview(null)
+      // Trigger stamp animation even without changes
+      setPlayStampAnimation(true)
       return
     }
 
