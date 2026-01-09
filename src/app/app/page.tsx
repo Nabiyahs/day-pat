@@ -13,6 +13,7 @@ import { MonthView } from '@/components/calendar/month-view'
 import { WeekView } from '@/components/calendar/week-view'
 import { DayView } from '@/components/day/day-view'
 import { formatDateString } from '@/lib/utils'
+import { computeStreakFromEntries } from '@/lib/streak'
 import { clearSessionTracking } from '@/lib/auth/session-persistence'
 import { clearSignedUrlCache } from '@/lib/image-upload'
 import { startOfWeek } from 'date-fns'
@@ -109,30 +110,17 @@ export default function AppPage() {
       .eq('is_liked', true)
     setTotalFavorites(favoritesCount || 0)
 
-    // Calculate current streak
+    // Calculate current streak using pure function
+    // Uses string-based date comparison (YYYY-MM-DD) to avoid timezone issues
     const { data: entries } = await supabase
       .from('entries')
       .select('entry_date')
-      .order('entry_date', { ascending: false })
 
     if (entries && entries.length > 0) {
-      let streak = 0
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-
-      for (let i = 0; i < entries.length; i++) {
-        const entryDate = new Date(entries[i].entry_date)
-        entryDate.setHours(0, 0, 0, 0)
-        const expectedDate = new Date(today)
-        expectedDate.setDate(today.getDate() - i)
-
-        if (entryDate.getTime() === expectedDate.getTime()) {
-          streak++
-        } else {
-          break
-        }
-      }
+      const streak = computeStreakFromEntries(entries)
       setCurrentStreak(streak)
+    } else {
+      setCurrentStreak(0)
     }
   }
 

@@ -2,11 +2,15 @@ import { formatDateString } from './utils'
 
 /**
  * Compute streak ending at anchor date
- * A day counts as "success" if it has at least 1 praise
+ * A day counts as "success" if it has an entry for that date
  * Streak revives when users backfill missing dates
+ *
+ * @param entryDates - Set of date strings in YYYY-MM-DD format
+ * @param anchorDate - Date to start counting backwards from (default: today)
+ * @returns The number of consecutive days with entries ending at anchorDate
  */
 export function computeStreak(
-  praiseDates: Set<string>,
+  entryDates: Set<string>,
   anchorDate: Date = new Date()
 ): number {
   let streak = 0
@@ -16,7 +20,7 @@ export function computeStreak(
   while (true) {
     const dateStr = formatDateString(current)
 
-    if (praiseDates.has(dateStr)) {
+    if (entryDates.has(dateStr)) {
       streak++
       current.setDate(current.getDate() - 1)
     } else {
@@ -28,12 +32,39 @@ export function computeStreak(
 }
 
 /**
- * Get all unique praise dates from a list of praises
+ * Compute current streak from an array of entry objects.
+ * Starts from the MOST RECENT entry date and counts consecutive days backwards.
+ *
+ * Example: entries on [Jan 10, Jan 9, Jan 8, Jan 5] → streak = 3 (Jan 8-10)
+ *
+ * @param entries - Array of objects with entry_date field (YYYY-MM-DD format)
+ * @returns The number of consecutive days ending at the most recent entry
  */
-export function getPraiseDatesSet(
-  praises: { praise_date: string }[]
+export function computeStreakFromEntries(
+  entries: Array<{ entry_date: string }>
+): number {
+  if (entries.length === 0) return 0
+
+  const entryDates = new Set(entries.map((e) => e.entry_date))
+
+  // Find the most recent entry date
+  const sortedDates = Array.from(entryDates).sort().reverse()
+  const mostRecentDateStr = sortedDates[0]
+
+  // Parse most recent date and start counting from there
+  const [year, month, day] = mostRecentDateStr.split('-').map(Number)
+  const anchorDate = new Date(year, month - 1, day)
+
+  return computeStreak(entryDates, anchorDate)
+}
+
+/**
+ * Get all unique entry dates from a list of entries
+ */
+export function getEntryDatesSet(
+  entries: Array<{ entry_date: string }>
 ): Set<string> {
-  return new Set(praises.map((p) => p.praise_date))
+  return new Set(entries.map((e) => e.entry_date))
 }
 
 /**
@@ -45,12 +76,12 @@ export interface StreakInfo {
 }
 
 export function getStreakInfo(
-  praiseDates: Set<string>,
+  entryDates: Set<string>,
   selectedDate: Date
 ): StreakInfo {
   const today = new Date()
   return {
-    currentStreak: computeStreak(praiseDates, today),
-    selectedStreak: computeStreak(praiseDates, selectedDate),
+    currentStreak: computeStreak(entryDates, today),
+    selectedStreak: computeStreak(entryDates, selectedDate),
   }
 }
