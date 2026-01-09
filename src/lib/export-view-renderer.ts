@@ -107,12 +107,24 @@ const MONTH_LAYOUT = {
 }
 
 // Day Polaroid layout (matches export-polaroid.ts)
+// lineHeight: 1.625 matches Tailwind's "leading-relaxed" used in Day View
 const POLAROID_LAYOUT = {
   width: 340,
   height: 440,
   padding: 16,
   photo: { x: 16, y: 16, width: 308, height: 280 },
-  comment: { x: 16, y: 314, width: 308, height: 80, fontSize: 14, lineHeight: 1.4, maxLines: 4 },
+  comment: {
+    x: 16,
+    y: 314,
+    width: 308,
+    height: 80,
+    fontSize: 14,
+    lineHeight: 1.625, // MUST match Day View's "leading-relaxed" (Tailwind)
+    maxLines: 4,
+    fontFamily: '"Inter", "Noto Sans KR", system-ui, sans-serif',
+    fontWeight: 500,
+    baselineAdjustPx: 2, // Fine-tune for canvas vs DOM metrics
+  },
   footer: { y: 424, sloganFontSize: 11, heartSize: 16 },
   watermark: { x: 28, y: 28, fontSize: 20 },
   stamp: { size: 70, margin: 10 },
@@ -606,13 +618,12 @@ async function renderDayPolaroid(entry: DayEntryData): Promise<HTMLCanvasElement
     }
   }
 
-  // Caption
+  // Caption - render with same settings as export-polaroid.ts
+  // Uses lineHeight 1.625 (Tailwind's "leading-relaxed") to match Day View
   const comment = POLAROID_LAYOUT.comment
-  ctx.font = `500 ${comment.fontSize}px ${POLAROID_LAYOUT.padding}px ${WEEK_LAYOUT.fontFamily}`
-  ctx.font = `500 ${comment.fontSize}px "Inter", "Noto Sans KR", system-ui, sans-serif`
-  ctx.fillStyle = '#374151'
+  ctx.font = `${comment.fontWeight} ${comment.fontSize}px ${comment.fontFamily}`
   ctx.textAlign = 'center'
-  ctx.textBaseline = 'top'
+  ctx.textBaseline = 'top' // CRITICAL: Use 'top' for consistent positioning like DOM
 
   const displayText = entry.praise || 'Give your day a pat.'
   const displayColor = entry.praise ? '#374151' : '#9ca3af'
@@ -620,17 +631,22 @@ async function renderDayPolaroid(entry: DayEntryData): Promise<HTMLCanvasElement
 
   const lines = wrapText(ctx, displayText, comment.width - 8)
   const truncatedLines = truncateWithEllipsis(ctx, lines, comment.maxLines, comment.width - 8)
-  const lineHeightPx = comment.fontSize * comment.lineHeight
+  // PIXEL ROUNDING: Round lineHeight to integer for consistent spacing
+  const lineHeightPx = Math.round(comment.fontSize * comment.lineHeight)
 
   ctx.save()
   ctx.beginPath()
   ctx.rect(comment.x, comment.y, comment.width, comment.height)
   ctx.clip()
 
-  let currentY = comment.y
-  for (const line of truncatedLines) {
-    ctx.fillText(line, comment.x + comment.width / 2, currentY)
-    currentY += lineHeightPx
+  // PIXEL ROUNDING: Round coordinates to integers for crisp text rendering
+  const startX = Math.round(comment.x + comment.width / 2)
+  const startY = Math.round(comment.y + comment.baselineAdjustPx)
+
+  for (let i = 0; i < truncatedLines.length; i++) {
+    // Calculate Y position with integer-based line height (no cumulative float error)
+    const currentY = startY + i * lineHeightPx
+    ctx.fillText(truncatedLines[i], startX, currentY)
   }
   ctx.restore()
 
