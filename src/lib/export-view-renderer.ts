@@ -165,12 +165,14 @@ function drawFontAwesomeHeart(
   ctx.scale(scale, scale)
   const path = new Path2D(FA_HEART_PATH)
   if (filled) {
+    // Liked state: filled red (matches day view's text-red-500 = #ef4444)
     ctx.fillStyle = '#ef4444'
     ctx.fill(path)
   } else {
-    ctx.strokeStyle = '#9ca3af'
-    ctx.lineWidth = 40
-    ctx.stroke(path)
+    // Not liked state: filled gray (matches day view's text-gray-400 = #9ca3af)
+    // Day View shows SOLID gray heart (filled), not just outline
+    ctx.fillStyle = '#9ca3af'
+    ctx.fill(path)
   }
   ctx.restore()
 }

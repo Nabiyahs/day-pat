@@ -135,12 +135,10 @@ function drawFontAwesomeHeart(
     ctx.fillStyle = '#ef4444'
     ctx.fill(path)
   } else {
-    // Not liked state: gray outline (matches day view's text-gray-400 = #9ca3af)
-    // Use stroke instead of fill for outline effect
-    ctx.strokeStyle = '#9ca3af'
-    // Scale lineWidth inversely to maintain consistent visual thickness
-    ctx.lineWidth = 40 // Thick stroke at 512x512 scale, will be scaled down
-    ctx.stroke(path)
+    // Not liked state: filled gray (matches day view's text-gray-400 = #9ca3af)
+    // Day View shows SOLID gray heart (filled), not just outline
+    ctx.fillStyle = '#9ca3af'
+    ctx.fill(path)
   }
 
   ctx.restore()
