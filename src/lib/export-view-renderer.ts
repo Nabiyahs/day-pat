@@ -65,6 +65,7 @@ export interface MonthEntryData {
 // ============================================================
 
 const BUCKET_NAME = 'entry-photos'
+const STAMP_IMAGE_PATH = '/image/seal-image.jpg'
 
 // PDF page dimensions (A4 at 150 DPI for good quality)
 const PDF_PAGE = {
@@ -125,6 +126,7 @@ const POLAROID_LAYOUT = {
   },
   footer: { y: 424, sloganFontSize: 11, heartSize: 16 },
   watermark: { x: 28, y: 28, fontSize: 20 },
+  stamp: { size: 70, margin: 10 },
 }
 
 const BRAND_TEXT = 'DayPat'
@@ -721,6 +723,32 @@ async function renderDayPolaroid(entry: DayEntryData): Promise<HTMLCanvasElement
   ctx.fillText(BRAND_TEXT, watermark.x, watermark.y)
   ctx.restore()
 
+  // Stamp (shown when entry is liked)
+  if (entry.isLiked) {
+    const stamp = POLAROID_LAYOUT.stamp
+    const stampDataUrl = await fetchLocalImage(STAMP_IMAGE_PATH)
+    if (stampDataUrl) {
+      try {
+        const stampImg = await loadImage(stampDataUrl)
+        const stampX = photo.x + photo.width - stamp.size - stamp.margin
+        const stampY = photo.y + photo.height - stamp.size - stamp.margin
+
+        ctx.save()
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.1)'
+        ctx.shadowBlur = 10
+        ctx.shadowOffsetY = 6
+        // Circular clip for stamp
+        ctx.beginPath()
+        ctx.arc(stampX + stamp.size / 2, stampY + stamp.size / 2, stamp.size / 2, 0, Math.PI * 2)
+        ctx.clip()
+        ctx.drawImage(stampImg, stampX, stampY, stamp.size, stamp.size)
+        ctx.restore()
+      } catch (e) {
+        console.error('[ViewRenderer] Failed to draw stamp:', e)
+      }
+    }
+  }
+
   // Caption - render with same settings as export-polaroid.ts
   // Uses lineHeight 1.625 (Tailwind's "leading-relaxed") to match Day View
   const comment = POLAROID_LAYOUT.comment
@@ -904,7 +932,9 @@ interface WeekCardSlice {
 }
 
 /**
- * Measure all week cards and calculate their heights.
+ * Measure week cards and calculate their heights.
+ * IMPORTANT: Only includes days that have actual data (photo or caption).
+ * Days without entries are excluded from PDF export.
  */
 function measureWeekCards(
   ctx: CanvasRenderingContext2D,
@@ -919,6 +949,12 @@ function measureWeekCards(
   for (const date of weekDays) {
     const dateStr = formatDateString(date)
     const entry = weekData.get(dateStr) || null
+
+    // EXPORT FIX: Only include days that have actual data
+    // Skip days without photo or caption
+    if (!entry || (!entry.thumbDataUrl && !entry.caption)) {
+      continue
+    }
 
     let captionLines: string[] = []
     let captionHeight = 0
@@ -1137,38 +1173,16 @@ async function drawWeekCardSlice(
   width: number
 ): Promise<number> {
   const { card, sliceHeight, captionStartLine, captionEndLine, isFirstSlice, isLastSlice } = slice
-  const isCurrentDay = isToday(card.date)
-  const hasEntry = card.entry && (card.entry.thumbDataUrl || card.entry.caption)
   const dayIndex = (card.date.getDay() + 6) % 7 // Convert to Monday-based
 
-  // Card background
-  if (hasEntry) {
-    ctx.fillStyle = 'white'
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.1)'
-    ctx.shadowBlur = 10
-    ctx.shadowOffsetY = 4
-    roundedRectPath(ctx, x, y, width, sliceHeight, 16)
-    ctx.fill()
-    ctx.shadowColor = 'transparent'
-  } else {
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)'
-    roundedRectPath(ctx, x, y, width, sliceHeight, 16)
-    ctx.fill()
-    // Dashed border
-    ctx.strokeStyle = isCurrentDay ? BRAND_COLOR : '#d1d5db'
-    ctx.lineWidth = 2
-    ctx.setLineDash(isCurrentDay ? [] : [8, 4])
-    ctx.stroke()
-    ctx.setLineDash([])
-  }
-
-  // Orange border for today
-  if (isCurrentDay && hasEntry) {
-    ctx.strokeStyle = BRAND_COLOR
-    ctx.lineWidth = 3
-    roundedRectPath(ctx, x, y, width, sliceHeight, 16)
-    ctx.stroke()
-  }
+  // Card background (EXPORT: no special "today" border - clean PDF output)
+  ctx.fillStyle = 'white'
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.1)'
+  ctx.shadowBlur = 10
+  ctx.shadowOffsetY = 4
+  roundedRectPath(ctx, x, y, width, sliceHeight, 16)
+  ctx.fill()
+  ctx.shadowColor = 'transparent'
 
   const dateX = x + WEEK_LAYOUT.cardPadding
   const photoX = dateX + WEEK_LAYOUT.dateColumnWidth + WEEK_LAYOUT.cardPadding
@@ -1182,14 +1196,14 @@ async function drawWeekCardSlice(
     ctx.textAlign = 'center'
     ctx.textBaseline = 'top'
 
-    // Day name
+    // Day name (EXPORT: no special "today" color - clean PDF output)
     ctx.font = `bold ${WEEK_LAYOUT.fontSize.dayName}px ${WEEK_LAYOUT.fontFamily}`
-    ctx.fillStyle = isCurrentDay ? BRAND_COLOR : (hasEntry ? '#6b7280' : '#9ca3af')
+    ctx.fillStyle = '#6b7280'
     ctx.fillText(WEEKDAYS[dayIndex], dateX + WEEK_LAYOUT.dateColumnWidth / 2, dateY)
 
-    // Day number
+    // Day number (EXPORT: no special "today" color - clean PDF output)
     ctx.font = `bold ${WEEK_LAYOUT.fontSize.dayNumber}px ${WEEK_LAYOUT.fontFamily}`
-    ctx.fillStyle = isCurrentDay ? BRAND_COLOR : (hasEntry ? '#1f2937' : '#9ca3af')
+    ctx.fillStyle = '#1f2937'
     ctx.fillText(card.date.getDate().toString(), dateX + WEEK_LAYOUT.dateColumnWidth / 2, dateY + 20)
 
     // Photo area
@@ -1234,6 +1248,7 @@ async function drawWeekCardSlice(
     }
 
     // Caption lines (first slice portion)
+    // NOTE: "No entry yet" case removed - we only include days with data in export
     if (captionEndLine > captionStartLine) {
       ctx.font = `500 ${WEEK_LAYOUT.fontSize.caption}px ${WEEK_LAYOUT.fontFamily}`
       ctx.fillStyle = '#4b5563'
@@ -1247,12 +1262,6 @@ async function drawWeekCardSlice(
         ctx.fillText(line, photoX, captionY)
         captionY += WEEK_LAYOUT.fontSize.caption * WEEK_LAYOUT.lineHeight
       }
-    } else if (!hasEntry) {
-      ctx.font = `500 ${WEEK_LAYOUT.fontSize.caption}px ${WEEK_LAYOUT.fontFamily}`
-      ctx.fillStyle = '#9ca3af'
-      ctx.textAlign = 'left'
-      ctx.textBaseline = 'top'
-      ctx.fillText('No entry yet', photoX, y + WEEK_LAYOUT.cardPadding + WEEK_LAYOUT.photoHeight + WEEK_LAYOUT.cardPadding)
     }
 
     // Continuation indicator if not last slice
@@ -1453,12 +1462,7 @@ export async function renderMonthPageImages(year: number, month: number): Promis
   ctx.textAlign = 'center'
   ctx.fillText(format(monthDate, 'MMMM yyyy'), PDF_PAGE.width / 2, PDF_PAGE.margin + 45)
 
-  // Calendar grid dimensions
-  const gridTop = PDF_PAGE.margin + MONTH_LAYOUT.headerHeight + MONTH_LAYOUT.weekdayHeight
-  const gridWidth = PDF_PAGE.width - PDF_PAGE.margin * 2
-  const gridHeight = PDF_PAGE.height - gridTop - PDF_PAGE.margin - 30
-
-  // Build calendar days
+  // Build calendar days first to determine numWeeks
   const firstDay = startOfMonth(monthDate)
   const calendarDays: Date[] = []
 
@@ -1483,8 +1487,20 @@ export async function renderMonthPageImages(year: number, month: number): Promis
   }
 
   const numWeeks = Math.ceil(calendarDays.length / 7)
+
+  // EXPORT FIX: Calculate grid with proper aspect ratio (no vertical stretch)
+  // Use square cells and center the grid on page
+  const gridWidth = PDF_PAGE.width - PDF_PAGE.margin * 2
   const cellWidth = (gridWidth - MONTH_LAYOUT.gridGap * 6) / 7
-  const cellHeight = (gridHeight - MONTH_LAYOUT.gridGap * (numWeeks - 1)) / numWeeks
+  // IMPORTANT: Use square cells to maintain aspect ratio
+  const cellHeight = cellWidth
+  // Calculate actual grid height based on square cells
+  const actualGridHeight = numWeeks * cellHeight + (numWeeks - 1) * MONTH_LAYOUT.gridGap
+  // Available space for grid (excluding header and footer)
+  const availableHeight = PDF_PAGE.height - PDF_PAGE.margin * 2 - MONTH_LAYOUT.headerHeight - MONTH_LAYOUT.weekdayHeight - 30
+  // Center grid vertically within available space
+  const gridTopOffset = Math.max(0, (availableHeight - actualGridHeight) / 2)
+  const gridTop = PDF_PAGE.margin + MONTH_LAYOUT.headerHeight + MONTH_LAYOUT.weekdayHeight + gridTopOffset
 
   // Weekday headers
   ctx.font = `600 ${MONTH_LAYOUT.fontSize.weekday}px ${MONTH_LAYOUT.fontFamily}`
@@ -1507,7 +1523,6 @@ export async function renderMonthPageImages(year: number, month: number): Promis
     const cellY = gridTop + row * (cellHeight + MONTH_LAYOUT.gridGap)
 
     const isCurrentMonth = isSameMonth(date, monthDate)
-    const isCurrentDay = isToday(date)
     const dayData = monthData.get(dateStr)
     const hasPhoto = dayData?.thumbDataUrl && isCurrentMonth
 
@@ -1552,12 +1567,7 @@ export async function renderMonthPageImages(year: number, month: number): Promis
       ctx.fillRect(cellX, cellY, cellWidth, cellHeight)
     }
 
-    // Today indicator
-    if (isCurrentDay) {
-      ctx.strokeStyle = BRAND_COLOR
-      ctx.lineWidth = 3
-      ctx.strokeRect(cellX + 2, cellY + 2, cellWidth - 4, cellHeight - 4)
-    }
+    // EXPORT: No "today" indicator border (clean PDF output)
 
     // Date number
     if (isCurrentMonth) {
@@ -1565,13 +1575,11 @@ export async function renderMonthPageImages(year: number, month: number): Promis
       ctx.textAlign = 'left'
       ctx.textBaseline = 'top'
 
+      // EXPORT: No special "today" color (clean PDF output)
       if (hasPhoto) {
         ctx.fillStyle = 'white'
         ctx.shadowColor = 'rgba(0, 0, 0, 0.5)'
         ctx.shadowBlur = 2
-      } else if (isCurrentDay) {
-        ctx.fillStyle = BRAND_COLOR
-        ctx.shadowColor = 'transparent'
       } else {
         ctx.fillStyle = '#374151'
         ctx.shadowColor = 'transparent'
