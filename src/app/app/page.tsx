@@ -191,7 +191,10 @@ export default function AppPage() {
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50">
       {/* Fixed Header with View Tabs - matches main.html exactly */}
       <header className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-lg border-b border-amber-100 z-50">
-        <Header />
+        <Header onLogoClick={() => {
+          setSelectedDate(formatDateString(new Date()))
+          setActiveView('day')
+        }} />
         <ViewTabs activeView={activeView} onViewChange={setActiveView} />
       </header>
 

@@ -10,7 +10,9 @@ import {
   faChevronUp,
   faBars,
   faGlobe,
+  faCalendar,
   faCalendarDays,
+  faCalendarDay,
   faChartLine,
   faCompass,
   // Actions
@@ -55,6 +57,8 @@ const iconMap: Record<string, IconDefinition> = {
   'menu': faBars,
   'globe': faGlobe,
   'calendar': faCalendarDays,
+  'calendar-day': faCalendarDay,
+  'calendar-simple': faCalendar,
   'trending-up': faChartLine,
   'compass': faCompass,
   // Actions

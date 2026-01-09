@@ -54,14 +54,14 @@ export function BottomNav({
           <AppIcon name="heart" className="w-6 h-6" />
         </button>
 
-        {/* Center FAB - Plus button */}
+        {/* Center FAB - Today button (navigates to today's day view) */}
         <button
           onClick={onAddClick}
           className="w-14 h-14 -mt-7 bg-gradient-to-br from-orange-500 to-amber-500 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform"
-          aria-label="Add today's entry"
-          data-testid="nav-bottom-plus"
+          aria-label="Go to today"
+          data-testid="nav-bottom-today"
         >
-          <AppIcon name="plus" className="w-6 h-6 text-white" />
+          <AppIcon name="calendar-simple" className="w-6 h-6 text-white" />
         </button>
 
         {/* Streak - fire icon */}
