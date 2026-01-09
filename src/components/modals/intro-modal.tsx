@@ -15,20 +15,39 @@ export function IntroModal({ isOpen, onClose }: IntroModalProps) {
   const totalSlides = 4
 
   useEffect(() => {
+    // Defensive check for SSR/edge cases
+    if (typeof document === 'undefined') return
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
-        onClose()
+        try {
+          onClose()
+        } catch (err) {
+          console.warn('[IntroModal] onClose failed:', err)
+        }
       }
     }
 
     if (isOpen) {
-      document.addEventListener('keydown', handleKeyDown)
-      document.body.style.overflow = 'hidden'
+      try {
+        document.addEventListener('keydown', handleKeyDown)
+        if (document.body) {
+          document.body.style.overflow = 'hidden'
+        }
+      } catch (err) {
+        console.warn('[IntroModal] Failed to setup modal:', err)
+      }
     }
 
     return () => {
-      document.removeEventListener('keydown', handleKeyDown)
-      document.body.style.overflow = ''
+      try {
+        document.removeEventListener('keydown', handleKeyDown)
+        if (document.body) {
+          document.body.style.overflow = ''
+        }
+      } catch (err) {
+        console.warn('[IntroModal] Cleanup failed:', err)
+      }
     }
   }, [isOpen, onClose])
 
@@ -43,7 +62,11 @@ export function IntroModal({ isOpen, onClose }: IntroModalProps) {
     if (currentSlide < totalSlides - 1) {
       setCurrentSlide(currentSlide + 1)
     } else {
-      onClose()
+      try {
+        onClose()
+      } catch (err) {
+        console.warn('[IntroModal] handleNext onClose failed:', err)
+      }
     }
   }
 
@@ -53,13 +76,21 @@ export function IntroModal({ isOpen, onClose }: IntroModalProps) {
     }
   }
 
+  const handleBackdropClick = () => {
+    try {
+      onClose()
+    } catch (err) {
+      console.warn('[IntroModal] Backdrop click onClose failed:', err)
+    }
+  }
+
   return (
     <div
       className={cn(
         'fixed inset-0 bg-black/40 backdrop-blur-sm z-50 transition-opacity duration-300 flex items-center justify-center p-5',
         isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
       )}
-      onClick={onClose}
+      onClick={handleBackdropClick}
     >
       <div
         className={cn(
@@ -72,7 +103,7 @@ export function IntroModal({ isOpen, onClose }: IntroModalProps) {
         <div className="flex items-center justify-between p-6 border-b border-gray-100">
           <h2 className="text-2xl font-bold text-[#F27430]" style={{ fontFamily: 'Caveat, cursive' }}>DayPat</h2>
           <button
-            onClick={onClose}
+            onClick={handleBackdropClick}
             className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100"
           >
             <AppIcon name="x" className="w-5 h-5 text-gray-600" />

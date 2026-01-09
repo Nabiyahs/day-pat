@@ -25,9 +25,19 @@ export async function middleware(request: NextRequest) {
   // Create Supabase client for auth checks
   let response = NextResponse.next({ request })
 
+  // Check for required environment variables
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  // If env vars are missing, allow request to proceed (app will show error)
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn('[Middleware] Missing Supabase environment variables')
+    return response
+  }
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         getAll() {
@@ -46,9 +56,15 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  let user = null
+  try {
+    const { data } = await supabase.auth.getUser()
+    user = data?.user ?? null
+  } catch (err) {
+    // If auth check fails, allow request to proceed
+    console.warn('[Middleware] Auth check failed:', err)
+    return response
+  }
 
   // Root path - onboarding page
   // Logged-in users: redirect to /app

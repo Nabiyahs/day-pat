@@ -58,7 +58,13 @@ export default function OnboardingPage() {
     } catch (err) {
       // Fallback to window.location if router fails
       console.error('[OnboardingPage] Router navigation failed:', err)
-      window.location.href = '/login'
+      try {
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login'
+        }
+      } catch (windowErr) {
+        console.error('[OnboardingPage] Window navigation also failed:', windowErr)
+      }
     }
   }
 
