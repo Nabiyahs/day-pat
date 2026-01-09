@@ -481,6 +481,7 @@ interface InternalExportData {
   showStamp: boolean
   createdAt: string | null
   isLiked: boolean
+  date: string // YYYY-MM-DD format for display
 }
 
 /**
@@ -493,13 +494,15 @@ async function prepareExportData(
   praise: string | null,
   showStamp: boolean,
   createdAt: string | null,
-  isLiked: boolean = false
+  isLiked: boolean = false,
+  date: string = '' // YYYY-MM-DD format
 ): Promise<InternalExportData> {
   console.log('=== PREPARE EXPORT DATA ===')
   console.log('[EXPORT] photoPath:', photoPath)
   console.log('[EXPORT] stickers count:', stickers.length)
   console.log('[EXPORT] showStamp:', showStamp)
   console.log('[EXPORT] isLiked:', isLiked)
+  console.log('[EXPORT] date:', date)
 
   // Download photo from Supabase
   let photoDataUrl: string | null = null
@@ -536,21 +539,25 @@ async function prepareExportData(
     showStamp,
     createdAt,
     isLiked,
+    date,
   }
 }
 
 /**
  * Wait for fonts to be loaded before drawing text.
- * CRITICAL: Comment font must be loaded before wrapText() for accurate measurement.
+ * CRITICAL: Comment font and date font must be loaded before drawing for accurate measurement.
  */
 async function ensureFontsLoaded(): Promise<void> {
   if (typeof document === 'undefined') return
 
-  const { comment } = POLAROID_LAYOUT
+  const { comment, footer } = POLAROID_LAYOUT
 
   try {
     // Wait for all fonts to be ready
     await document.fonts.ready
+
+    // Date font size (approximately 50-60% of heart size)
+    const dateFontSize = Math.round(footer.heartSize * 0.6)
 
     // Specifically load the fonts we need (including comment font for accurate text measurement)
     await Promise.all([
@@ -558,8 +565,10 @@ async function ensureFontsLoaded(): Promise<void> {
       document.fonts.load(`500 11px ${SLOGAN_FONT_FAMILY}`),  // Slogan text
       document.fonts.load(`${comment.fontWeight} ${comment.fontSize}px "Inter"`),  // Comment font
       document.fonts.load(`${comment.fontWeight} ${comment.fontSize}px "Noto Sans KR"`),  // Korean fallback
+      document.fonts.load(`400 ${dateFontSize}px "Noto Sans"`),  // Date text font
+      document.fonts.load(`400 ${dateFontSize}px "Noto Sans KR"`),  // Date text Korean fallback
     ])
-    console.log('[EXPORT] Fonts loaded successfully (including comment font)')
+    console.log('[EXPORT] Fonts loaded successfully (including comment and date fonts)')
   } catch (e) {
     console.warn('[EXPORT] Font loading warning:', e)
     // Continue even if font loading fails - canvas will use fallback
@@ -768,6 +777,31 @@ async function renderPolaroidBaseCanvas(
 
   drawFontAwesomeHeart(ctx, heartX, heartY, heartSize, data.isLiked)
   console.log('[EXPORT] Heart icon drawn (Font Awesome), isLiked:', data.isLiked)
+
+  // Draw date text to the LEFT of heart icon (YYYY-MM-DD format)
+  // Uses Noto Sans font in gray color, vertically centered with heart
+  if (data.date) {
+    const DATE_FONT_SIZE = Math.round(heartSize * 0.6) // ~10px (50-60% of heart size)
+    const DATE_COLOR_GRAY = '#9ca3af' // gray-400 (less prominent than heart)
+    const DATE_HEART_GAP = 8 // Gap between date and heart
+
+    // Heart bounding box left edge
+    const heartBoundingLeft = heartX - heartSize / 2
+
+    ctx.save()
+    ctx.font = `400 ${DATE_FONT_SIZE}px "Noto Sans", "Noto Sans KR", sans-serif`
+    ctx.fillStyle = DATE_COLOR_GRAY
+    ctx.textAlign = 'right'
+    ctx.textBaseline = 'middle'
+
+    // Position date to the left of heart with gap
+    const dateX = Math.round(heartBoundingLeft - DATE_HEART_GAP)
+    const dateY = Math.round(heartY) // Same vertical center as heart
+
+    ctx.fillText(data.date, dateX, dateY)
+    ctx.restore()
+    console.log('[EXPORT] Date drawn:', data.date, 'at', dateX, dateY)
+  }
 
   console.log('[EXPORT] Base canvas complete:', BASE_POLAROID_WIDTH, 'x', BASE_POLAROID_HEIGHT)
   return canvas
@@ -985,10 +1019,10 @@ export interface ExportOptions {
  * @returns PNG data URL
  */
 export async function capturePolaroidAsPng(options: ExportOptions): Promise<string> {
-  const { photoPath, stickers, praise, showStamp, createdAt, exportTarget = 'instagram_post', isLiked = false } = options
+  const { photoPath, stickers, praise, showStamp, createdAt, exportTarget = 'instagram_post', isLiked = false, date } = options
 
   // Prepare export data (download from Supabase and convert to data URLs)
-  const exportData = await prepareExportData(photoPath, stickers, praise, showStamp, createdAt, isLiked)
+  const exportData = await prepareExportData(photoPath, stickers, praise, showStamp, createdAt, isLiked, date)
 
   // Use canvas composition for reliable export
   return captureWithCanvas(exportData, exportTarget)
@@ -1007,7 +1041,7 @@ export async function exportPolaroidAsPng(options: ExportOptions): Promise<void>
  * Export polaroid as PDF with pretty template and download.
  */
 export async function exportPolaroidAsPdf(options: ExportOptions): Promise<void> {
-  const { date } = options
+  const { date, isLiked = false } = options
 
   // Prepare export data and capture using canvas
   const exportData = await prepareExportData(
@@ -1015,7 +1049,9 @@ export async function exportPolaroidAsPdf(options: ExportOptions): Promise<void>
     options.stickers,
     options.praise,
     options.showStamp,
-    options.createdAt
+    options.createdAt,
+    isLiked,
+    date
   )
   const dataUrl = await captureWithCanvas(exportData)
 
