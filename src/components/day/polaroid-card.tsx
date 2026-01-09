@@ -362,6 +362,7 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
       {/* Polaroid frame - constrained width with balanced padding, square corners */}
       <div
         ref={polaroidContainerRef}
+        data-polaroid="true"
         className="bg-white shadow-xl p-4 mb-4 relative"
         style={{ transform: 'rotate(-1deg)' }}
       >
@@ -674,17 +675,21 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
           {/* Footer actions - time/slogan on left, icons aligned right with tight spacing */}
           <div className="flex items-center justify-between text-xs text-gray-400">
             {isExporting ? (
-              <span style={{ fontFamily: "'Open Sans', sans-serif", color: '#F27430', fontWeight: 500 }}>
-                GIVE YOUR DAY A PAT.
+              <span
+                data-export-slogan="true"
+                style={{ fontFamily: "'Open Sans', sans-serif", color: '#F27430', fontWeight: 500, fontSize: '11px' }}
+              >
+                EVERY DAY DESERVES A PAT.
               </span>
             ) : (
-              <span>{dayCard?.created_at ? new Date(dayCard.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
+              <span data-timestamp="true">{dayCard?.created_at ? new Date(dayCard.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
             )}
             <div className="flex items-center gap-0">
-              {/* Edit (pencil) button - hidden for future dates */}
+              {/* Edit (pencil) button - hidden for future dates, excluded from export */}
               {!isFutureDate && (
                 <button
                   onClick={handleEditClick}
+                  data-export-exclude="true"
                   className={cn(
                     'w-9 h-9 flex items-center justify-center rounded-lg transition-colors',
                     isEditing ? 'text-[#F27430]' : 'text-gray-400 hover:text-[#F27430] hover:bg-gray-100'
@@ -696,11 +701,12 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
                 </button>
               )}
 
-              {/* Share (paper plane) button - only show if entry has saved photo */}
+              {/* Share (paper plane) button - only show if entry has saved photo, excluded from export */}
               {dayCard?.photo_path && !isEditing && (
                 <button
                   onClick={onShare}
                   disabled={sharing}
+                  data-export-exclude="true"
                   className={cn(
                     'w-9 h-9 flex items-center justify-center rounded-lg transition-colors',
                     sharing
