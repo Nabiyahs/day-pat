@@ -4,8 +4,8 @@
   "description": "Your daily praise journal with polaroid memories",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#ffffff",
+  "background_color": "#fffbeb",
+  "theme_color": "#fffbeb",
   "icons": [
     {
       "src": "/icons/daypat-192.png",

@@ -9,7 +9,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#ffffff",
+  themeColor: "#fffbeb",
 };
 
 export const metadata: Metadata = {
@@ -103,7 +103,8 @@ const welcomeScreenScript = `
   window.__WELCOME_MOUNTED_AT = Date.now();
 
   // Minimum time welcome must be visible (prevents "flash" feeling)
-  var MIN_DISPLAY_MS = 900;
+  // 3 seconds ensures a proper branded experience
+  var MIN_DISPLAY_MS = 3000;
 
   // Hide function with minimum display time enforcement
   window.__hideWelcomeScreen = function(minMs) {

@@ -24,16 +24,26 @@ export function WelcomeScreenHider() {
     // Signal to hide welcome screen after hydration
     // The __hideWelcomeScreen function enforces minimum display time internally
     // so we can call it immediately - it will wait if needed
-    if (typeof window !== 'undefined' && window.__hideWelcomeScreen) {
-      // Call with default minimum (900ms enforced by the function)
-      window.__hideWelcomeScreen()
+    try {
+      if (typeof window !== 'undefined' && window.__hideWelcomeScreen) {
+        // Call with default minimum (3000ms enforced by the function)
+        window.__hideWelcomeScreen()
+      }
+    } catch (err) {
+      // Silently ignore - welcome screen will auto-hide via safety fallback
+      console.warn('[WelcomeScreenHider] Failed to hide welcome screen:', err)
     }
 
     // Also register a window load handler as backup
     // (in case this effect runs before load event)
     const handleLoad = () => {
-      if (window.__hideWelcomeScreen) {
-        window.__hideWelcomeScreen()
+      try {
+        if (window.__hideWelcomeScreen) {
+          window.__hideWelcomeScreen()
+        }
+      } catch (err) {
+        // Silently ignore - safety fallback will handle it
+        console.warn('[WelcomeScreenHider] Load handler failed:', err)
       }
     }
 

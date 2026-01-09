@@ -20,14 +20,29 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      try {
+        const supabase = createClient()
+        const { data: { user }, error } = await supabase.auth.getUser()
 
-      if (user) {
-        // Logged in - redirect to main app
-        router.replace('/app')
-      } else {
-        // Logged out - show onboarding
+        if (error) {
+          // Auth error - treat as logged out, show onboarding
+          console.warn('[OnboardingPage] Auth check error:', error.message)
+          setShowOnboarding(true)
+          setLoading(false)
+          return
+        }
+
+        if (user) {
+          // Logged in - redirect to main app
+          router.replace('/app')
+        } else {
+          // Logged out - show onboarding
+          setShowOnboarding(true)
+          setLoading(false)
+        }
+      } catch (err) {
+        // Unexpected error - fail gracefully, show onboarding
+        console.error('[OnboardingPage] Unexpected error during auth check:', err)
         setShowOnboarding(true)
         setLoading(false)
       }
@@ -38,7 +53,13 @@ export default function OnboardingPage() {
 
   const handleOnboardingClose = () => {
     // After viewing onboarding, go to login
-    router.push('/login')
+    try {
+      router.push('/login')
+    } catch (err) {
+      // Fallback to window.location if router fails
+      console.error('[OnboardingPage] Router navigation failed:', err)
+      window.location.href = '/login'
+    }
   }
 
   if (loading) {
