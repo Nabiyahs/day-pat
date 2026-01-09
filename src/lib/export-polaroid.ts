@@ -3,6 +3,7 @@
 import { jsPDF } from 'jspdf'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import type { StickerState } from '@/types/database'
+import { ensurePdfFontsReady, setKoreanFont } from '@/lib/pdf-fonts'
 
 // Re-export for backward compatibility
 export type { ExportData } from '@/components/day/exportable-polaroid'
@@ -687,6 +688,9 @@ export async function exportPolaroidAsPdf(options: ExportOptions): Promise<void>
     format: 'a4',
   })
 
+  // Load Korean font for proper text rendering
+  await ensurePdfFontsReady(pdf)
+
   // Load image to get dimensions
   const img = new Image()
   img.src = dataUrl
@@ -698,13 +702,13 @@ export async function exportPolaroidAsPdf(options: ExportOptions): Promise<void>
   const headerY = margin
 
   pdf.setFontSize(28)
-  pdf.setFont('helvetica', 'bold')
+  setKoreanFont(pdf, 'bold')
   pdf.setTextColor(31, 41, 55)
   const formattedDate = formatPdfDate(date)
   pdf.text(formattedDate, pageWidth / 2, headerY, { align: 'center' })
 
   pdf.setFontSize(14)
-  pdf.setFont('helvetica', 'normal')
+  setKoreanFont(pdf, 'normal')
   pdf.setTextColor(107, 114, 128)
   const weekday = getWeekdayName(date)
   pdf.text(weekday, pageWidth / 2, headerY + 10, { align: 'center' })
@@ -747,7 +751,7 @@ export async function exportPolaroidAsPdf(options: ExportOptions): Promise<void>
   const footerY = pageHeight - margin
 
   pdf.setFontSize(10)
-  pdf.setFont('helvetica', 'normal')
+  setKoreanFont(pdf, 'normal')
   pdf.setTextColor(156, 163, 175)
   pdf.text('Day Pat', margin, footerY)
 

@@ -5,6 +5,7 @@ import { jsPDF } from 'jspdf'
 import { AppIcon } from '@/components/ui/app-icon'
 import { cn } from '@/lib/utils'
 import { getSupabaseClient } from '@/lib/supabase/client'
+import { ensurePdfFontsReady, setKoreanFont } from '@/lib/pdf-fonts'
 
 // View type determines how entries are grouped in PDF, NOT the query range
 type ViewType = 'day' | 'week' | 'month'
@@ -255,6 +256,9 @@ export function ExportModal({
       format: 'a4',
     })
 
+    // Load Korean font for proper text rendering
+    await ensurePdfFontsReady(pdf)
+
     const pageWidth = pdf.internal.pageSize.getWidth()
     const pageHeight = pdf.internal.pageSize.getHeight()
     const margin = 20
@@ -281,7 +285,7 @@ export function ExportModal({
         const groupTitle = getGroupTitle(groupKey, viewType, groupEntries)
         pdf.setFontSize(16)
         pdf.setTextColor(80, 80, 80)
-        pdf.setFont('helvetica', 'bold')
+        setKoreanFont(pdf, 'bold')
         pdf.text(groupTitle, margin, currentY)
         currentY += 12
 
@@ -289,7 +293,7 @@ export function ExportModal({
         pdf.setDrawColor(200, 200, 200)
         pdf.line(margin, currentY, pageWidth - margin, currentY)
         currentY += 8
-        pdf.setFont('helvetica', 'normal')
+        setKoreanFont(pdf, 'normal')
       }
 
       // Render entries in this group
@@ -306,6 +310,7 @@ export function ExportModal({
         // Date header
         pdf.setFontSize(14)
         pdf.setTextColor(100, 100, 100)
+        setKoreanFont(pdf, 'normal')
         const dateText = formatDisplayDate(entry.entry_date)
         pdf.text(dateText, margin, currentY)
 
@@ -345,16 +350,18 @@ export function ExportModal({
               console.warn('[ExportPDF] Failed to add image to PDF:', imgErr)
               pdf.setFontSize(10)
               pdf.setTextColor(150, 150, 150)
+              setKoreanFont(pdf, 'normal')
               pdf.text('[Photo unavailable]', margin, currentY)
               currentY += 10
             }
           }
         }
 
-        // Praise text
+        // Praise text (may contain Korean)
         if (entry.praise) {
           pdf.setFontSize(12)
           pdf.setTextColor(60, 60, 60)
+          setKoreanFont(pdf, 'normal')
 
           const lines = pdf.splitTextToSize(entry.praise, contentWidth)
           const lineHeight = 6
