@@ -613,22 +613,22 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
         <div className="px-2">
           {isEditing ? (
             <div className="relative mb-3">
-              <input
-                type="text"
+              <textarea
                 value={praiseDraft}
                 onChange={(e) => setPraiseDraft(e.target.value)}
                 placeholder={placeholder}
-                className="w-full text-center text-gray-700 font-medium leading-relaxed bg-transparent border-b border-gray-200 focus:border-pink-400 outline-none py-1 pr-8"
-                maxLength={150}
+                className="w-full text-center text-gray-700 font-medium leading-relaxed bg-transparent border-b border-gray-200 focus:border-pink-400 outline-none py-1 pr-8 resize-none whitespace-pre-wrap break-words"
+                maxLength={300}
+                rows={3}
               />
-              {/* Comment delete X button - aligned to right side of first line */}
+              {/* Comment delete X button - aligned to top-right */}
               {praiseDraft && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
                     handleDeleteComment()
                   }}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center transition-colors"
+                  className="absolute right-0 top-1 w-7 h-7 flex items-center justify-center transition-colors"
                   style={{
                     minWidth: '32px',
                     minHeight: '32px',
@@ -653,7 +653,7 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
           ) : (
             <p
               className={cn(
-                'text-center font-medium leading-relaxed mb-3 min-h-[24px]',
+                'text-center font-medium leading-relaxed mb-3 min-h-[24px] whitespace-pre-wrap break-words',
                 dayCard?.praise ? 'text-gray-700' : 'text-gray-400'
               )}
             >
