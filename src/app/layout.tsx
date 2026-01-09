@@ -98,6 +98,8 @@ const welcomeScreenStyles = `
 // Inline script to provide hide function with MINIMUM DISPLAY TIME
 // This script runs before React hydration to ensure functions are available
 // CRITICAL: Welcome must stay visible for at least MIN_DISPLAY_MS to avoid "flash"
+// IMPORTANT: We only HIDE (CSS class) the welcome screen, never removeChild.
+// Using removeChild during React route transitions causes NotFoundError conflicts.
 const welcomeScreenScript = `
   // Track when welcome screen was mounted (immediately on script execution)
   window.__WELCOME_MOUNTED_AT = Date.now();
@@ -106,32 +108,36 @@ const welcomeScreenScript = `
   // 3 seconds ensures a proper branded experience
   var MIN_DISPLAY_MS = 3000;
 
+  // Flag to prevent multiple hide attempts
+  var __welcomeHideScheduled = false;
+
   // Hide function with minimum display time enforcement
+  // NOTE: We only add 'hide' class - NO removeChild to avoid React DOM conflicts
   window.__hideWelcomeScreen = function(minMs) {
-    // Use provided minMs or default to MIN_DISPLAY_MS
-    var requiredMs = typeof minMs === 'number' ? minMs : MIN_DISPLAY_MS;
+    // Prevent multiple simultaneous hide attempts
+    if (__welcomeHideScheduled) return;
+
     var el = document.getElementById('welcome-screen');
     if (!el || el.classList.contains('hide')) return;
 
+    __welcomeHideScheduled = true;
+
+    // Use provided minMs or default to MIN_DISPLAY_MS
+    var requiredMs = typeof minMs === 'number' ? minMs : MIN_DISPLAY_MS;
     var elapsed = Date.now() - window.__WELCOME_MOUNTED_AT;
     var remaining = Math.max(0, requiredMs - elapsed);
 
     // If we haven't shown welcome long enough, wait
     if (remaining > 0) {
       setTimeout(function() {
+        var el = document.getElementById('welcome-screen');
         if (el && !el.classList.contains('hide')) {
           el.classList.add('hide');
-          setTimeout(function() {
-            if (el && el.parentNode) el.parentNode.removeChild(el);
-          }, 400);
         }
       }, remaining);
     } else {
       // Already shown long enough, hide immediately
       el.classList.add('hide');
-      setTimeout(function() {
-        if (el && el.parentNode) el.parentNode.removeChild(el);
-      }, 400);
     }
   };
 
@@ -140,9 +146,6 @@ const welcomeScreenScript = `
     var el = document.getElementById('welcome-screen');
     if (el && !el.classList.contains('hide')) {
       el.classList.add('hide');
-      setTimeout(function() {
-        if (el && el.parentNode) el.parentNode.removeChild(el);
-      }, 400);
     }
   }, 6000);
 `

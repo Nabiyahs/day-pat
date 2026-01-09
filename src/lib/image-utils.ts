@@ -132,11 +132,28 @@ export function createOffscreenClone(
   // Append to body
   document.body.appendChild(clone)
 
-  // Cleanup function
+  // Track if cleanup has been called (idempotent cleanup)
+  let isCleanedUp = false
+
+  // Cleanup function - safe to call multiple times
+  // Uses defensive checks to avoid NotFoundError during React route transitions
   const cleanup = () => {
-    if (clone.parentNode) {
-      clone.parentNode.removeChild(clone)
-      if (DEBUG) console.log('[image-utils] Clone cleaned up')
+    // Prevent double cleanup
+    if (isCleanedUp) {
+      if (DEBUG) console.log('[image-utils] Clone already cleaned up, skipping')
+      return
+    }
+    isCleanedUp = true
+
+    try {
+      // Only remove if still attached to DOM
+      if (clone && clone.parentNode) {
+        clone.parentNode.removeChild(clone)
+        if (DEBUG) console.log('[image-utils] Clone cleaned up')
+      }
+    } catch (err) {
+      // Silently ignore removeChild errors (node may already be detached)
+      if (DEBUG) console.warn('[image-utils] Clone cleanup error (safe to ignore):', err)
     }
   }
 
