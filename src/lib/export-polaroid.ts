@@ -37,92 +37,29 @@ const EXPORT_BACKGROUND_COLOR = '#FFFDF8'
 
 export type ExportTarget = 'instagram_post' | 'instagram_story' | 'instagram_reel'
 
-interface ExportLayout {
-  /** Canvas width in pixels */
-  canvasWidth: number
-  /** Canvas height in pixels */
-  canvasHeight: number
-  /** Polaroid X position */
-  polaroidX: number
-  /** Polaroid Y position */
-  polaroidY: number
-  /** Polaroid render scale (1 = base size) */
-  polaroidScale: number
+interface TargetDimensions {
+  width: number
+  height: number
+  /** Safe area padding (for story/reel UI overlays) */
+  safePadding: { top: number; bottom: number; left: number; right: number }
 }
 
 /**
- * Calculate export layout based on target format.
- * Instagram uses fixed dimensions (1080x1080 for post, 1080x1920 for story/reel).
+ * Get target canvas dimensions based on export format.
  */
-function calculateExportLayout(target: ExportTarget): ExportLayout {
+function getTargetDimensions(target: ExportTarget): TargetDimensions {
   if (target === 'instagram_post') {
-    // 1:1 aspect ratio (1080x1080)
-    const canvasWidth = 1080
-    const canvasHeight = 1080
-    const safePadding = Math.round(canvasWidth * 0.03) // ~32px
-
-    // Calculate scale to make polaroid fill the canvas
-    const availableW = canvasWidth - 2 * safePadding
-    const availableH = canvasHeight - 2 * safePadding
-
-    // Account for shadow offset (shadow extends ~20px down, ~15px sides)
-    const shadowMargin = 25
-    const effectiveAvailableW = availableW - shadowMargin * 2
-    const effectiveAvailableH = availableH - shadowMargin - shadowMargin / 2
-
-    const scaleW = effectiveAvailableW / BASE_POLAROID_WIDTH
-    const scaleH = effectiveAvailableH / BASE_POLAROID_HEIGHT
-    const polaroidScale = Math.min(scaleW, scaleH)
-
-    const scaledW = BASE_POLAROID_WIDTH * polaroidScale
-    const scaledH = BASE_POLAROID_HEIGHT * polaroidScale
-
-    // Center polaroid (accounting for shadow)
-    const polaroidX = (canvasWidth - scaledW) / 2
-    const polaroidY = (canvasHeight - scaledH) / 2 - shadowMargin / 4
-
     return {
-      canvasWidth,
-      canvasHeight,
-      polaroidX,
-      polaroidY,
-      polaroidScale,
+      width: 1080,
+      height: 1080,
+      safePadding: { top: 40, bottom: 40, left: 40, right: 40 },
     }
   } else {
-    // instagram_story / instagram_reel: 9:16 aspect ratio (1080x1920)
-    const canvasWidth = 1080
-    const canvasHeight = 1920
-
-    // Safe areas for story/reel UI overlays
-    const topSafe = 180
-    const bottomSafe = 260
-    const leftRightSafe = 60
-
-    const availableW = canvasWidth - 2 * leftRightSafe
-    const availableH = canvasHeight - topSafe - bottomSafe
-
-    // Account for shadow
-    const shadowMargin = 30
-    const effectiveAvailableW = availableW - shadowMargin * 2
-    const effectiveAvailableH = availableH - shadowMargin - shadowMargin / 2
-
-    const scaleW = effectiveAvailableW / BASE_POLAROID_WIDTH
-    const scaleH = effectiveAvailableH / BASE_POLAROID_HEIGHT
-    const polaroidScale = Math.min(scaleW, scaleH)
-
-    const scaledW = BASE_POLAROID_WIDTH * polaroidScale
-    const scaledH = BASE_POLAROID_HEIGHT * polaroidScale
-
-    // Center horizontally, vertically within safe area
-    const polaroidX = (canvasWidth - scaledW) / 2
-    const polaroidY = topSafe + (availableH - scaledH) / 2 - shadowMargin / 4
-
+    // instagram_story / instagram_reel: 9:16 aspect ratio
     return {
-      canvasWidth,
-      canvasHeight,
-      polaroidX,
-      polaroidY,
-      polaroidScale,
+      width: 1080,
+      height: 1920,
+      safePadding: { top: 180, bottom: 260, left: 60, right: 60 },
     }
   }
 }
@@ -350,87 +287,48 @@ async function ensureFontsLoaded(): Promise<void> {
   }
 }
 
+// =============================================================================
+// STEP 1: RENDER POLAROID BASE CANVAS (at native BASE dimensions)
+// =============================================================================
+
 /**
- * CANVAS COMPOSITION EXPORT
+ * Render the polaroid at its BASE dimensions (340x440).
+ * This is the "source of truth" canvas - all internal elements are drawn
+ * at their native coordinates with NO scaling.
  *
- * This function bypasses html-to-image and directly draws all elements
- * onto a canvas. This is more reliable as it doesn't depend on DOM capture.
- *
- * Supports different export targets:
- * - instagram_post (1:1, 1080x1080): Polaroid fills the canvas
- * - instagram_story (9:16, 1080x1920): Polaroid with safe areas for UI
- * - instagram_reel (9:16, 1080x1920): Same as story
- *
- * The DayPat brand text is overlaid on the PHOTO area (not the canvas corner).
+ * The resulting canvas will be composed onto the Instagram target using
+ * a SINGLE uniform scale to preserve aspect ratio.
  */
-async function captureWithCanvas(
-  data: InternalExportData,
-  target: ExportTarget = 'instagram_post'
-): Promise<string> {
-  console.log('=== CANVAS COMPOSITION EXPORT ===')
-  console.log('[EXPORT] Starting canvas composition for target:', target)
-  console.log('[EXPORT] Data:', {
-    hasPhoto: !!data.photoDataUrl,
-    hasStamp: !!data.stampDataUrl,
-    stickersCount: data.stickers.length,
-    praise: data.praise?.substring(0, 30),
-  })
+async function renderPolaroidBaseCanvas(
+  data: InternalExportData
+): Promise<HTMLCanvasElement> {
+  console.log('[EXPORT] renderPolaroidBaseCanvas: Starting base canvas render')
 
-  // Ensure fonts are loaded before drawing
-  await ensureFontsLoaded()
-
-  // Calculate layout based on export target
-  const layout = calculateExportLayout(target)
-  const { canvasWidth, canvasHeight, polaroidX, polaroidY, polaroidScale } = layout
-
-  console.log('[EXPORT] Layout:', {
-    canvasWidth,
-    canvasHeight,
-    polaroidX: Math.round(polaroidX),
-    polaroidY: Math.round(polaroidY),
-    polaroidScale: polaroidScale.toFixed(3),
-  })
-
-  // Create canvas
+  // Create canvas at BASE dimensions (no scaling)
   const canvas = document.createElement('canvas')
-  canvas.width = canvasWidth
-  canvas.height = canvasHeight
+  canvas.width = BASE_POLAROID_WIDTH
+  canvas.height = BASE_POLAROID_HEIGHT
   const ctx = canvas.getContext('2d')!
 
-  // Calculate scaled dimensions
-  const scaledPolaroidW = BASE_POLAROID_WIDTH * polaroidScale
-  const scaledPolaroidH = BASE_POLAROID_HEIGHT * polaroidScale
-  const scaledPadding = BASE_PADDING * polaroidScale
-  const scaledCornerRadius = BASE_CORNER_RADIUS * polaroidScale
-  const scaledPhotoCornerRadius = BASE_PHOTO_CORNER_RADIUS * polaroidScale
-  const scaledPhotoHeight = BASE_PHOTO_AREA_HEIGHT * polaroidScale
+  // All dimensions are at BASE scale (1x)
+  const padding = BASE_PADDING
+  const cornerRadius = BASE_CORNER_RADIUS
+  const photoCornerRadius = BASE_PHOTO_CORNER_RADIUS
+  const photoHeight = BASE_PHOTO_AREA_HEIGHT
 
-  // Fill background with warm cream color
-  ctx.fillStyle = EXPORT_BACKGROUND_COLOR
-  ctx.fillRect(0, 0, canvasWidth, canvasHeight)
-
-  // Draw polaroid shadow first
-  ctx.save()
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.18)'
-  ctx.shadowBlur = 25 * polaroidScale
-  ctx.shadowOffsetX = 0
-  ctx.shadowOffsetY = 12 * polaroidScale
-
-  // White polaroid background with rounded corners
+  // White polaroid background (no shadow here - shadow is added in compose step)
   ctx.fillStyle = 'white'
-  roundedRectPath(ctx, polaroidX, polaroidY, scaledPolaroidW, scaledPolaroidH, scaledCornerRadius)
+  roundedRectPath(ctx, 0, 0, BASE_POLAROID_WIDTH, BASE_POLAROID_HEIGHT, cornerRadius)
   ctx.fill()
-  ctx.restore()
 
   // Photo area dimensions
-  const photoX = polaroidX + scaledPadding
-  const photoY = polaroidY + scaledPadding
-  const photoWidth = scaledPolaroidW - 2 * scaledPadding
-  const photoHeight = scaledPhotoHeight
+  const photoX = padding
+  const photoY = padding
+  const photoWidth = BASE_POLAROID_WIDTH - 2 * padding
 
   // Photo area background (gray)
   ctx.fillStyle = '#f3f4f6'
-  roundedRectPath(ctx, photoX, photoY, photoWidth, photoHeight, scaledPhotoCornerRadius)
+  roundedRectPath(ctx, photoX, photoY, photoWidth, photoHeight, photoCornerRadius)
   ctx.fill()
 
   // Draw photo if available
@@ -440,9 +338,9 @@ async function captureWithCanvas(
       const photoImg = await loadImage(data.photoDataUrl)
       console.log('[EXPORT] Photo loaded:', photoImg.naturalWidth, 'x', photoImg.naturalHeight)
 
-      // Clip to photo area with rounded corners
+      // Clip to photo area
       ctx.save()
-      roundedRectPath(ctx, photoX, photoY, photoWidth, photoHeight, scaledPhotoCornerRadius)
+      roundedRectPath(ctx, photoX, photoY, photoWidth, photoHeight, photoCornerRadius)
       ctx.clip()
 
       // Draw photo with cover fit
@@ -471,11 +369,9 @@ async function captureWithCanvas(
     } catch (e) {
       console.error('[EXPORT] Failed to load photo:', e)
     }
-  } else {
-    console.log('[EXPORT] No photo to draw')
   }
 
-  // Draw stickers
+  // Draw stickers (at BASE scale)
   console.log('[EXPORT] Drawing', data.stickers.length, 'stickers...')
   for (const sticker of data.stickers) {
     const isImageSticker = sticker.src.startsWith('/')
@@ -485,10 +381,9 @@ async function captureWithCanvas(
     ctx.save()
     ctx.translate(stickerX, stickerY)
     ctx.rotate((sticker.rotation * Math.PI) / 180)
-    ctx.scale(sticker.scale * polaroidScale, sticker.scale * polaroidScale)
+    ctx.scale(sticker.scale, sticker.scale) // No polaroidScale - native coordinates
 
     if (isImageSticker && sticker.dataUrl) {
-      // Image sticker
       try {
         const stickerImg = await loadImage(sticker.dataUrl)
         const stickerSize = 80
@@ -498,7 +393,6 @@ async function captureWithCanvas(
         console.error('[EXPORT] Failed to load sticker image:', sticker.src, e)
       }
     } else if (!isImageSticker) {
-      // Emoji sticker
       ctx.font = `30px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
@@ -511,90 +405,32 @@ async function captureWithCanvas(
 
   // Draw DayPat watermark at TOP-LEFT of PHOTO area
   ctx.save()
-  const watermarkFontSize = Math.max(18, Math.min(24, photoWidth * 0.07))
+  const watermarkFontSize = 20
   ctx.font = `600 ${watermarkFontSize}px ${BRAND_FONT_FAMILY}`
   ctx.fillStyle = BRAND_COLOR
   ctx.textAlign = 'left'
   ctx.textBaseline = 'top'
-  // Add text shadow for legibility on photos
   ctx.shadowColor = 'rgba(255, 255, 255, 0.8)'
   ctx.shadowBlur = 3
   ctx.shadowOffsetX = 0
   ctx.shadowOffsetY = 1
-  const watermarkX = photoX + 12 * polaroidScale
-  const watermarkY = photoY + 12 * polaroidScale
-  ctx.fillText(BRAND_TEXT, watermarkX, watermarkY)
+  ctx.fillText(BRAND_TEXT, photoX + 12, photoY + 12)
   ctx.restore()
-  console.log('[EXPORT] DayPat watermark drawn at photo top-left')
+  console.log('[EXPORT] DayPat watermark drawn')
 
-  // Draw caption text
-  const captionY = photoY + photoHeight + 18 * polaroidScale
-  const captionText = data.praise || 'Give your day a pat.'
-  ctx.font = `500 ${14 * polaroidScale}px "Inter", "Noto Sans KR", system-ui, sans-serif`
-  ctx.fillStyle = data.praise ? '#374151' : '#9ca3af'
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'top'
-  ctx.fillText(captionText, polaroidX + scaledPolaroidW / 2, captionY)
-
-  // Draw footer: slogan on left, heart icon on right
-  const footerY = polaroidY + scaledPolaroidH - 16 * polaroidScale
-
-  // Draw slogan "EVERY DAY DESERVES A PAT." on the left
-  ctx.save()
-  const sloganFontSize = Math.max(9, Math.min(11, scaledPolaroidW * 0.032))
-  ctx.font = `500 ${sloganFontSize}px ${SLOGAN_FONT_FAMILY}`
-  ctx.fillStyle = BRAND_COLOR
-  ctx.textAlign = 'left'
-  ctx.textBaseline = 'middle'
-  const sloganX = polaroidX + scaledPadding
-  ctx.fillText(SLOGAN_TEXT, sloganX, footerY)
-  ctx.restore()
-  console.log('[EXPORT] Slogan drawn at footer left')
-
-  // Draw heart icon on the right (shows like state)
-  const heartSize = 16 * polaroidScale
-  const heartX = polaroidX + scaledPolaroidW - scaledPadding - heartSize / 2
-  const heartY = footerY
-
-  ctx.save()
-  ctx.translate(heartX, heartY)
-
-  // Draw heart shape
-  ctx.beginPath()
-  const hs = heartSize * 0.45 // heart scale factor
-  ctx.moveTo(0, hs * 0.3)
-  ctx.bezierCurveTo(-hs * 0.5, -hs * 0.3, -hs, hs * 0.1, 0, hs)
-  ctx.bezierCurveTo(hs, hs * 0.1, hs * 0.5, -hs * 0.3, 0, hs * 0.3)
-  ctx.closePath()
-
-  if (data.isLiked) {
-    // Filled red heart for liked state
-    ctx.fillStyle = '#ef4444'
-    ctx.fill()
-  } else {
-    // Outline gray heart for unliked state
-    ctx.strokeStyle = '#9ca3af'
-    ctx.lineWidth = 1.5 * polaroidScale
-    ctx.stroke()
-  }
-  ctx.restore()
-  console.log('[EXPORT] Heart icon drawn, isLiked:', data.isLiked)
-
-  // Draw stamp if available (positioned inside photo area, bottom-right)
+  // Draw stamp if available
   if (data.showStamp && data.stampDataUrl) {
     console.log('[EXPORT] Loading stamp image...')
     try {
       const stampImg = await loadImage(data.stampDataUrl)
-      const stampSize = 70 * polaroidScale
-      // Position stamp at bottom-right of photo area
-      const stampX = photoX + photoWidth - stampSize - 10 * polaroidScale
-      const stampY = photoY + photoHeight - stampSize - 10 * polaroidScale
+      const stampSize = 70
+      const stampX = photoX + photoWidth - stampSize - 10
+      const stampY = photoY + photoHeight - stampSize - 10
 
-      // Draw stamp with circular clip and shadow
       ctx.save()
       ctx.shadowColor = 'rgba(0, 0, 0, 0.1)'
-      ctx.shadowBlur = 10 * polaroidScale
-      ctx.shadowOffsetY = 6 * polaroidScale
+      ctx.shadowBlur = 10
+      ctx.shadowOffsetY = 6
 
       ctx.beginPath()
       ctx.arc(stampX + stampSize / 2, stampY + stampSize / 2, stampSize / 2, 0, Math.PI * 2)
@@ -608,9 +444,195 @@ async function captureWithCanvas(
     }
   }
 
-  // Export canvas as PNG
-  const dataUrl = canvas.toDataURL('image/png')
-  console.log('[EXPORT] Canvas export complete, dataUrl length:', dataUrl.length)
+  // Draw caption text
+  const captionY = photoY + photoHeight + 18
+  const captionText = data.praise || 'Give your day a pat.'
+  ctx.font = `500 14px "Inter", "Noto Sans KR", system-ui, sans-serif`
+  ctx.fillStyle = data.praise ? '#374151' : '#9ca3af'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'top'
+  ctx.fillText(captionText, BASE_POLAROID_WIDTH / 2, captionY)
+
+  // Draw footer: slogan on left, heart icon on right
+  const footerY = BASE_POLAROID_HEIGHT - 16
+
+  // Draw slogan
+  ctx.save()
+  ctx.font = `500 11px ${SLOGAN_FONT_FAMILY}`
+  ctx.fillStyle = BRAND_COLOR
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(SLOGAN_TEXT, padding, footerY)
+  ctx.restore()
+  console.log('[EXPORT] Slogan drawn')
+
+  // Draw heart icon
+  const heartSize = 16
+  const heartX = BASE_POLAROID_WIDTH - padding - heartSize / 2
+  const heartY = footerY
+
+  ctx.save()
+  ctx.translate(heartX, heartY)
+
+  ctx.beginPath()
+  const hs = heartSize * 0.45
+  ctx.moveTo(0, hs * 0.3)
+  ctx.bezierCurveTo(-hs * 0.5, -hs * 0.3, -hs, hs * 0.1, 0, hs)
+  ctx.bezierCurveTo(hs, hs * 0.1, hs * 0.5, -hs * 0.3, 0, hs * 0.3)
+  ctx.closePath()
+
+  if (data.isLiked) {
+    ctx.fillStyle = '#ef4444'
+    ctx.fill()
+  } else {
+    ctx.strokeStyle = '#9ca3af'
+    ctx.lineWidth = 1.5
+    ctx.stroke()
+  }
+  ctx.restore()
+  console.log('[EXPORT] Heart icon drawn, isLiked:', data.isLiked)
+
+  console.log('[EXPORT] Base canvas complete:', BASE_POLAROID_WIDTH, 'x', BASE_POLAROID_HEIGHT)
+  return canvas
+}
+
+// =============================================================================
+// STEP 2: COMPOSE TO INSTAGRAM TARGET (single uniform scale - CONTAIN mode)
+// =============================================================================
+
+/**
+ * Compose the polaroid base canvas onto an Instagram target canvas.
+ *
+ * CRITICAL: Uses a SINGLE uniform scale to preserve aspect ratio.
+ * This is "contain" mode - the polaroid fits within the target while
+ * maintaining its exact aspect ratio. Empty space becomes letterbox.
+ *
+ * @param polaroidCanvas - The base polaroid canvas (340x440)
+ * @param target - Instagram export target format
+ * @returns Target canvas with polaroid composed
+ */
+function composeToInstagramTarget(
+  polaroidCanvas: HTMLCanvasElement,
+  target: ExportTarget
+): HTMLCanvasElement {
+  const dims = getTargetDimensions(target)
+  const { width: targetW, height: targetH, safePadding } = dims
+
+  console.log('[EXPORT] composeToInstagramTarget:', { target, targetW, targetH })
+
+  // Create target canvas
+  const canvas = document.createElement('canvas')
+  canvas.width = targetW
+  canvas.height = targetH
+  const ctx = canvas.getContext('2d')!
+
+  // Fill background
+  ctx.fillStyle = EXPORT_BACKGROUND_COLOR
+  ctx.fillRect(0, 0, targetW, targetH)
+
+  // Source dimensions (polaroid base canvas)
+  const srcW = polaroidCanvas.width
+  const srcH = polaroidCanvas.height
+  const srcAspect = srcW / srcH
+
+  // Available area (accounting for safe padding)
+  const availableW = targetW - safePadding.left - safePadding.right
+  const availableH = targetH - safePadding.top - safePadding.bottom
+
+  // Calculate SINGLE uniform scale (CONTAIN mode)
+  // This ensures aspect ratio is NEVER changed
+  const scale = Math.min(availableW / srcW, availableH / srcH)
+
+  // Calculate draw dimensions using the SINGLE scale
+  const drawW = srcW * scale
+  const drawH = srcH * scale
+
+  // ASSERTION: Verify aspect ratio is preserved
+  const drawAspect = drawW / drawH
+  if (Math.abs(srcAspect - drawAspect) > 1e-6) {
+    console.error('[EXPORT] CRITICAL: Aspect ratio changed!', { srcAspect, drawAspect })
+    throw new Error(`Aspect ratio changed in share export: src=${srcAspect.toFixed(4)}, draw=${drawAspect.toFixed(4)}`)
+  }
+
+  // Center within available area
+  const x = safePadding.left + (availableW - drawW) / 2
+  const y = safePadding.top + (availableH - drawH) / 2
+
+  console.log('[EXPORT] Composition:', {
+    srcW,
+    srcH,
+    srcAspect: srcAspect.toFixed(4),
+    scale: scale.toFixed(4),
+    drawW: Math.round(drawW),
+    drawH: Math.round(drawH),
+    drawAspect: drawAspect.toFixed(4),
+    x: Math.round(x),
+    y: Math.round(y),
+  })
+
+  // Draw shadow first
+  ctx.save()
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.18)'
+  ctx.shadowBlur = 25 * scale
+  ctx.shadowOffsetX = 0
+  ctx.shadowOffsetY = 12 * scale
+
+  // Draw white background for shadow (same dimensions as polaroid)
+  ctx.fillStyle = 'white'
+  roundedRectPath(ctx, x, y, drawW, drawH, BASE_CORNER_RADIUS * scale)
+  ctx.fill()
+  ctx.restore()
+
+  // Draw the polaroid canvas onto target using SINGLE uniform scale
+  // drawImage(source, dx, dy, dWidth, dHeight)
+  ctx.drawImage(polaroidCanvas, x, y, drawW, drawH)
+
+  console.log('[EXPORT] Composition complete')
+  return canvas
+}
+
+// =============================================================================
+// MAIN EXPORT FUNCTION (two-step: base canvas -> compose to target)
+// =============================================================================
+
+/**
+ * CANVAS COMPOSITION EXPORT
+ *
+ * TWO-STEP PROCESS to guarantee aspect ratio preservation:
+ * 1. Render polaroid at BASE dimensions (340x440) - no scaling
+ * 2. Compose onto Instagram target using SINGLE uniform scale (contain mode)
+ *
+ * This ensures the polaroid NEVER gets stretched horizontally or vertically.
+ * Any empty space becomes letterbox (which is acceptable per requirements).
+ */
+async function captureWithCanvas(
+  data: InternalExportData,
+  target: ExportTarget = 'instagram_post'
+): Promise<string> {
+  console.log('=== CANVAS COMPOSITION EXPORT (TWO-STEP) ===')
+  console.log('[EXPORT] Target:', target)
+  console.log('[EXPORT] Data:', {
+    hasPhoto: !!data.photoDataUrl,
+    hasStamp: !!data.stampDataUrl,
+    stickersCount: data.stickers.length,
+    praise: data.praise?.substring(0, 30),
+    isLiked: data.isLiked,
+  })
+
+  // Ensure fonts are loaded before drawing
+  await ensureFontsLoaded()
+
+  // STEP 1: Render polaroid at BASE dimensions (no scaling)
+  const baseCanvas = await renderPolaroidBaseCanvas(data)
+  console.log('[EXPORT] Step 1 complete: Base canvas', baseCanvas.width, 'x', baseCanvas.height)
+
+  // STEP 2: Compose onto Instagram target (single uniform scale)
+  const targetCanvas = composeToInstagramTarget(baseCanvas, target)
+  console.log('[EXPORT] Step 2 complete: Target canvas', targetCanvas.width, 'x', targetCanvas.height)
+
+  // Export as PNG
+  const dataUrl = targetCanvas.toDataURL('image/png')
+  console.log('[EXPORT] Export complete, dataUrl length:', dataUrl.length)
   return dataUrl
 }
 
