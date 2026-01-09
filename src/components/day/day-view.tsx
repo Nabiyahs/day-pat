@@ -28,12 +28,16 @@ export function DayView({ selectedDate, onDateChange }: DayViewProps) {
   const { dayCard, photoSignedUrl, loading, saving: cardSaving, error, upsertDayCard, toggleLike, setEditingState } = useDayCard(dateStr)
 
   /**
-   * Share handler using canvas-based export (bypasses DOM capture CORS issues).
+   * Share handler using canvas-based export (bypasses CORS issues).
    *
    * Uses sharePolaroid from export-polaroid.ts which:
-   * 1. Downloads images from Supabase Storage API (no CORS issues)
+   * 1. Downloads images via Supabase Storage API (no CORS issues)
    * 2. Converts all images to data URLs
-   * 3. Draws everything on a canvas programmatically
+   * 3. Draws everything on a canvas programmatically including:
+   *    - Photo, stickers, stamp
+   *    - DayPat watermark (photo top-left)
+   *    - Slogan "EVERY DAY DESERVES A PAT." (footer left)
+   *    - Heart icon with liked state (footer right)
    * 4. Shares via Web Share API or downloads as fallback
    */
   const handleShareFromActionBar = async () => {
@@ -64,6 +68,7 @@ export function DayView({ selectedDate, onDateChange }: DayViewProps) {
         createdAt: dayCard.created_at || null,
         date: dateStr,
         exportTarget: 'instagram_post',
+        isLiked: dayCard.is_liked || false, // Pass liked state for heart icon
       })
 
       if (DEBUG) console.log('[DayView] Share result:', result)

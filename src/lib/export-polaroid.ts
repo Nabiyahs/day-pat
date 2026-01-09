@@ -25,6 +25,9 @@ const BASE_PHOTO_CORNER_RADIUS = 0
 const BRAND_TEXT = 'DayPat'
 const BRAND_COLOR = '#F27430'
 const BRAND_FONT_FAMILY = "'Caveat', cursive"
+// Slogan text (replaces timestamp in export)
+const SLOGAN_TEXT = 'EVERY DAY DESERVES A PAT.'
+const SLOGAN_FONT_FAMILY = "'Open Sans', sans-serif"
 // Background color (warm cream to match app theme)
 const EXPORT_BACKGROUND_COLOR = '#FFFDF8'
 
@@ -266,6 +269,7 @@ interface InternalExportData {
   stickers: Array<StickerState & { dataUrl?: string }>
   showStamp: boolean
   createdAt: string | null
+  isLiked: boolean
 }
 
 /**
@@ -277,12 +281,14 @@ async function prepareExportData(
   stickers: StickerState[],
   praise: string | null,
   showStamp: boolean,
-  createdAt: string | null
+  createdAt: string | null,
+  isLiked: boolean = false
 ): Promise<InternalExportData> {
   console.log('=== PREPARE EXPORT DATA ===')
   console.log('[EXPORT] photoPath:', photoPath)
   console.log('[EXPORT] stickers count:', stickers.length)
   console.log('[EXPORT] showStamp:', showStamp)
+  console.log('[EXPORT] isLiked:', isLiked)
 
   // Download photo from Supabase
   let photoDataUrl: string | null = null
@@ -318,6 +324,7 @@ async function prepareExportData(
     stickers: stickersWithDataUrls,
     showStamp,
     createdAt,
+    isLiked,
   }
 }
 
@@ -331,8 +338,11 @@ async function ensureFontsLoaded(): Promise<void> {
     // Wait for all fonts to be ready
     await document.fonts.ready
 
-    // Specifically load the Caveat font we need for the brand text
-    await document.fonts.load(`bold 48px ${BRAND_FONT_FAMILY}`)
+    // Specifically load the fonts we need
+    await Promise.all([
+      document.fonts.load(`bold 48px ${BRAND_FONT_FAMILY}`),  // DayPat watermark
+      document.fonts.load(`500 11px ${SLOGAN_FONT_FAMILY}`),  // Slogan text
+    ])
     console.log('[EXPORT] Fonts loaded successfully')
   } catch (e) {
     console.warn('[EXPORT] Font loading warning:', e)
@@ -499,6 +509,24 @@ async function captureWithCanvas(
     ctx.restore()
   }
 
+  // Draw DayPat watermark at TOP-LEFT of PHOTO area
+  ctx.save()
+  const watermarkFontSize = Math.max(18, Math.min(24, photoWidth * 0.07))
+  ctx.font = `600 ${watermarkFontSize}px ${BRAND_FONT_FAMILY}`
+  ctx.fillStyle = BRAND_COLOR
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'top'
+  // Add text shadow for legibility on photos
+  ctx.shadowColor = 'rgba(255, 255, 255, 0.8)'
+  ctx.shadowBlur = 3
+  ctx.shadowOffsetX = 0
+  ctx.shadowOffsetY = 1
+  const watermarkX = photoX + 12 * polaroidScale
+  const watermarkY = photoY + 12 * polaroidScale
+  ctx.fillText(BRAND_TEXT, watermarkX, watermarkY)
+  ctx.restore()
+  console.log('[EXPORT] DayPat watermark drawn at photo top-left')
+
   // Draw caption text
   const captionY = photoY + photoHeight + 18 * polaroidScale
   const captionText = data.praise || 'Give your day a pat.'
@@ -508,8 +536,49 @@ async function captureWithCanvas(
   ctx.textBaseline = 'top'
   ctx.fillText(captionText, polaroidX + scaledPolaroidW / 2, captionY)
 
-  // NOTE: Timestamp (footer time) is intentionally NOT drawn in export
-  // It's only shown in Day View UI, not in shared images
+  // Draw footer: slogan on left, heart icon on right
+  const footerY = polaroidY + scaledPolaroidH - 16 * polaroidScale
+
+  // Draw slogan "EVERY DAY DESERVES A PAT." on the left
+  ctx.save()
+  const sloganFontSize = Math.max(9, Math.min(11, scaledPolaroidW * 0.032))
+  ctx.font = `500 ${sloganFontSize}px ${SLOGAN_FONT_FAMILY}`
+  ctx.fillStyle = BRAND_COLOR
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'middle'
+  const sloganX = polaroidX + scaledPadding
+  ctx.fillText(SLOGAN_TEXT, sloganX, footerY)
+  ctx.restore()
+  console.log('[EXPORT] Slogan drawn at footer left')
+
+  // Draw heart icon on the right (shows like state)
+  const heartSize = 16 * polaroidScale
+  const heartX = polaroidX + scaledPolaroidW - scaledPadding - heartSize / 2
+  const heartY = footerY
+
+  ctx.save()
+  ctx.translate(heartX, heartY)
+
+  // Draw heart shape
+  ctx.beginPath()
+  const hs = heartSize * 0.45 // heart scale factor
+  ctx.moveTo(0, hs * 0.3)
+  ctx.bezierCurveTo(-hs * 0.5, -hs * 0.3, -hs, hs * 0.1, 0, hs)
+  ctx.bezierCurveTo(hs, hs * 0.1, hs * 0.5, -hs * 0.3, 0, hs * 0.3)
+  ctx.closePath()
+
+  if (data.isLiked) {
+    // Filled red heart for liked state
+    ctx.fillStyle = '#ef4444'
+    ctx.fill()
+  } else {
+    // Outline gray heart for unliked state
+    ctx.strokeStyle = '#9ca3af'
+    ctx.lineWidth = 1.5 * polaroidScale
+    ctx.stroke()
+  }
+  ctx.restore()
+  console.log('[EXPORT] Heart icon drawn, isLiked:', data.isLiked)
 
   // Draw stamp if available (positioned inside photo area, bottom-right)
   if (data.showStamp && data.stampDataUrl) {
@@ -538,34 +607,6 @@ async function captureWithCanvas(
       console.error('[EXPORT] Failed to load stamp:', e)
     }
   }
-
-  // Draw DayPat brand text at BOTTOM-LEFT of polaroid container
-  // Using Caveat font (same as app header) with #F27430 color
-  // Bigger font size for watermark-like appearance
-  ctx.save()
-
-  // Calculate responsive font size based on polaroid width (larger than before)
-  const watermarkFontSize = Math.max(28, Math.min(36, scaledPolaroidW * 0.09))
-  ctx.font = `bold ${watermarkFontSize}px ${BRAND_FONT_FAMILY}`
-  ctx.fillStyle = BRAND_COLOR
-  ctx.textAlign = 'left'
-  ctx.textBaseline = 'alphabetic'
-
-  // Position: bottom-left of POLAROID container (not photo area)
-  const brandPadX = 20 * polaroidScale
-  const brandPadY = 32 * polaroidScale
-  const brandX = polaroidX + brandPadX
-  const brandY = polaroidY + scaledPolaroidH - brandPadY
-
-  // Add subtle shadow for legibility (very subtle)
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.15)'
-  ctx.shadowBlur = 2
-  ctx.shadowOffsetX = 0
-  ctx.shadowOffsetY = 1
-
-  ctx.fillText(BRAND_TEXT, brandX, brandY)
-  ctx.restore()
-  console.log('[EXPORT] Brand text drawn at polaroid bottom-left')
 
   // Export canvas as PNG
   const dataUrl = canvas.toDataURL('image/png')
@@ -633,6 +674,8 @@ export interface ExportOptions {
   date: string
   /** Export target format (default: instagram_post) */
   exportTarget?: ExportTarget
+  /** Whether the entry is liked (shows filled heart) */
+  isLiked?: boolean
 }
 
 /**
@@ -643,10 +686,10 @@ export interface ExportOptions {
  * @returns PNG data URL
  */
 export async function capturePolaroidAsPng(options: ExportOptions): Promise<string> {
-  const { photoPath, stickers, praise, showStamp, createdAt, exportTarget = 'instagram_post' } = options
+  const { photoPath, stickers, praise, showStamp, createdAt, exportTarget = 'instagram_post', isLiked = false } = options
 
   // Prepare export data (download from Supabase and convert to data URLs)
-  const exportData = await prepareExportData(photoPath, stickers, praise, showStamp, createdAt)
+  const exportData = await prepareExportData(photoPath, stickers, praise, showStamp, createdAt, isLiked)
 
   // Use canvas composition for reliable export
   return captureWithCanvas(exportData, exportTarget)
