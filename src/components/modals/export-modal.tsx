@@ -142,8 +142,6 @@ export function ExportModal({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [progress, setProgress] = useState<string>('')
-  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false)
-
   // Date range state - To defaults to TODAY, From defaults to 1 month before
   const [fromDate, setFromDate] = useState(() => {
     const today = new Date()
@@ -162,7 +160,6 @@ export function ExportModal({
       setExportMode(initialMode)
       setFromDate(oneMonthAgo)
       setToDate(today)
-      setIsDatePickerOpen(false)
     }
   }, [isOpen, initialMode])
 
@@ -271,46 +268,18 @@ export function ExportModal({
             </div>
           </div>
 
-          {/* Date Range Selection - Single line click-to-expand */}
+          {/* Date Range Selection - Two separate From/To boxes */}
           <div className="space-y-3">
             <label className="block text-sm font-semibold text-gray-700">
               Date Range
             </label>
-
-            {/* Single line display - clickable */}
-            <button
-              type="button"
+            <DateRangePicker
+              fromDate={fromDate}
+              toDate={toDate}
+              onFromChange={setFromDate}
+              onToChange={setToDate}
               disabled={loading}
-              onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
-              className={cn(
-                'w-full p-3 rounded-xl border text-left transition-all flex items-center justify-between',
-                isDatePickerOpen
-                  ? 'border-[#F27430] bg-orange-50'
-                  : 'border-gray-200 hover:border-gray-300 bg-white'
-              )}
-            >
-              <span className="font-medium text-gray-800">{dateRangeDisplay}</span>
-              <AppIcon
-                name="chevron-down"
-                className={cn(
-                  'w-4 h-4 text-gray-400 transition-transform',
-                  isDatePickerOpen && 'rotate-180'
-                )}
-              />
-            </button>
-
-            {/* Expandable Date Range Picker */}
-            {isDatePickerOpen && (
-              <div className="border border-gray-200 rounded-xl p-3 bg-gray-50">
-                <DateRangePicker
-                  fromDate={fromDate}
-                  toDate={toDate}
-                  onFromChange={setFromDate}
-                  onToChange={setToDate}
-                  disabled={loading}
-                />
-              </div>
-            )}
+            />
           </div>
 
           {/* Summary Box */}
