@@ -16,6 +16,7 @@
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { formatDateString, getWeekRange, getMonthRange, getWeekDays } from '@/lib/utils'
 import { startOfWeek, startOfMonth, format, getWeek, isSameMonth, isToday, addDays } from 'date-fns'
+import { drawHeartIcon } from '@/components/icons/heart-icon'
 
 // ============================================================
 // TYPES
@@ -140,42 +141,10 @@ const WEEKDAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 const WEEKDAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 // =============================================================================
-// HEART ICON SVG PATH (Font Awesome faHeart - identical to day view)
+// HEART ICON - Uses shared module for 100% consistency with Day View
 // =============================================================================
-// This is the exact same SVG path used by Font Awesome's solid heart icon
-// which is rendered in the day view via AppIcon component.
-// ViewBox: 512x512
-const FA_HEART_PATH = 'M241 87.1l15 20.7 15-20.7C296 52.5 336.2 32 378.9 32 452.4 32 512 91.6 512 165.1l0 2.6c0 112.2-139.9 242.5-212.9 298.2-12.4 9.4-27.6 14.1-43.1 14.1s-30.8-4.6-43.1-14.1C139.9 410.2 0 279.9 0 167.7l0-2.6C0 91.6 59.6 32 133.1 32 175.8 32 216 52.5 241 87.1z'
-const FA_HEART_VIEWBOX = 512
-
-/**
- * Draw Font Awesome heart icon on canvas.
- * Uses the exact same SVG path as the day view's AppIcon component.
- */
-function drawFontAwesomeHeart(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  size: number,
-  filled: boolean
-): void {
-  ctx.save()
-  const scale = size / FA_HEART_VIEWBOX
-  ctx.translate(x - size / 2, y - size / 2)
-  ctx.scale(scale, scale)
-  const path = new Path2D(FA_HEART_PATH)
-  if (filled) {
-    // Liked state: filled red (matches day view's text-red-500 = #ef4444)
-    ctx.fillStyle = '#ef4444'
-    ctx.fill(path)
-  } else {
-    // Not liked state: filled gray (matches day view's text-gray-400 = #9ca3af)
-    // Day View shows SOLID gray heart (filled), not just outline
-    ctx.fillStyle = '#9ca3af'
-    ctx.fill(path)
-  }
-  ctx.restore()
-}
+// Heart icon is imported from @/components/icons/heart-icon
+// This ensures the exact same SVG path and colors as Day View's AppIcon
 
 // ============================================================
 // IMAGE UTILITIES
@@ -795,7 +764,7 @@ async function renderDayPolaroid(entry: DayEntryData): Promise<HTMLCanvasElement
   const heartSize = footer.heartSize
   const heartX = POLAROID_LAYOUT.width - POLAROID_LAYOUT.padding - heartSize / 2
   const heartY = footer.y
-  drawFontAwesomeHeart(ctx, heartX, heartY, heartSize, entry.isLiked)
+  drawHeartIcon(ctx, heartX, heartY, heartSize, entry.isLiked)
 
   return canvas
 }
@@ -1985,7 +1954,7 @@ async function drawFavoriteCard(
   const heartSize = 24
   const heartX = photoX + photoWidth - heartSize / 2 - 12
   const heartY = photoY + heartSize / 2 + 12
-  drawFontAwesomeHeart(ctx, heartX, heartY, heartSize, true)
+  drawHeartIcon(ctx, heartX, heartY, heartSize, true)
 
   // Date
   const textY = photoY + FAVORITES_LAYOUT.photoHeight + FAVORITES_LAYOUT.cardPadding

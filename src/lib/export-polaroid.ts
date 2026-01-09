@@ -4,6 +4,7 @@ import { jsPDF } from 'jspdf'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import type { StickerState } from '@/types/database'
 import { ensurePdfFontsReady, setKoreanFont } from '@/lib/pdf-fonts'
+import { drawHeartIcon } from '@/components/icons/heart-icon'
 
 // Re-export for backward compatibility
 export type { ExportData } from '@/components/day/exportable-polaroid'
@@ -93,56 +94,10 @@ const SLOGAN_FONT_FAMILY = "'Open Sans', sans-serif"
 const EXPORT_BACKGROUND_COLOR = '#FFFDF8'
 
 // =============================================================================
-// HEART ICON SVG PATH (Font Awesome faHeart - identical to day view)
+// HEART ICON - Uses shared module for 100% consistency with Day View
 // =============================================================================
-// This is the exact same SVG path used by Font Awesome's solid heart icon
-// which is rendered in the day view via AppIcon component.
-// ViewBox: 512x512
-const FA_HEART_PATH = 'M241 87.1l15 20.7 15-20.7C296 52.5 336.2 32 378.9 32 452.4 32 512 91.6 512 165.1l0 2.6c0 112.2-139.9 242.5-212.9 298.2-12.4 9.4-27.6 14.1-43.1 14.1s-30.8-4.6-43.1-14.1C139.9 410.2 0 279.9 0 167.7l0-2.6C0 91.6 59.6 32 133.1 32 175.8 32 216 52.5 241 87.1z'
-const FA_HEART_VIEWBOX = 512
-
-/**
- * Draw Font Awesome heart icon on canvas.
- * Uses the exact same SVG path as the day view's AppIcon component.
- *
- * @param ctx - Canvas context
- * @param x - Center X position
- * @param y - Center Y position
- * @param size - Icon size (width/height)
- * @param filled - Whether to fill (liked) or stroke (not liked)
- */
-function drawFontAwesomeHeart(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  size: number,
-  filled: boolean
-): void {
-  ctx.save()
-
-  // Scale factor to convert from 512x512 viewbox to target size
-  const scale = size / FA_HEART_VIEWBOX
-
-  // Move to center position, then offset to draw from top-left of scaled icon
-  ctx.translate(x - size / 2, y - size / 2)
-  ctx.scale(scale, scale)
-
-  // Create path from Font Awesome SVG path data
-  const path = new Path2D(FA_HEART_PATH)
-
-  if (filled) {
-    // Liked state: filled red (matches day view's text-red-500 = #ef4444)
-    ctx.fillStyle = '#ef4444'
-    ctx.fill(path)
-  } else {
-    // Not liked state: filled gray (matches day view's text-gray-400 = #9ca3af)
-    // Day View shows SOLID gray heart (filled), not just outline
-    ctx.fillStyle = '#9ca3af'
-    ctx.fill(path)
-  }
-
-  ctx.restore()
-}
+// Heart icon is imported from @/components/icons/heart-icon
+// This ensures the exact same SVG path and colors as Day View's AppIcon
 
 // =============================================================================
 // EXPORT TARGET DEFINITIONS
@@ -773,8 +728,8 @@ async function renderPolaroidBaseCanvas(
   const heartX = BASE_POLAROID_WIDTH - padding - heartSize / 2
   const heartY = footerY
 
-  drawFontAwesomeHeart(ctx, heartX, heartY, heartSize, data.isLiked)
-  console.log('[EXPORT] Heart icon drawn (Font Awesome), isLiked:', data.isLiked)
+  drawHeartIcon(ctx, heartX, heartY, heartSize, data.isLiked)
+  console.log('[EXPORT] Heart icon drawn (shared module), isLiked:', data.isLiked)
 
   // Draw date text to the LEFT of heart icon (YYYY-MM-DD format)
   // Uses Noto Sans font in gray color, vertically centered with heart
