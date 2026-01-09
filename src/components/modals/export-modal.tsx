@@ -3,9 +3,10 @@
 import { useState, useEffect, useMemo } from 'react'
 import { jsPDF } from 'jspdf'
 import { AppIcon } from '@/components/ui/app-icon'
+import { DateWheelPicker } from '@/components/ui/date-wheel-picker'
 import { cn } from '@/lib/utils'
 import { buildPdfPages, type ExportMode, type PageImage } from '@/lib/export-view-renderer'
-import { format, startOfWeek, startOfMonth, subMonths } from 'date-fns'
+import { format, subMonths } from 'date-fns'
 
 /**
  * View-Based Export Modal with Date Range Selection
@@ -26,48 +27,21 @@ interface ExportModalProps {
   selectedDate: string // YYYY-MM-DD format (used as default for date range)
 }
 
-// Export mode options with labels and descriptions
-const EXPORT_MODES: Array<{
-  value: ExportMode
-  label: string
-  description: string
-  icon: 'calendar' | 'calendar' | 'calendar' | 'heart'
-  color: string
-  bgColor: string
-}> = [
-  {
-    value: 'day',
-    label: 'Day',
-    description: 'Polaroid per day',
-    icon: 'calendar',
-    color: 'text-orange-600',
-    bgColor: 'bg-orange-100',
-  },
-  {
-    value: 'week',
-    label: 'Week',
-    description: 'Week cards (multi-page)',
-    icon: 'calendar',
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-100',
-  },
-  {
-    value: 'month',
-    label: 'Month',
-    description: 'Calendar grid',
-    icon: 'calendar',
-    color: 'text-purple-600',
-    bgColor: 'bg-purple-100',
-  },
-  {
-    value: 'favorites',
-    label: 'Favorites',
-    description: 'Liked entries only',
-    icon: 'heart',
-    color: 'text-red-600',
-    bgColor: 'bg-red-100',
-  },
+// Export mode options - simplified to just value and label
+const EXPORT_MODES: Array<{ value: ExportMode; label: string }> = [
+  { value: 'day', label: 'Day' },
+  { value: 'week', label: 'Week' },
+  { value: 'month', label: 'Month' },
+  { value: 'favorites', label: 'Favorites' },
 ]
+
+// Type descriptions - reused from previous modal implementation
+const TYPE_DESCRIPTIONS: Record<ExportMode, string> = {
+  day: 'Each day in the range will be exported as a polaroid page.',
+  week: 'Each week in the range will be exported with all entries. Multiple pages per week if needed.',
+  month: 'Each month in the range will be exported as a calendar grid page.',
+  favorites: 'All favorited entries in the range will be exported as a polaroid grid.',
+}
 
 // Get filename based on export mode and date range
 function getFilename(mode: ExportMode, fromDate: string, toDate: string): string {
@@ -86,6 +60,12 @@ function getFilename(mode: ExportMode, fromDate: string, toDate: string): string
     default:
       return 'DayPat_Export.pdf'
   }
+}
+
+// Format date as YYYY/M/D (no zero padding)
+function formatDateDisplay(dateStr: string): string {
+  const date = new Date(dateStr + 'T00:00:00')
+  return format(date, 'yyyy/M/d')
 }
 
 // Generate PDF from page images
@@ -180,12 +160,10 @@ export function ExportModal({
     return fromDate && toDate && fromDate <= toDate
   }, [fromDate, toDate])
 
-  // Format date range for display
+  // Format date range for display (YYYY/M/D format)
   const dateRangeDisplay = useMemo(() => {
     if (!fromDate || !toDate) return ''
-    const from = new Date(fromDate + 'T00:00:00')
-    const to = new Date(toDate + 'T00:00:00')
-    return `${format(from, 'MMM d, yyyy')} - ${format(to, 'MMM d, yyyy')}`
+    return `${formatDateDisplay(fromDate)} - ${formatDateDisplay(toDate)}`
   }, [fromDate, toDate])
 
   // Handle export
@@ -229,8 +207,6 @@ export function ExportModal({
 
   if (!isOpen) return null
 
-  const selectedModeInfo = EXPORT_MODES.find((m) => m.value === exportMode)
-
   return (
     <div
       className={cn(
@@ -256,12 +232,12 @@ export function ExportModal({
         </div>
 
         <div className="p-6 space-y-5">
-          {/* Export Type Selection */}
+          {/* Export Type Selection - Simplified text-only buttons */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-3">
               Export Type
             </label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="flex gap-2">
               {EXPORT_MODES.map((mode) => (
                 <button
                   key={mode.value}
@@ -269,30 +245,19 @@ export function ExportModal({
                   disabled={loading}
                   onClick={() => setExportMode(mode.value)}
                   className={cn(
-                    'p-3 rounded-xl border-2 transition-all text-left',
+                    'flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all',
                     exportMode === mode.value
-                      ? 'border-orange-400 bg-orange-50'
-                      : 'border-gray-200 hover:border-gray-300 bg-white'
+                      ? 'bg-[#F27430] text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   )}
                 >
-                  <div className="flex items-center gap-2 mb-1">
-                    <div
-                      className={cn(
-                        'w-7 h-7 rounded-lg flex items-center justify-center',
-                        mode.bgColor
-                      )}
-                    >
-                      <AppIcon name={mode.icon} className={cn('w-4 h-4', mode.color)} />
-                    </div>
-                    <span className="font-semibold text-gray-800">{mode.label}</span>
-                  </div>
-                  <p className="text-xs text-gray-500 ml-9">{mode.description}</p>
+                  {mode.label}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Date Range Selection */}
+          {/* Date Range Selection - Wheel Pickers */}
           <div className="space-y-3">
             <label className="block text-sm font-semibold text-gray-700">
               Date Range
@@ -302,24 +267,20 @@ export function ExportModal({
               {/* From Date */}
               <div>
                 <label className="block text-xs text-gray-500 mb-1">From</label>
-                <input
-                  type="date"
+                <DateWheelPicker
                   value={fromDate}
-                  onChange={(e) => setFromDate(e.target.value)}
+                  onChange={setFromDate}
                   disabled={loading}
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent disabled:opacity-50 disabled:bg-gray-50"
                 />
               </div>
 
               {/* To Date */}
               <div>
                 <label className="block text-xs text-gray-500 mb-1">To</label>
-                <input
-                  type="date"
+                <DateWheelPicker
                   value={toDate}
-                  onChange={(e) => setToDate(e.target.value)}
+                  onChange={setToDate}
                   disabled={loading}
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent disabled:opacity-50 disabled:bg-gray-50"
                 />
               </div>
             </div>
@@ -332,37 +293,13 @@ export function ExportModal({
             )}
           </div>
 
-          {/* Export Preview Info */}
+          {/* Summary Box */}
           <div className="bg-amber-50 rounded-2xl p-4">
-            <div className="flex items-center gap-3 mb-2">
-              <div
-                className={cn(
-                  'w-10 h-10 rounded-xl flex items-center justify-center',
-                  selectedModeInfo?.bgColor
-                )}
-              >
-                <AppIcon
-                  name={selectedModeInfo?.icon || 'calendar'}
-                  className={cn('w-5 h-5', selectedModeInfo?.color)}
-                />
-              </div>
-              <div>
-                <p className="font-semibold text-gray-800">
-                  {selectedModeInfo?.label} Export
-                </p>
-                <p className="text-sm text-gray-600">{dateRangeDisplay}</p>
-              </div>
-            </div>
-
-            <p className="text-xs text-gray-500 mt-2">
-              {exportMode === 'day' &&
-                'Each day in the range will be exported as a polaroid page.'}
-              {exportMode === 'week' &&
-                'Each week in the range will be exported with all entries. Multiple pages per week if needed.'}
-              {exportMode === 'month' &&
-                'Each month in the range will be exported as a calendar grid page.'}
-              {exportMode === 'favorites' &&
-                'All favorited entries in the range will be exported as a polaroid grid.'}
+            <p className="font-semibold text-gray-800 mb-1">
+              {dateRangeDisplay}
+            </p>
+            <p className="text-xs text-gray-500">
+              {TYPE_DESCRIPTIONS[exportMode]}
             </p>
           </div>
 
@@ -381,23 +318,13 @@ export function ExportModal({
             </div>
           )}
 
-          {/* Export button */}
+          {/* Export button - No icon */}
           <button
             onClick={handleExport}
             disabled={loading || !isValidRange}
-            className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2"
+            className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-xl transition-all"
           >
-            {loading ? (
-              <>
-                <AppIcon name="spinner" className="w-5 h-5 animate-spin" />
-                Exporting...
-              </>
-            ) : (
-              <>
-                <AppIcon name="file-pdf" className="w-5 h-5" />
-                Export {selectedModeInfo?.label}
-              </>
-            )}
+            {loading ? 'Exporting...' : 'Export'}
           </button>
         </div>
       </div>
