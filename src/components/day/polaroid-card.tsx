@@ -24,6 +24,8 @@ interface PolaroidCardProps {
   sharing?: boolean
   saveError?: string | null
   onEditingChange?: (editing: boolean) => void
+  /** When true, shows slogan instead of timestamp (for export) */
+  isExporting?: boolean
 }
 
 // Expose methods for parent components (e.g., export)
@@ -45,6 +47,7 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
   sharing,
   saveError,
   onEditingChange,
+  isExporting = false,
 }, ref) {
   const placeholder = PLACEHOLDER_TEXT
   const polaroidContainerRef = useRef<HTMLDivElement>(null)
@@ -663,9 +666,15 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
             </p>
           )}
 
-          {/* Footer actions - time on left, icons aligned right with tight spacing */}
+          {/* Footer actions - time/slogan on left, icons aligned right with tight spacing */}
           <div className="flex items-center justify-between text-xs text-gray-400">
-            <span>{dayCard?.created_at ? new Date(dayCard.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
+            {isExporting ? (
+              <span style={{ fontFamily: "'Open Sans', sans-serif", color: '#F27430', fontWeight: 500 }}>
+                GIVE YOUR DAY A PAT.
+              </span>
+            ) : (
+              <span>{dayCard?.created_at ? new Date(dayCard.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
+            )}
             <div className="flex items-center gap-0">
               {/* Edit (pencil) button - hidden for future dates */}
               {!isFutureDate && (

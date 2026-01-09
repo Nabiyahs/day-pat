@@ -2,13 +2,25 @@
 
 import { useRef, useState, useCallback } from 'react'
 import { format } from 'date-fns'
+import { toPng } from 'html-to-image'
 import { AppIcon } from '@/components/ui/app-icon'
 import { Toast, useToast } from '@/components/ui/toast'
 import { useDayCard } from '@/hooks/use-day-card'
 import { useSwipeNav } from '@/hooks/use-swipe-nav'
 import { formatDateString, parseDateString } from '@/lib/utils'
-import { sharePolaroid, type ExportOptions } from '@/lib/export-polaroid'
 import { PolaroidCard, type PolaroidCardRef } from './polaroid-card'
+
+// Export target dimensions
+const EXPORT_TARGETS = {
+  instagram_post: { width: 1080, height: 1080 },
+  instagram_story: { width: 1080, height: 1920 },
+  instagram_reel: { width: 1080, height: 1920 },
+} as const
+
+type ExportTarget = keyof typeof EXPORT_TARGETS
+
+// Background color for letterbox areas
+const EXPORT_BG_COLOR = '#FFFDF8'
 
 interface DayViewProps {
   selectedDate: string
@@ -20,10 +32,65 @@ export function DayView({ selectedDate, onDateChange }: DayViewProps) {
   const date = parseDateString(selectedDate)
   const dateStr = formatDateString(date)
   const polaroidRef = useRef<PolaroidCardRef>(null)
+  const dayViewRef = useRef<HTMLDivElement>(null)
   const [sharing, setSharing] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
   const { toast, showToast, hideToast } = useToast()
 
   const { dayCard, photoSignedUrl, loading, saving: cardSaving, error, upsertDayCard, toggleLike, setEditingState } = useDayCard(dateStr)
+
+  /**
+   * Capture Day View as image and scale to target canvas with "contain" fit.
+   * Returns a data URL of the final image.
+   */
+  const captureDayView = async (target: ExportTarget): Promise<string> => {
+    const element = dayViewRef.current
+    if (!element) throw new Error('Day View element not found')
+
+    // Ensure fonts are loaded before capture
+    await document.fonts.ready
+
+    // Capture the Day View at high resolution (2x for quality)
+    const pixelRatio = 2
+    const dataUrl = await toPng(element, {
+      pixelRatio,
+      backgroundColor: EXPORT_BG_COLOR,
+      cacheBust: true,
+    })
+
+    // Load the captured image
+    const img = new Image()
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve()
+      img.onerror = reject
+      img.src = dataUrl
+    })
+
+    // Get target dimensions
+    const targetDim = EXPORT_TARGETS[target]
+    const canvas = document.createElement('canvas')
+    canvas.width = targetDim.width
+    canvas.height = targetDim.height
+    const ctx = canvas.getContext('2d')!
+
+    // Fill background
+    ctx.fillStyle = EXPORT_BG_COLOR
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+    // Calculate "contain" scaling - maximize size while maintaining aspect ratio
+    const srcW = img.naturalWidth
+    const srcH = img.naturalHeight
+    const scale = Math.min(targetDim.width / srcW, targetDim.height / srcH)
+    const drawW = srcW * scale
+    const drawH = srcH * scale
+    const offsetX = (targetDim.width - drawW) / 2
+    const offsetY = (targetDim.height - drawH) / 2
+
+    // Draw the captured image centered with contain scaling
+    ctx.drawImage(img, offsetX, offsetY, drawW, drawH)
+
+    return canvas.toDataURL('image/png')
+  }
 
   // Share handler for action bar (with toast feedback)
   const handleShareFromActionBar = async () => {
@@ -31,34 +98,56 @@ export function DayView({ selectedDate, onDateChange }: DayViewProps) {
     if (!dayCard?.photo_path) return
 
     setSharing(true)
-    try {
-      // Prepare export options with all data needed for rendering
-      // Use photo_path (storage path) instead of signed URL to bypass CORS
-      const exportOptions: ExportOptions = {
-        photoPath: dayCard.photo_path || null,
-        stickers: dayCard.sticker_state || [],
-        praise: dayCard.praise || null,
-        showStamp: Boolean(dayCard.photo_path),
-        createdAt: dayCard.created_at || null,
-        date: dateStr,
-      }
+    setIsExporting(true)
 
-      const result = await sharePolaroid(exportOptions)
-      if (result.success) {
-        if (result.method === 'shared') {
+    // Small delay to ensure React re-renders with isExporting=true
+    await new Promise(resolve => setTimeout(resolve, 50))
+
+    try {
+      // Capture Day View as image (default to instagram_post 1:1)
+      const dataUrl = await captureDayView('instagram_post')
+
+      // Convert to blob for sharing
+      const response = await fetch(dataUrl)
+      const blob = await response.blob()
+      const file = new File([blob], `day-pat-${dateStr}.png`, { type: 'image/png' })
+
+      // Try Web Share API first
+      if (navigator.canShare?.({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file] })
           showToast('Successfully done!', 'success')
-        } else if (result.method === 'downloaded') {
-          showToast('Successfully done!', 'success')
+        } catch (err) {
+          if ((err as Error).name === 'AbortError') {
+            // User cancelled - don't show toast
+          } else {
+            // Share failed, fallback to download
+            downloadDataUrl(dataUrl, `day-pat-${dateStr}.png`)
+            showToast('Successfully done!', 'success')
+          }
         }
-      } else if (result.method === 'failed') {
-        showToast(result.error || 'Failed to create image', 'error')
+      } else {
+        // Fallback to download
+        downloadDataUrl(dataUrl, `day-pat-${dateStr}.png`)
+        showToast('Successfully done!', 'success')
       }
-      // Don't show toast for 'cancelled' - user intentionally cancelled
-    } catch {
+    } catch (err) {
+      console.error('Share failed:', err)
       showToast('Something went wrong', 'error')
     } finally {
+      setIsExporting(false)
       setSharing(false)
     }
+  }
+
+  // Helper function to download data URL
+  const downloadDataUrl = (dataUrl: string, filename: string) => {
+    const link = document.createElement('a')
+    link.href = dataUrl
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
   }
 
   const goToPrevDay = useCallback(() => {
@@ -89,6 +178,7 @@ export function DayView({ selectedDate, onDateChange }: DayViewProps) {
 
   return (
     <div
+      ref={dayViewRef}
       className="pb-6"
       style={{ touchAction: 'pan-y' }}
       {...getSwipeHandlers()}
@@ -136,6 +226,7 @@ export function DayView({ selectedDate, onDateChange }: DayViewProps) {
           sharing={sharing}
           saveError={error}
           onEditingChange={setEditingState}
+          isExporting={isExporting}
         />
       </div>
 
