@@ -189,16 +189,6 @@ body {
    Applied when data-exporting="true" is set on polaroid container
    ============================================ */
 
-/* Hide stamp overlay during export */
-[data-exporting="true"] [data-stamp="true"] {
-  display: none !important;
-}
-
-/* Hide stickers during export */
-[data-exporting="true"] [data-sticker="true"] {
-  display: none !important;
-}
-
 /* Remove shadow from polaroid container during export */
 [data-exporting="true"] {
   box-shadow: none !important;
