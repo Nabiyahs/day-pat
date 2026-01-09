@@ -9,25 +9,40 @@ import { cn } from '@/lib/utils'
 
 interface WeekViewProps {
   onSelectDate: (date: string) => void
+  currentWeekStart?: Date // Controlled mode: anchor date from parent
+  onWeekChange?: (weekStart: Date) => void // Callback when week changes
 }
 
 const WEEKDAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 
-export function WeekView({ onSelectDate }: WeekViewProps) {
-  const [currentWeekStart, setCurrentWeekStart] = useState(() =>
+export function WeekView({ onSelectDate, currentWeekStart: controlledWeekStart, onWeekChange }: WeekViewProps) {
+  const [internalWeekStart, setInternalWeekStart] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 1 })
   )
+
+  // Use controlled or internal state
+  const currentWeekStart = controlledWeekStart ?? internalWeekStart
 
   const { data: weekData, loading } = useWeekData(currentWeekStart)
   const weekDays = useMemo(() => getWeekDays(currentWeekStart), [currentWeekStart])
   const weekNumber = getWeek(currentWeekStart, { weekStartsOn: 1 })
 
   const goToPrevWeek = () => {
-    setCurrentWeekStart(subWeeks(currentWeekStart, 1))
+    const newWeek = subWeeks(currentWeekStart, 1)
+    if (onWeekChange) {
+      onWeekChange(newWeek)
+    } else {
+      setInternalWeekStart(newWeek)
+    }
   }
 
   const goToNextWeek = () => {
-    setCurrentWeekStart(addWeeks(currentWeekStart, 1))
+    const newWeek = addWeeks(currentWeekStart, 1)
+    if (onWeekChange) {
+      onWeekChange(newWeek)
+    } else {
+      setInternalWeekStart(newWeek)
+    }
   }
 
   return (

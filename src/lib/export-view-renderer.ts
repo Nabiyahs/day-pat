@@ -1,0 +1,1306 @@
+'use client'
+
+/**
+ * View-Based Export Renderer
+ *
+ * This module renders Day/Week/Month views as canvas images for PDF export.
+ * Each view is rendered exactly as it appears on screen, not as a date range listing.
+ *
+ * Key Principles:
+ * - DOM capture is FORBIDDEN (no html2canvas, html-to-image, foreignObject)
+ * - All rendering uses Canvas composition (drawImage, fillText, etc.)
+ * - Images are fetched via Supabase download() to avoid CORS issues
+ * - Week view supports multi-page pagination (no text clipping)
+ */
+
+import { getSupabaseClient } from '@/lib/supabase/client'
+import { formatDateString, getWeekRange, getMonthRange, getWeekDays } from '@/lib/utils'
+import { startOfWeek, startOfMonth, format, getWeek, isSameMonth, isToday, addDays } from 'date-fns'
+
+// ============================================================
+// TYPES
+// ============================================================
+
+export interface PageImage {
+  dataUrl: string
+  width: number
+  height: number
+  pageNumber: number
+  totalPages: number
+}
+
+export interface DayEntryData {
+  date: string
+  photoPath: string | null
+  photoDataUrl: string | null
+  praise: string | null
+  stickers: StickerData[]
+  isLiked: boolean
+  showStamp: boolean
+}
+
+export interface StickerData {
+  src: string
+  x: number
+  y: number
+  scale: number
+  rotation: number
+  dataUrl?: string
+}
+
+export interface WeekEntryData {
+  date: string
+  thumbUrl: string | null
+  thumbDataUrl: string | null
+  caption: string | null
+}
+
+export interface MonthEntryData {
+  date: string
+  thumbUrl: string | null
+  thumbDataUrl: string | null
+}
+
+// ============================================================
+// CONSTANTS
+// ============================================================
+
+const BUCKET_NAME = 'entry-photos'
+const STAMP_IMAGE_PATH = '/image/seal-image.jpg'
+
+// PDF page dimensions (A4 at 150 DPI for good quality)
+const PDF_PAGE = {
+  width: 1240,   // ~210mm at 150 DPI
+  height: 1754,  // ~297mm at 150 DPI
+  margin: 60,
+  headerHeight: 100,
+}
+
+// Week View layout constants
+const WEEK_LAYOUT = {
+  cardWidth: 1120,  // PDF_PAGE.width - 2 * margin
+  cardPadding: 20,
+  photoHeight: 200,
+  dateColumnWidth: 80,
+  cardGap: 24,
+  fontSize: {
+    dayName: 14,
+    dayNumber: 36,
+    caption: 18,
+  },
+  lineHeight: 1.5,
+  fontFamily: '"Inter", "Noto Sans KR", system-ui, sans-serif',
+}
+
+// Month View layout constants
+const MONTH_LAYOUT = {
+  gridGap: 2,
+  cellPadding: 4,
+  headerHeight: 80,
+  weekdayHeight: 40,
+  fontSize: {
+    title: 32,
+    weekday: 14,
+    dayNumber: 14,
+  },
+  fontFamily: '"Inter", "Noto Sans KR", system-ui, sans-serif',
+}
+
+// Day Polaroid layout (matches export-polaroid.ts)
+const POLAROID_LAYOUT = {
+  width: 340,
+  height: 440,
+  padding: 16,
+  photo: { x: 16, y: 16, width: 308, height: 280 },
+  comment: { x: 16, y: 314, width: 308, height: 80, fontSize: 14, lineHeight: 1.4, maxLines: 4 },
+  footer: { y: 424, sloganFontSize: 11, heartSize: 16 },
+  watermark: { x: 28, y: 28, fontSize: 20 },
+  stamp: { size: 70, margin: 10 },
+}
+
+const BRAND_TEXT = 'DayPat'
+const BRAND_COLOR = '#F27430'
+const BRAND_FONT_FAMILY = "'Caveat', cursive"
+const SLOGAN_TEXT = 'EVERY DAY DESERVES A PAT.'
+const SLOGAN_FONT_FAMILY = "'Open Sans', sans-serif"
+const EXPORT_BACKGROUND_COLOR = '#FFFDF8'
+
+const WEEKDAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
+const WEEKDAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
+// ============================================================
+// IMAGE UTILITIES
+// ============================================================
+
+/**
+ * Download image from Supabase Storage and convert to data URL.
+ */
+async function downloadSupabaseImage(path: string): Promise<string | null> {
+  try {
+    const supabase = getSupabaseClient()
+    const { data: blob, error } = await supabase.storage
+      .from(BUCKET_NAME)
+      .download(path)
+
+    if (error || !blob) {
+      console.error('[ViewRenderer] Supabase download error:', error?.message)
+      return null
+    }
+
+    return new Promise((resolve) => {
+      const reader = new FileReader()
+      reader.onloadend = () => resolve(reader.result as string)
+      reader.onerror = () => resolve(null)
+      reader.readAsDataURL(blob)
+    })
+  } catch (error) {
+    console.error('[ViewRenderer] downloadSupabaseImage exception:', error)
+    return null
+  }
+}
+
+/**
+ * Fetch a local image URL and convert to data URL.
+ */
+async function fetchLocalImage(url: string): Promise<string | null> {
+  try {
+    const response = await fetch(url)
+    if (!response.ok) return null
+
+    const blob = await response.blob()
+    return new Promise((resolve) => {
+      const reader = new FileReader()
+      reader.onloadend = () => resolve(reader.result as string)
+      reader.onerror = () => resolve(null)
+      reader.readAsDataURL(blob)
+    })
+  } catch (error) {
+    console.error('[ViewRenderer] fetchLocalImage exception:', error)
+    return null
+  }
+}
+
+/**
+ * Load an image from a data URL.
+ */
+async function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => resolve(img)
+    img.onerror = (e) => reject(e)
+    img.src = src
+  })
+}
+
+/**
+ * Wait for fonts to be loaded.
+ */
+async function ensureFontsLoaded(): Promise<void> {
+  if (typeof document === 'undefined') return
+
+  try {
+    await document.fonts.ready
+    await Promise.all([
+      document.fonts.load(`bold 48px ${BRAND_FONT_FAMILY}`),
+      document.fonts.load(`500 11px ${SLOGAN_FONT_FAMILY}`),
+      document.fonts.load(`500 18px ${WEEK_LAYOUT.fontFamily}`),
+    ])
+  } catch (e) {
+    console.warn('[ViewRenderer] Font loading warning:', e)
+  }
+}
+
+// ============================================================
+// TEXT MEASUREMENT AND WRAPPING
+// ============================================================
+
+/**
+ * Wrap text to fit within a maximum width.
+ * Uses character-by-character wrapping for Korean support.
+ */
+function wrapText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number
+): string[] {
+  if (!text) return []
+
+  const lines: string[] = []
+  let currentLine = ''
+
+  for (const char of text) {
+    const testLine = currentLine + char
+    const metrics = ctx.measureText(testLine)
+
+    if (metrics.width > maxWidth && currentLine.length > 0) {
+      lines.push(currentLine)
+      currentLine = char
+    } else {
+      currentLine = testLine
+    }
+  }
+
+  if (currentLine) {
+    lines.push(currentLine)
+  }
+
+  return lines
+}
+
+/**
+ * Measure the height of wrapped text.
+ */
+function measureTextHeight(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+  fontSize: number,
+  lineHeight: number
+): number {
+  const lines = wrapText(ctx, text, maxWidth)
+  return lines.length * fontSize * lineHeight
+}
+
+/**
+ * Truncate lines with ellipsis if exceeds maxLines.
+ */
+function truncateWithEllipsis(
+  ctx: CanvasRenderingContext2D,
+  lines: string[],
+  maxLines: number,
+  maxWidth: number
+): string[] {
+  if (lines.length <= maxLines) return lines
+
+  const truncated = lines.slice(0, maxLines)
+  let lastLine = truncated[truncated.length - 1]
+
+  const ellipsis = '...'
+  while (lastLine.length > 0) {
+    const testLine = lastLine + ellipsis
+    if (ctx.measureText(testLine).width <= maxWidth) {
+      truncated[truncated.length - 1] = testLine
+      break
+    }
+    lastLine = lastLine.slice(0, -1)
+  }
+
+  return truncated
+}
+
+// ============================================================
+// CANVAS DRAWING UTILITIES
+// ============================================================
+
+function roundedRectPath(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number
+): void {
+  ctx.beginPath()
+  ctx.moveTo(x + radius, y)
+  ctx.lineTo(x + width - radius, y)
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius)
+  ctx.lineTo(x + width, y + height - radius)
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height)
+  ctx.lineTo(x + radius, y + height)
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius)
+  ctx.lineTo(x, y + radius)
+  ctx.quadraticCurveTo(x, y, x + radius, y)
+  ctx.closePath()
+}
+
+function drawRoundedRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+  fill: string
+): void {
+  ctx.fillStyle = fill
+  roundedRectPath(ctx, x, y, width, height, radius)
+  ctx.fill()
+}
+
+// ============================================================
+// DATA FETCHING
+// ============================================================
+
+/**
+ * Fetch day entry data for a specific date.
+ */
+async function fetchDayEntry(date: string): Promise<DayEntryData | null> {
+  const supabase = getSupabaseClient()
+
+  const { data: entry, error } = await supabase
+    .from('entries')
+    .select('*')
+    .eq('entry_date', date)
+    .single()
+
+  if (error || !entry) return null
+
+  // Download photo
+  let photoDataUrl: string | null = null
+  if (entry.photo_path) {
+    photoDataUrl = await downloadSupabaseImage(entry.photo_path)
+  }
+
+  // Process stickers
+  const stickers: StickerData[] = []
+  if (entry.stickers && Array.isArray(entry.stickers)) {
+    for (const sticker of entry.stickers) {
+      let dataUrl: string | undefined
+      if (sticker.src?.startsWith('/')) {
+        dataUrl = await fetchLocalImage(sticker.src) || undefined
+      }
+      stickers.push({
+        src: sticker.src,
+        x: sticker.x,
+        y: sticker.y,
+        scale: sticker.scale || 1,
+        rotation: sticker.rotation || 0,
+        dataUrl,
+      })
+    }
+  }
+
+  return {
+    date,
+    photoPath: entry.photo_path,
+    photoDataUrl,
+    praise: entry.praise,
+    stickers,
+    isLiked: entry.is_liked || false,
+    showStamp: entry.show_stamp || false,
+  }
+}
+
+/**
+ * Fetch week entries for a week starting from anchorDate.
+ */
+async function fetchWeekEntries(anchorDate: Date): Promise<Map<string, WeekEntryData>> {
+  const supabase = getSupabaseClient()
+  const { start, end } = getWeekRange(anchorDate)
+
+  const { data: entries, error } = await supabase
+    .from('entries')
+    .select('entry_date, praise, photo_path')
+    .gte('entry_date', start)
+    .lte('entry_date', end)
+
+  const weekData = new Map<string, WeekEntryData>()
+
+  if (!entries || error) return weekData
+
+  for (const entry of entries) {
+    let thumbDataUrl: string | null = null
+    if (entry.photo_path) {
+      thumbDataUrl = await downloadSupabaseImage(entry.photo_path)
+    }
+
+    weekData.set(entry.entry_date, {
+      date: entry.entry_date,
+      thumbUrl: null,
+      thumbDataUrl,
+      caption: entry.praise,
+    })
+  }
+
+  return weekData
+}
+
+/**
+ * Fetch month entries for a specific month.
+ */
+async function fetchMonthEntries(year: number, month: number): Promise<Map<string, MonthEntryData>> {
+  const supabase = getSupabaseClient()
+  const { start, end } = getMonthRange(year, month)
+
+  const { data: entries, error } = await supabase
+    .from('entries')
+    .select('entry_date, photo_path')
+    .gte('entry_date', start)
+    .lte('entry_date', end)
+
+  const monthData = new Map<string, MonthEntryData>()
+
+  if (!entries || error) return monthData
+
+  for (const entry of entries) {
+    let thumbDataUrl: string | null = null
+    if (entry.photo_path) {
+      thumbDataUrl = await downloadSupabaseImage(entry.photo_path)
+    }
+
+    monthData.set(entry.entry_date, {
+      date: entry.entry_date,
+      thumbUrl: null,
+      thumbDataUrl,
+    })
+  }
+
+  return monthData
+}
+
+// ============================================================
+// DAY PAGE RENDERER
+// ============================================================
+
+/**
+ * Render a single day as a polaroid image (same as SNS share).
+ */
+async function renderDayPolaroid(entry: DayEntryData): Promise<HTMLCanvasElement> {
+  const canvas = document.createElement('canvas')
+  canvas.width = POLAROID_LAYOUT.width
+  canvas.height = POLAROID_LAYOUT.height
+  const ctx = canvas.getContext('2d')!
+
+  // White background
+  ctx.fillStyle = 'white'
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+  // Photo area background
+  const photo = POLAROID_LAYOUT.photo
+  ctx.fillStyle = '#f3f4f6'
+  ctx.fillRect(photo.x, photo.y, photo.width, photo.height)
+
+  // Draw photo
+  if (entry.photoDataUrl) {
+    try {
+      const img = await loadImage(entry.photoDataUrl)
+      ctx.save()
+      ctx.beginPath()
+      ctx.rect(photo.x, photo.y, photo.width, photo.height)
+      ctx.clip()
+
+      // Cover fit
+      const imgAspect = img.naturalWidth / img.naturalHeight
+      const areaAspect = photo.width / photo.height
+      let drawWidth: number, drawHeight: number, drawX: number, drawY: number
+
+      if (imgAspect > areaAspect) {
+        drawHeight = photo.height
+        drawWidth = drawHeight * imgAspect
+        drawX = photo.x - (drawWidth - photo.width) / 2
+        drawY = photo.y
+      } else {
+        drawWidth = photo.width
+        drawHeight = drawWidth / imgAspect
+        drawX = photo.x
+        drawY = photo.y - (drawHeight - photo.height) / 2
+      }
+
+      ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight)
+      ctx.restore()
+    } catch (e) {
+      console.error('[ViewRenderer] Failed to draw photo:', e)
+    }
+  }
+
+  // Draw stickers
+  for (const sticker of entry.stickers) {
+    const stickerX = photo.x + sticker.x * photo.width
+    const stickerY = photo.y + sticker.y * photo.height
+
+    ctx.save()
+    ctx.translate(stickerX, stickerY)
+    ctx.rotate((sticker.rotation * Math.PI) / 180)
+    ctx.scale(sticker.scale, sticker.scale)
+
+    if (sticker.dataUrl) {
+      try {
+        const stickerImg = await loadImage(sticker.dataUrl)
+        const stickerSize = 80
+        ctx.drawImage(stickerImg, -stickerSize / 2, -stickerSize / 2, stickerSize, stickerSize)
+      } catch (e) {
+        console.error('[ViewRenderer] Failed to draw sticker:', e)
+      }
+    } else if (!sticker.src.startsWith('/')) {
+      // Emoji
+      ctx.font = '30px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(sticker.src, 0, 0)
+    }
+
+    ctx.restore()
+  }
+
+  // Watermark
+  const watermark = POLAROID_LAYOUT.watermark
+  ctx.save()
+  ctx.font = `600 ${watermark.fontSize}px ${BRAND_FONT_FAMILY}`
+  ctx.fillStyle = BRAND_COLOR
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'top'
+  ctx.shadowColor = 'rgba(255, 255, 255, 0.8)'
+  ctx.shadowBlur = 3
+  ctx.fillText(BRAND_TEXT, watermark.x, watermark.y)
+  ctx.restore()
+
+  // Stamp
+  const stamp = POLAROID_LAYOUT.stamp
+  if (entry.showStamp) {
+    const stampDataUrl = await fetchLocalImage(STAMP_IMAGE_PATH)
+    if (stampDataUrl) {
+      try {
+        const stampImg = await loadImage(stampDataUrl)
+        const stampX = photo.x + photo.width - stamp.size - stamp.margin
+        const stampY = photo.y + photo.height - stamp.size - stamp.margin
+
+        ctx.save()
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.1)'
+        ctx.shadowBlur = 10
+        ctx.shadowOffsetY = 6
+        ctx.beginPath()
+        ctx.arc(stampX + stamp.size / 2, stampY + stamp.size / 2, stamp.size / 2, 0, Math.PI * 2)
+        ctx.clip()
+        ctx.drawImage(stampImg, stampX, stampY, stamp.size, stamp.size)
+        ctx.restore()
+      } catch (e) {
+        console.error('[ViewRenderer] Failed to draw stamp:', e)
+      }
+    }
+  }
+
+  // Caption
+  const comment = POLAROID_LAYOUT.comment
+  ctx.font = `500 ${comment.fontSize}px ${POLAROID_LAYOUT.padding}px ${WEEK_LAYOUT.fontFamily}`
+  ctx.font = `500 ${comment.fontSize}px "Inter", "Noto Sans KR", system-ui, sans-serif`
+  ctx.fillStyle = '#374151'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'top'
+
+  const displayText = entry.praise || 'Give your day a pat.'
+  const displayColor = entry.praise ? '#374151' : '#9ca3af'
+  ctx.fillStyle = displayColor
+
+  const lines = wrapText(ctx, displayText, comment.width - 8)
+  const truncatedLines = truncateWithEllipsis(ctx, lines, comment.maxLines, comment.width - 8)
+  const lineHeightPx = comment.fontSize * comment.lineHeight
+
+  ctx.save()
+  ctx.beginPath()
+  ctx.rect(comment.x, comment.y, comment.width, comment.height)
+  ctx.clip()
+
+  let currentY = comment.y
+  for (const line of truncatedLines) {
+    ctx.fillText(line, comment.x + comment.width / 2, currentY)
+    currentY += lineHeightPx
+  }
+  ctx.restore()
+
+  // Footer: slogan
+  const footer = POLAROID_LAYOUT.footer
+  ctx.font = `500 ${footer.sloganFontSize}px ${SLOGAN_FONT_FAMILY}`
+  ctx.fillStyle = BRAND_COLOR
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(SLOGAN_TEXT, POLAROID_LAYOUT.padding, footer.y)
+
+  // Heart icon
+  const heartSize = footer.heartSize
+  const heartX = POLAROID_LAYOUT.width - POLAROID_LAYOUT.padding - heartSize / 2
+  const heartY = footer.y
+
+  ctx.save()
+  ctx.translate(heartX, heartY)
+  ctx.beginPath()
+  const hs = heartSize * 0.45
+  ctx.moveTo(0, hs * 0.3)
+  ctx.bezierCurveTo(-hs * 0.5, -hs * 0.3, -hs, hs * 0.1, 0, hs)
+  ctx.bezierCurveTo(hs, hs * 0.1, hs * 0.5, -hs * 0.3, 0, hs * 0.3)
+  ctx.closePath()
+
+  if (entry.isLiked) {
+    ctx.fillStyle = '#ef4444'
+    ctx.fill()
+  } else {
+    ctx.strokeStyle = '#9ca3af'
+    ctx.lineWidth = 1.5
+    ctx.stroke()
+  }
+  ctx.restore()
+
+  return canvas
+}
+
+/**
+ * Render day entry as PDF page image.
+ * Polaroid is centered on a warm cream background.
+ */
+async function renderDayAsPage(entry: DayEntryData): Promise<HTMLCanvasElement> {
+  const canvas = document.createElement('canvas')
+  canvas.width = PDF_PAGE.width
+  canvas.height = PDF_PAGE.height
+  const ctx = canvas.getContext('2d')!
+
+  // Background
+  ctx.fillStyle = EXPORT_BACKGROUND_COLOR
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+  // Render polaroid
+  const polaroid = await renderDayPolaroid(entry)
+
+  // Scale and center polaroid
+  const maxWidth = PDF_PAGE.width - PDF_PAGE.margin * 2
+  const maxHeight = PDF_PAGE.height - PDF_PAGE.margin * 2 - 100 // Leave room for header
+  const scale = Math.min(maxWidth / polaroid.width, maxHeight / polaroid.height, 2.5)
+
+  const drawWidth = polaroid.width * scale
+  const drawHeight = polaroid.height * scale
+  const drawX = (PDF_PAGE.width - drawWidth) / 2
+  const drawY = PDF_PAGE.margin + 80 + (maxHeight - drawHeight) / 2
+
+  // Draw shadow
+  ctx.save()
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.15)'
+  ctx.shadowBlur = 30
+  ctx.shadowOffsetY = 15
+  ctx.fillStyle = 'white'
+  ctx.fillRect(drawX, drawY, drawWidth, drawHeight)
+  ctx.restore()
+
+  // Draw polaroid
+  ctx.drawImage(polaroid, drawX, drawY, drawWidth, drawHeight)
+
+  // Header with date
+  const date = new Date(entry.date + 'T00:00:00')
+  const dateStr = format(date, 'yyyy.MM.dd')
+  const weekday = format(date, 'EEEE')
+
+  ctx.font = `bold 36px ${WEEK_LAYOUT.fontFamily}`
+  ctx.fillStyle = '#1f2937'
+  ctx.textAlign = 'center'
+  ctx.fillText(dateStr, PDF_PAGE.width / 2, PDF_PAGE.margin + 40)
+
+  ctx.font = `500 18px ${WEEK_LAYOUT.fontFamily}`
+  ctx.fillStyle = '#6b7280'
+  ctx.fillText(weekday, PDF_PAGE.width / 2, PDF_PAGE.margin + 65)
+
+  return canvas
+}
+
+/**
+ * Render Day View pages for export.
+ * Uses the current selected date to render a single day.
+ */
+export async function renderDayPageImages(selectedDate: string): Promise<PageImage[]> {
+  console.log('[ViewRenderer] renderDayPageImages:', selectedDate)
+  await ensureFontsLoaded()
+
+  const entry = await fetchDayEntry(selectedDate)
+
+  if (!entry) {
+    console.warn('[ViewRenderer] No entry found for date:', selectedDate)
+    // Return empty page with message
+    const canvas = document.createElement('canvas')
+    canvas.width = PDF_PAGE.width
+    canvas.height = PDF_PAGE.height
+    const ctx = canvas.getContext('2d')!
+
+    ctx.fillStyle = EXPORT_BACKGROUND_COLOR
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+    ctx.font = `500 24px ${WEEK_LAYOUT.fontFamily}`
+    ctx.fillStyle = '#9ca3af'
+    ctx.textAlign = 'center'
+    ctx.fillText('No entry for this date', PDF_PAGE.width / 2, PDF_PAGE.height / 2)
+
+    return [{
+      dataUrl: canvas.toDataURL('image/png'),
+      width: canvas.width,
+      height: canvas.height,
+      pageNumber: 1,
+      totalPages: 1,
+    }]
+  }
+
+  const pageCanvas = await renderDayAsPage(entry)
+
+  return [{
+    dataUrl: pageCanvas.toDataURL('image/png'),
+    width: pageCanvas.width,
+    height: pageCanvas.height,
+    pageNumber: 1,
+    totalPages: 1,
+  }]
+}
+
+// ============================================================
+// WEEK PAGE RENDERER WITH MULTI-PAGE PAGINATION
+// ============================================================
+
+interface WeekCardMeasurement {
+  date: Date
+  dateStr: string
+  entry: WeekEntryData | null
+  cardHeight: number
+  captionLines: string[]
+}
+
+/**
+ * Measure all week cards and calculate their heights.
+ */
+function measureWeekCards(
+  ctx: CanvasRenderingContext2D,
+  weekDays: Date[],
+  weekData: Map<string, WeekEntryData>
+): WeekCardMeasurement[] {
+  const measurements: WeekCardMeasurement[] = []
+  const captionMaxWidth = WEEK_LAYOUT.cardWidth - WEEK_LAYOUT.dateColumnWidth - WEEK_LAYOUT.cardPadding * 3
+
+  ctx.font = `500 ${WEEK_LAYOUT.fontSize.caption}px ${WEEK_LAYOUT.fontFamily}`
+
+  for (const date of weekDays) {
+    const dateStr = formatDateString(date)
+    const entry = weekData.get(dateStr) || null
+
+    let captionLines: string[] = []
+    let captionHeight = 0
+
+    if (entry?.caption) {
+      captionLines = wrapText(ctx, entry.caption, captionMaxWidth)
+      captionHeight = captionLines.length * WEEK_LAYOUT.fontSize.caption * WEEK_LAYOUT.lineHeight
+    }
+
+    // Card height = padding + max(photo height, date column) + caption + padding
+    const baseHeight = WEEK_LAYOUT.cardPadding * 2 + WEEK_LAYOUT.photoHeight
+    const totalHeight = baseHeight + (captionLines.length > 0 ? captionHeight + WEEK_LAYOUT.cardPadding : 0)
+
+    measurements.push({
+      date,
+      dateStr,
+      entry,
+      cardHeight: Math.max(totalHeight, 120), // Minimum card height
+      captionLines,
+    })
+  }
+
+  return measurements
+}
+
+/**
+ * Split week cards into pages based on available height.
+ * Uses greedy algorithm to maximize density without clipping.
+ */
+function splitIntoPages(
+  measurements: WeekCardMeasurement[],
+  availableHeight: number
+): WeekCardMeasurement[][] {
+  const pages: WeekCardMeasurement[][] = []
+  let currentPage: WeekCardMeasurement[] = []
+  let currentHeight = 0
+
+  for (const card of measurements) {
+    const cardWithGap = card.cardHeight + WEEK_LAYOUT.cardGap
+
+    if (currentHeight + card.cardHeight > availableHeight && currentPage.length > 0) {
+      // Start new page
+      pages.push(currentPage)
+      currentPage = [card]
+      currentHeight = cardWithGap
+    } else {
+      currentPage.push(card)
+      currentHeight += cardWithGap
+    }
+  }
+
+  if (currentPage.length > 0) {
+    pages.push(currentPage)
+  }
+
+  return pages
+}
+
+/**
+ * Draw a single week card on the canvas.
+ */
+async function drawWeekCard(
+  ctx: CanvasRenderingContext2D,
+  card: WeekCardMeasurement,
+  x: number,
+  y: number,
+  width: number
+): Promise<number> {
+  const isCurrentDay = isToday(card.date)
+  const hasEntry = card.entry && (card.entry.thumbDataUrl || card.entry.caption)
+  const dayIndex = (card.date.getDay() + 6) % 7 // Convert to Monday-based
+
+  // Card background
+  if (hasEntry) {
+    ctx.fillStyle = 'white'
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.1)'
+    ctx.shadowBlur = 10
+    ctx.shadowOffsetY = 4
+    roundedRectPath(ctx, x, y, width, card.cardHeight, 16)
+    ctx.fill()
+    ctx.shadowColor = 'transparent'
+  } else {
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)'
+    roundedRectPath(ctx, x, y, width, card.cardHeight, 16)
+    ctx.fill()
+    // Dashed border
+    ctx.strokeStyle = isCurrentDay ? BRAND_COLOR : '#d1d5db'
+    ctx.lineWidth = 2
+    ctx.setLineDash(isCurrentDay ? [] : [8, 4])
+    ctx.stroke()
+    ctx.setLineDash([])
+  }
+
+  // Orange border for today
+  if (isCurrentDay && hasEntry) {
+    ctx.strokeStyle = BRAND_COLOR
+    ctx.lineWidth = 3
+    roundedRectPath(ctx, x, y, width, card.cardHeight, 16)
+    ctx.stroke()
+  }
+
+  // Date column
+  const dateX = x + WEEK_LAYOUT.cardPadding
+  const dateY = y + WEEK_LAYOUT.cardPadding
+
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'top'
+
+  // Day name
+  ctx.font = `bold ${WEEK_LAYOUT.fontSize.dayName}px ${WEEK_LAYOUT.fontFamily}`
+  ctx.fillStyle = isCurrentDay ? BRAND_COLOR : (hasEntry ? '#6b7280' : '#9ca3af')
+  ctx.fillText(WEEKDAYS[dayIndex], dateX + WEEK_LAYOUT.dateColumnWidth / 2, dateY)
+
+  // Day number
+  ctx.font = `bold ${WEEK_LAYOUT.fontSize.dayNumber}px ${WEEK_LAYOUT.fontFamily}`
+  ctx.fillStyle = isCurrentDay ? BRAND_COLOR : (hasEntry ? '#1f2937' : '#9ca3af')
+  ctx.fillText(card.date.getDate().toString(), dateX + WEEK_LAYOUT.dateColumnWidth / 2, dateY + 20)
+
+  // Photo area
+  const photoX = dateX + WEEK_LAYOUT.dateColumnWidth + WEEK_LAYOUT.cardPadding
+  const photoY = y + WEEK_LAYOUT.cardPadding
+  const photoWidth = width - WEEK_LAYOUT.dateColumnWidth - WEEK_LAYOUT.cardPadding * 3
+
+  if (card.entry?.thumbDataUrl) {
+    try {
+      const img = await loadImage(card.entry.thumbDataUrl)
+      ctx.save()
+      roundedRectPath(ctx, photoX, photoY, photoWidth, WEEK_LAYOUT.photoHeight, 12)
+      ctx.clip()
+
+      // Cover fit
+      const imgAspect = img.naturalWidth / img.naturalHeight
+      const areaAspect = photoWidth / WEEK_LAYOUT.photoHeight
+      let drawWidth: number, drawHeight: number, drawPx: number, drawPy: number
+
+      if (imgAspect > areaAspect) {
+        drawHeight = WEEK_LAYOUT.photoHeight
+        drawWidth = drawHeight * imgAspect
+        drawPx = photoX - (drawWidth - photoWidth) / 2
+        drawPy = photoY
+      } else {
+        drawWidth = photoWidth
+        drawHeight = drawWidth / imgAspect
+        drawPx = photoX
+        drawPy = photoY - (drawHeight - WEEK_LAYOUT.photoHeight) / 2
+      }
+
+      ctx.drawImage(img, drawPx, drawPy, drawWidth, drawHeight)
+      ctx.restore()
+    } catch (e) {
+      console.error('[ViewRenderer] Failed to draw week card photo:', e)
+      // Draw placeholder
+      drawRoundedRect(ctx, photoX, photoY, photoWidth, WEEK_LAYOUT.photoHeight, 12, '#f3f4f6')
+    }
+  } else {
+    // Empty photo placeholder
+    drawRoundedRect(ctx, photoX, photoY, photoWidth, WEEK_LAYOUT.photoHeight, 12, '#f3f4f6')
+    ctx.fillStyle = '#d1d5db'
+    ctx.font = `bold 48px ${WEEK_LAYOUT.fontFamily}`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText('+', photoX + photoWidth / 2, photoY + WEEK_LAYOUT.photoHeight / 2)
+  }
+
+  // Caption (NO truncation - full text rendered)
+  if (card.captionLines.length > 0) {
+    ctx.font = `500 ${WEEK_LAYOUT.fontSize.caption}px ${WEEK_LAYOUT.fontFamily}`
+    ctx.fillStyle = '#4b5563'
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'top'
+
+    let captionY = photoY + WEEK_LAYOUT.photoHeight + WEEK_LAYOUT.cardPadding
+
+    for (const line of card.captionLines) {
+      ctx.fillText(line, photoX, captionY)
+      captionY += WEEK_LAYOUT.fontSize.caption * WEEK_LAYOUT.lineHeight
+    }
+  } else if (!hasEntry) {
+    ctx.font = `500 ${WEEK_LAYOUT.fontSize.caption}px ${WEEK_LAYOUT.fontFamily}`
+    ctx.fillStyle = '#9ca3af'
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'top'
+    ctx.fillText('No entry yet', photoX, photoY + WEEK_LAYOUT.photoHeight + WEEK_LAYOUT.cardPadding)
+  }
+
+  return card.cardHeight
+}
+
+/**
+ * Render a single week page.
+ */
+async function renderWeekPage(
+  cards: WeekCardMeasurement[],
+  weekNumber: number,
+  weekStart: Date,
+  weekEnd: Date,
+  pageNumber: number,
+  totalPages: number
+): Promise<HTMLCanvasElement> {
+  const canvas = document.createElement('canvas')
+  canvas.width = PDF_PAGE.width
+  canvas.height = PDF_PAGE.height
+  const ctx = canvas.getContext('2d')!
+
+  // Background
+  ctx.fillStyle = EXPORT_BACKGROUND_COLOR
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+  // Header
+  ctx.font = `bold 32px ${WEEK_LAYOUT.fontFamily}`
+  ctx.fillStyle = '#1f2937'
+  ctx.textAlign = 'center'
+  ctx.fillText(`Week ${weekNumber}`, PDF_PAGE.width / 2, PDF_PAGE.margin + 35)
+
+  ctx.font = `500 16px ${WEEK_LAYOUT.fontFamily}`
+  ctx.fillStyle = '#6b7280'
+  ctx.fillText(
+    `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d, yyyy')}`,
+    PDF_PAGE.width / 2,
+    PDF_PAGE.margin + 60
+  )
+
+  // Page indicator if multi-page
+  if (totalPages > 1) {
+    ctx.font = `500 14px ${WEEK_LAYOUT.fontFamily}`
+    ctx.fillStyle = '#9ca3af'
+    ctx.textAlign = 'right'
+    ctx.fillText(`Page ${pageNumber}/${totalPages}`, PDF_PAGE.width - PDF_PAGE.margin, PDF_PAGE.margin + 35)
+  }
+
+  // Draw cards
+  let currentY = PDF_PAGE.margin + PDF_PAGE.headerHeight
+  const cardX = PDF_PAGE.margin
+
+  for (const card of cards) {
+    await drawWeekCard(ctx, card, cardX, currentY, WEEK_LAYOUT.cardWidth)
+    currentY += card.cardHeight + WEEK_LAYOUT.cardGap
+  }
+
+  // Footer
+  ctx.font = `500 12px ${WEEK_LAYOUT.fontFamily}`
+  ctx.fillStyle = '#9ca3af'
+  ctx.textAlign = 'left'
+  ctx.fillText('DayPat', PDF_PAGE.margin, PDF_PAGE.height - PDF_PAGE.margin + 20)
+
+  ctx.textAlign = 'right'
+  ctx.fillText(
+    format(new Date(), 'MMM d, yyyy'),
+    PDF_PAGE.width - PDF_PAGE.margin,
+    PDF_PAGE.height - PDF_PAGE.margin + 20
+  )
+
+  return canvas
+}
+
+/**
+ * Render Week View pages for export.
+ * Supports multi-page pagination - comments are NEVER clipped.
+ */
+export async function renderWeekPageImages(anchorDate: Date): Promise<PageImage[]> {
+  console.log('[ViewRenderer] renderWeekPageImages:', anchorDate)
+  await ensureFontsLoaded()
+
+  const weekStart = startOfWeek(anchorDate, { weekStartsOn: 1 })
+  const weekDays = getWeekDays(weekStart)
+  const weekNumber = getWeek(weekStart, { weekStartsOn: 1 })
+  const weekEnd = addDays(weekStart, 6)
+
+  // Fetch week data
+  const weekData = await fetchWeekEntries(weekStart)
+
+  // Create measurement canvas for text measurement
+  const measureCanvas = document.createElement('canvas')
+  const measureCtx = measureCanvas.getContext('2d')!
+
+  // Measure all cards
+  const measurements = measureWeekCards(measureCtx, weekDays, weekData)
+
+  // Calculate available height for cards
+  const availableHeight = PDF_PAGE.height - PDF_PAGE.margin * 2 - PDF_PAGE.headerHeight - 40
+
+  // Split into pages
+  const pages = splitIntoPages(measurements, availableHeight)
+  const totalPages = pages.length
+
+  console.log('[ViewRenderer] Week pages:', totalPages, 'cards distributed:', pages.map(p => p.length))
+
+  // Render each page
+  const pageImages: PageImage[] = []
+
+  for (let i = 0; i < pages.length; i++) {
+    const pageCanvas = await renderWeekPage(
+      pages[i],
+      weekNumber,
+      weekStart,
+      weekEnd,
+      i + 1,
+      totalPages
+    )
+
+    pageImages.push({
+      dataUrl: pageCanvas.toDataURL('image/png'),
+      width: pageCanvas.width,
+      height: pageCanvas.height,
+      pageNumber: i + 1,
+      totalPages,
+    })
+  }
+
+  return pageImages
+}
+
+// ============================================================
+// MONTH PAGE RENDERER
+// ============================================================
+
+/**
+ * Render Month View as a single page.
+ */
+export async function renderMonthPageImages(year: number, month: number): Promise<PageImage[]> {
+  console.log('[ViewRenderer] renderMonthPageImages:', year, month)
+  await ensureFontsLoaded()
+
+  const canvas = document.createElement('canvas')
+  canvas.width = PDF_PAGE.width
+  canvas.height = PDF_PAGE.height
+  const ctx = canvas.getContext('2d')!
+
+  // Background
+  ctx.fillStyle = EXPORT_BACKGROUND_COLOR
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+  // Fetch month data
+  const monthData = await fetchMonthEntries(year, month)
+
+  // Header
+  const monthDate = new Date(year, month, 1)
+  ctx.font = `bold 36px ${MONTH_LAYOUT.fontFamily}`
+  ctx.fillStyle = '#1f2937'
+  ctx.textAlign = 'center'
+  ctx.fillText(format(monthDate, 'MMMM yyyy'), PDF_PAGE.width / 2, PDF_PAGE.margin + 45)
+
+  // Calendar grid dimensions
+  const gridTop = PDF_PAGE.margin + MONTH_LAYOUT.headerHeight + MONTH_LAYOUT.weekdayHeight
+  const gridWidth = PDF_PAGE.width - PDF_PAGE.margin * 2
+  const gridHeight = PDF_PAGE.height - gridTop - PDF_PAGE.margin - 30
+
+  // Build calendar days
+  const firstDay = startOfMonth(monthDate)
+  const calendarDays: Date[] = []
+
+  let dayOfWeek = firstDay.getDay()
+  dayOfWeek = dayOfWeek === 0 ? 6 : dayOfWeek - 1 // Monday-based
+
+  // Padding days from previous month
+  for (let i = 0; i < dayOfWeek; i++) {
+    calendarDays.push(new Date(year, month, -(dayOfWeek - i - 1)))
+  }
+
+  // Days of the month
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  for (let i = 1; i <= daysInMonth; i++) {
+    calendarDays.push(new Date(year, month, i))
+  }
+
+  // Padding to complete last week
+  const remaining = (7 - (calendarDays.length % 7)) % 7
+  for (let i = 1; i <= remaining; i++) {
+    calendarDays.push(new Date(year, month + 1, i))
+  }
+
+  const numWeeks = Math.ceil(calendarDays.length / 7)
+  const cellWidth = (gridWidth - MONTH_LAYOUT.gridGap * 6) / 7
+  const cellHeight = (gridHeight - MONTH_LAYOUT.gridGap * (numWeeks - 1)) / numWeeks
+
+  // Weekday headers
+  ctx.font = `600 ${MONTH_LAYOUT.fontSize.weekday}px ${MONTH_LAYOUT.fontFamily}`
+  ctx.fillStyle = '#6b7280'
+  ctx.textAlign = 'center'
+
+  for (let i = 0; i < 7; i++) {
+    const x = PDF_PAGE.margin + i * (cellWidth + MONTH_LAYOUT.gridGap) + cellWidth / 2
+    ctx.fillText(WEEKDAYS_SHORT[i], x, PDF_PAGE.margin + MONTH_LAYOUT.headerHeight + 25)
+  }
+
+  // Calendar cells
+  for (let i = 0; i < calendarDays.length; i++) {
+    const date = calendarDays[i]
+    const dateStr = formatDateString(date)
+    const col = i % 7
+    const row = Math.floor(i / 7)
+
+    const cellX = PDF_PAGE.margin + col * (cellWidth + MONTH_LAYOUT.gridGap)
+    const cellY = gridTop + row * (cellHeight + MONTH_LAYOUT.gridGap)
+
+    const isCurrentMonth = isSameMonth(date, monthDate)
+    const isCurrentDay = isToday(date)
+    const dayData = monthData.get(dateStr)
+    const hasPhoto = dayData?.thumbDataUrl && isCurrentMonth
+
+    // Cell background
+    if (!isCurrentMonth) {
+      ctx.fillStyle = '#f3f4f6'
+      ctx.fillRect(cellX, cellY, cellWidth, cellHeight)
+    } else if (hasPhoto) {
+      // Draw photo
+      try {
+        const img = await loadImage(dayData!.thumbDataUrl!)
+        ctx.save()
+        ctx.beginPath()
+        ctx.rect(cellX, cellY, cellWidth, cellHeight)
+        ctx.clip()
+
+        // Cover fit
+        const imgAspect = img.naturalWidth / img.naturalHeight
+        const areaAspect = cellWidth / cellHeight
+        let drawWidth: number, drawHeight: number, drawX: number, drawY: number
+
+        if (imgAspect > areaAspect) {
+          drawHeight = cellHeight
+          drawWidth = drawHeight * imgAspect
+          drawX = cellX - (drawWidth - cellWidth) / 2
+          drawY = cellY
+        } else {
+          drawWidth = cellWidth
+          drawHeight = drawWidth / imgAspect
+          drawX = cellX
+          drawY = cellY - (drawHeight - cellHeight) / 2
+        }
+
+        ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight)
+        ctx.restore()
+      } catch (e) {
+        ctx.fillStyle = '#f9fafb'
+        ctx.fillRect(cellX, cellY, cellWidth, cellHeight)
+      }
+    } else {
+      ctx.fillStyle = '#f9fafb'
+      ctx.fillRect(cellX, cellY, cellWidth, cellHeight)
+    }
+
+    // Today indicator
+    if (isCurrentDay) {
+      ctx.strokeStyle = BRAND_COLOR
+      ctx.lineWidth = 3
+      ctx.strokeRect(cellX + 2, cellY + 2, cellWidth - 4, cellHeight - 4)
+    }
+
+    // Date number
+    if (isCurrentMonth) {
+      ctx.font = `bold ${MONTH_LAYOUT.fontSize.dayNumber}px ${MONTH_LAYOUT.fontFamily}`
+      ctx.textAlign = 'left'
+      ctx.textBaseline = 'top'
+
+      if (hasPhoto) {
+        ctx.fillStyle = 'white'
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)'
+        ctx.shadowBlur = 2
+      } else if (isCurrentDay) {
+        ctx.fillStyle = BRAND_COLOR
+        ctx.shadowColor = 'transparent'
+      } else {
+        ctx.fillStyle = '#374151'
+        ctx.shadowColor = 'transparent'
+      }
+
+      ctx.fillText(date.getDate().toString(), cellX + MONTH_LAYOUT.cellPadding, cellY + MONTH_LAYOUT.cellPadding)
+      ctx.shadowColor = 'transparent'
+    }
+  }
+
+  // Grid border
+  ctx.strokeStyle = '#e5e7eb'
+  ctx.lineWidth = 1
+  ctx.strokeRect(PDF_PAGE.margin, gridTop, gridWidth, numWeeks * cellHeight + (numWeeks - 1) * MONTH_LAYOUT.gridGap)
+
+  // Footer
+  ctx.font = `500 12px ${MONTH_LAYOUT.fontFamily}`
+  ctx.fillStyle = '#9ca3af'
+  ctx.textAlign = 'left'
+  ctx.fillText('DayPat', PDF_PAGE.margin, PDF_PAGE.height - PDF_PAGE.margin + 20)
+
+  ctx.textAlign = 'right'
+  ctx.fillText(
+    format(new Date(), 'MMM d, yyyy'),
+    PDF_PAGE.width - PDF_PAGE.margin,
+    PDF_PAGE.height - PDF_PAGE.margin + 20
+  )
+
+  return [{
+    dataUrl: canvas.toDataURL('image/png'),
+    width: canvas.width,
+    height: canvas.height,
+    pageNumber: 1,
+    totalPages: 1,
+  }]
+}
+
+// ============================================================
+// MAIN EXPORT FUNCTION
+// ============================================================
+
+export type ExportViewType = 'day' | 'week' | 'month'
+
+export interface ViewExportOptions {
+  viewType: ExportViewType
+  selectedDate: string // Current selected date (YYYY-MM-DD)
+  weekAnchorDate?: Date // For week view
+  monthYear?: number // For month view
+  monthIndex?: number // For month view (0-11)
+}
+
+/**
+ * Render pages based on the current view type.
+ * This is the main entry point for view-based export.
+ */
+export async function renderViewPages(options: ViewExportOptions): Promise<PageImage[]> {
+  const { viewType, selectedDate, weekAnchorDate, monthYear, monthIndex } = options
+
+  console.log('[ViewRenderer] renderViewPages:', { viewType, selectedDate })
+
+  switch (viewType) {
+    case 'day':
+      return renderDayPageImages(selectedDate)
+
+    case 'week': {
+      const anchor = weekAnchorDate || new Date(selectedDate + 'T00:00:00')
+      return renderWeekPageImages(anchor)
+    }
+
+    case 'month': {
+      const date = new Date(selectedDate + 'T00:00:00')
+      const year = monthYear ?? date.getFullYear()
+      const month = monthIndex ?? date.getMonth()
+      return renderMonthPageImages(year, month)
+    }
+
+    default:
+      throw new Error(`Unknown view type: ${viewType}`)
+  }
+}

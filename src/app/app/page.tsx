@@ -15,12 +15,19 @@ import { DayView } from '@/components/day/day-view'
 import { formatDateString } from '@/lib/utils'
 import { clearSessionTracking } from '@/lib/auth/session-persistence'
 import { clearSignedUrlCache } from '@/lib/image-upload'
+import { startOfWeek } from 'date-fns'
 
 export default function AppPage() {
   const [user, setUser] = useState<User | null>(null)
   const [initializing, setInitializing] = useState(true)
   const [activeView, setActiveView] = useState<ViewType>('day')
   const [selectedDate, setSelectedDate] = useState(() => formatDateString(new Date()))
+
+  // Week and Month navigation state (for export)
+  const [currentWeekStart, setCurrentWeekStart] = useState(() =>
+    startOfWeek(new Date(), { weekStartsOn: 1 })
+  )
+  const [currentMonth, setCurrentMonth] = useState(() => new Date())
 
   // Modal states (matches main.html modal structure)
   const [introOpen, setIntroOpen] = useState(false)  // Onboarding intro modal
@@ -209,10 +216,18 @@ export default function AppPage() {
           />
         )}
         {activeView === 'week' && (
-          <WeekView onSelectDate={handleSelectDate} />
+          <WeekView
+            onSelectDate={handleSelectDate}
+            currentWeekStart={currentWeekStart}
+            onWeekChange={setCurrentWeekStart}
+          />
         )}
         {activeView === 'month' && (
-          <MonthView onSelectDate={handleSelectDate} />
+          <MonthView
+            onSelectDate={handleSelectDate}
+            currentMonth={currentMonth}
+            onMonthChange={setCurrentMonth}
+          />
         )}
       </main>
 
@@ -275,6 +290,11 @@ export default function AppPage() {
       <ExportModal
         isOpen={exportOpen}
         onClose={() => setExportOpen(false)}
+        activeView={activeView}
+        selectedDate={selectedDate}
+        weekAnchorDate={currentWeekStart}
+        monthYear={currentMonth.getFullYear()}
+        monthIndex={currentMonth.getMonth()}
       />
       <DayViewModal
         isOpen={dayViewModalOpen}

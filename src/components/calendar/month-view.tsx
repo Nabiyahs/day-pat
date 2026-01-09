@@ -9,12 +9,17 @@ import { cn } from '@/lib/utils'
 
 interface MonthViewProps {
   onSelectDate: (date: string) => void
+  currentMonth?: Date // Controlled mode: month from parent
+  onMonthChange?: (month: Date) => void // Callback when month changes
 }
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
-export function MonthView({ onSelectDate }: MonthViewProps) {
-  const [currentMonth, setCurrentMonth] = useState(new Date())
+export function MonthView({ onSelectDate, currentMonth: controlledMonth, onMonthChange }: MonthViewProps) {
+  const [internalMonth, setInternalMonth] = useState(new Date())
+
+  // Use controlled or internal state
+  const currentMonth = controlledMonth ?? internalMonth
 
   const year = currentMonth.getFullYear()
   const month = currentMonth.getMonth()
@@ -55,11 +60,21 @@ export function MonthView({ onSelectDate }: MonthViewProps) {
   const numWeeks = Math.ceil(calendarDays.length / 7)
 
   const goToPrevMonth = () => {
-    setCurrentMonth(subMonths(currentMonth, 1))
+    const newMonth = subMonths(currentMonth, 1)
+    if (onMonthChange) {
+      onMonthChange(newMonth)
+    } else {
+      setInternalMonth(newMonth)
+    }
   }
 
   const goToNextMonth = () => {
-    setCurrentMonth(addMonths(currentMonth, 1))
+    const newMonth = addMonths(currentMonth, 1)
+    if (onMonthChange) {
+      onMonthChange(newMonth)
+    } else {
+      setInternalMonth(newMonth)
+    }
   }
 
   return (
