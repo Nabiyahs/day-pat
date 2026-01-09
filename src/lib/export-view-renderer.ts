@@ -36,7 +36,6 @@ export interface DayEntryData {
   praise: string | null
   stickers: StickerData[]
   isLiked: boolean
-  showStamp: boolean
 }
 
 export interface StickerData {
@@ -66,7 +65,6 @@ export interface MonthEntryData {
 // ============================================================
 
 const BUCKET_NAME = 'entry-photos'
-const STAMP_IMAGE_PATH = '/image/seal-image.jpg'
 
 // PDF page dimensions (A4 at 150 DPI for good quality)
 const PDF_PAGE = {
@@ -127,7 +125,6 @@ const POLAROID_LAYOUT = {
   },
   footer: { y: 424, sloganFontSize: 11, heartSize: 16 },
   watermark: { x: 28, y: 28, fontSize: 20 },
-  stamp: { size: 70, margin: 10 },
 }
 
 const BRAND_TEXT = 'DayPat'
@@ -432,7 +429,6 @@ async function fetchDayEntry(date: string): Promise<DayEntryData | null> {
     praise: entry.praise,
     stickers,
     isLiked: entry.is_liked || false,
-    showStamp: entry.show_stamp || false,
   }
 }
 
@@ -509,7 +505,7 @@ async function fetchMonthEntries(year: number, month: number): Promise<Map<strin
 
 /**
  * Check if an entry has any meaningful data.
- * Data exists if: praise, photo_path, stickers (non-empty), or show_stamp is true.
+ * Data exists if: praise, photo_path, or stickers (non-empty).
  *
  * NOTE: sticker_state is stored as { stickers: [...] } in the database.
  */
@@ -517,7 +513,6 @@ function hasEntryData(entry: {
   praise?: string | null
   photo_path?: string | null
   sticker_state?: { stickers?: unknown[] } | unknown[] | null
-  show_stamp?: boolean | null
 }): boolean {
   if (entry.praise && entry.praise.trim().length > 0) return true
   if (entry.photo_path) return true
@@ -529,7 +524,6 @@ function hasEntryData(entry: {
       if (Array.isArray(stickers) && stickers.length > 0) return true
     }
   }
-  if (entry.show_stamp) return true
   return false
 }
 
@@ -545,7 +539,7 @@ export async function fetchDatesWithDataInRange(
 
   const { data: entries, error } = await supabase
     .from('entries')
-    .select('entry_date, praise, photo_path, sticker_state, show_stamp')
+    .select('entry_date, praise, photo_path, sticker_state')
     .gte('entry_date', fromDate)
     .lte('entry_date', toDate)
 
@@ -726,31 +720,6 @@ async function renderDayPolaroid(entry: DayEntryData): Promise<HTMLCanvasElement
   ctx.shadowBlur = 3
   ctx.fillText(BRAND_TEXT, watermark.x, watermark.y)
   ctx.restore()
-
-  // Stamp
-  const stamp = POLAROID_LAYOUT.stamp
-  if (entry.showStamp) {
-    const stampDataUrl = await fetchLocalImage(STAMP_IMAGE_PATH)
-    if (stampDataUrl) {
-      try {
-        const stampImg = await loadImage(stampDataUrl)
-        const stampX = photo.x + photo.width - stamp.size - stamp.margin
-        const stampY = photo.y + photo.height - stamp.size - stamp.margin
-
-        ctx.save()
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.1)'
-        ctx.shadowBlur = 10
-        ctx.shadowOffsetY = 6
-        ctx.beginPath()
-        ctx.arc(stampX + stamp.size / 2, stampY + stamp.size / 2, stamp.size / 2, 0, Math.PI * 2)
-        ctx.clip()
-        ctx.drawImage(stampImg, stampX, stampY, stamp.size, stamp.size)
-        ctx.restore()
-      } catch (e) {
-        console.error('[ViewRenderer] Failed to draw stamp:', e)
-      }
-    }
-  }
 
   // Caption - render with same settings as export-polaroid.ts
   // Uses lineHeight 1.625 (Tailwind's "leading-relaxed") to match Day View
