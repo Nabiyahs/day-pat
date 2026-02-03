@@ -183,8 +183,6 @@ export function MonthView({ onSelectDate, currentMonth: controlledMonth, onMonth
                       ? 'text-white font-bold drop-shadow'
                       : isCurrentDay
                       ? 'text-orange-600 font-bold'
-                      : isTextOnly
-                      ? 'text-amber-700 font-semibold'
                       : date < new Date()
                       ? 'text-gray-700 font-semibold'
                       : 'text-gray-400 font-semibold'
