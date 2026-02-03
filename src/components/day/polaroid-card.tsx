@@ -106,9 +106,12 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
     }
   }, [isEditing]) // Note: savedStickers intentionally not in deps to avoid re-cloning during edit
 
-  // Show stamp if entry has a photo (saved entry) AND not in edit mode
+  // Show stamp if entry exists (saved entry) AND not in edit mode
+  // Now shows for text-only entries as well as photo entries
   // Stamp hides when editing, reappears with animation on save success
-  const showStamp = Boolean(dayCard?.photo_path) && !isEditing
+  const showStamp = Boolean(dayCard?.id) && !isEditing
+  // Center the stamp when there's no photo (text-only entries)
+  const stampCentered = showStamp && !dayCard?.photo_path
 
   // Sync praise draft when dayCard changes (e.g., date navigation)
   // Only reset playStampAnimation when DATE changes (navigation), not when dayCard refreshes after save
@@ -216,13 +219,15 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
     if (DEBUG) console.log('[PolaroidCard] Save clicked - starting save flow')
 
     // Determine the effective photo path (pending new photo or existing photo)
-    const effectivePhotoPath = pendingPhotoPath || dayCard?.photo_path
+    const effectivePhotoPath = pendingPhotoPath || (pendingPhotoDelete ? null : dayCard?.photo_path)
 
-    // REQUIRED: Photo must exist to save entry
-    if (!effectivePhotoPath) {
-      setUploadError('Please add a photo first')
+    // Photo is now OPTIONAL - can save with just caption
+    // But require at least something to save (photo or caption)
+    const effectiveCaption = praiseDraft.trim()
+    if (!effectivePhotoPath && !effectiveCaption) {
+      setUploadError('Please add a photo or text')
       setTimeout(() => setUploadError(null), 3000)
-      if (DEBUG) console.log('[PolaroidCard] Save blocked - no photo')
+      if (DEBUG) console.log('[PolaroidCard] Save blocked - no photo and no caption')
       return
     }
 
@@ -625,11 +630,12 @@ export const PolaroidCard = forwardRef<PolaroidCardRef, PolaroidCardProps>(funct
             </button>
           )}
 
-          {/* Stamp overlay - positioned inside photo area (bottom-right) */}
+          {/* Stamp overlay - positioned inside photo area (bottom-right, or centered if no photo) */}
           <StampOverlay
             show={showStamp}
             playAnimation={playStampAnimation}
             onAnimationComplete={() => setPlayStampAnimation(false)}
+            centered={stampCentered}
           />
 
           {/* Hidden file inputs for different sources */}

@@ -7,6 +7,9 @@ import { useWeekData } from '@/hooks/use-week-data'
 import { getWeekDays, formatDateString } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 
+// Cache-busting version for seal image (must match stamp-overlay.tsx)
+const SEAL_IMAGE_VERSION = '20260108'
+
 interface WeekViewProps {
   onSelectDate: (date: string) => void
   currentWeekStart?: Date // Controlled mode: anchor date from parent
@@ -80,6 +83,8 @@ export function WeekView({ onSelectDate, currentWeekStart: controlledWeekStart, 
           const dayData = weekData.get(dateStr)
           const isCurrentDay = isToday(date)
           const hasEntry = dayData && (dayData.thumbUrl || dayData.caption)
+          // Text-only entry: has caption but no photo
+          const isTextOnly = hasEntry && !dayData?.thumbUrl && dayData?.caption
 
           // Today with entry
           if (isCurrentDay && hasEntry) {
@@ -102,6 +107,15 @@ export function WeekView({ onSelectDate, currentWeekStart: controlledWeekStart, 
                         className="w-full h-full object-cover"
                         loading="lazy"
                       />
+                    ) : isTextOnly ? (
+                      <div className="w-full h-full bg-amber-50 flex items-center justify-center">
+                        <img
+                          src={`/image/seal-image.jpg?v=${SEAL_IMAGE_VERSION}`}
+                          alt=""
+                          className="w-16 h-16 object-contain rounded-full opacity-90"
+                          loading="lazy"
+                        />
+                      </div>
                     ) : (
                       <div className="w-full h-full bg-gray-100 flex items-center justify-center">
                         <AppIcon name="plus" className="w-8 h-8 text-gray-300" />
@@ -137,6 +151,15 @@ export function WeekView({ onSelectDate, currentWeekStart: controlledWeekStart, 
                         className="w-full h-full object-cover"
                         loading="lazy"
                       />
+                    ) : isTextOnly ? (
+                      <div className="w-full h-full bg-amber-50 flex items-center justify-center">
+                        <img
+                          src={`/image/seal-image.jpg?v=${SEAL_IMAGE_VERSION}`}
+                          alt=""
+                          className="w-16 h-16 object-contain rounded-full opacity-90"
+                          loading="lazy"
+                        />
+                      </div>
                     ) : (
                       <div className="w-full h-full bg-gray-100 flex items-center justify-center">
                         <AppIcon name="plus" className="w-8 h-8 text-gray-300" />

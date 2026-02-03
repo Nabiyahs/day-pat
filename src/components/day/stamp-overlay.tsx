@@ -17,6 +17,8 @@ interface StampOverlayProps {
   playAnimation: boolean
   /** Callback when animation completes */
   onAnimationComplete?: () => void
+  /** When true, stamp is centered (for text-only entries without photo) */
+  centered?: boolean
 }
 
 /**
@@ -42,6 +44,7 @@ export function StampOverlay({
   show,
   playAnimation,
   onAnimationComplete,
+  centered = false,
 }: StampOverlayProps) {
   const [isAnimating, setIsAnimating] = useState(false)
 
@@ -76,14 +79,17 @@ export function StampOverlay({
 
   if (!show) return null
 
-  // Position: bottom-right of PHOTO area only (not the whole polaroid)
+  // Position: bottom-right of PHOTO area (default) or centered (for text-only entries)
   // This ensures the stamp does not overlap the comment/caption section
   // Nudged slightly up from bottom edge to avoid overlapping other UI elements
   return (
     <div
       data-stamp="true"
       className={cn(
-        'absolute bottom-3 right-3 z-20 pointer-events-none',
+        'absolute z-20 pointer-events-none',
+        centered
+          ? 'inset-0 flex items-center justify-center'
+          : 'bottom-3 right-3',
         isAnimating && 'animate-stamp-thump'
       )}
     >
