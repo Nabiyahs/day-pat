@@ -224,9 +224,15 @@ export function useDayCard(date: string) {
 
     console.log('[useDayCard] ✅ Auth check passed, user:', user.id)
 
-    // Photo is now OPTIONAL - entries can be saved with just text (caption)
+    // REQUIRED: Photo must exist to save entry
     // updates.photo_url contains the new path from upload, dayCard?.photo_path is the existing path
     const effectivePhotoPath = updates.photo_url !== undefined ? updates.photo_url : dayCard?.photo_path
+    if (!effectivePhotoPath) {
+      console.error('[useDayCard] ❌ Save blocked - photo is required')
+      console.error('[useDayCard] updates.photo_url:', updates.photo_url)
+      console.error('[useDayCard] dayCard?.photo_path:', dayCard?.photo_path)
+      return { success: false, error: 'Please add a photo first.' }
+    }
 
     // Validate entry_date format (YYYY-MM-DD)
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/
@@ -236,7 +242,7 @@ export function useDayCard(date: string) {
     }
 
     console.log('[useDayCard] ✅ Pre-validation passed')
-    console.log('[useDayCard] Effective photo_path:', effectivePhotoPath || '(no photo)')
+    console.log('[useDayCard] Effective photo_path:', effectivePhotoPath)
 
     setSaving(true)
     setError(null)
@@ -259,13 +265,13 @@ export function useDayCard(date: string) {
     const payload: {
       user_id: string
       entry_date: string
-      photo_path: string | null
+      photo_path: string
       praise: string
       sticker_state?: { stickers: StickerState[] } | null
     } = {
       user_id: user.id,
       entry_date: date,
-      photo_path: effectivePhotoPath || null,
+      photo_path: effectivePhotoPath,
       praise: updates.caption !== undefined
         ? (updates.caption || '')
         : (dayCard?.praise || ''),
@@ -439,40 +445,33 @@ export function useDayCard(date: string) {
       }
     }
 
-    // 3b. Fetch signed URL if photo changed (only if photo exists)
+    // 3b. Fetch signed URL if photo changed
     if (updates.photo_url !== undefined) {
       const photoPathForUrl = savedData?.photo_path || payload.photo_path
+      console.log('[useDayCard] Stage 3b: Fetching signed URL for:', photoPathForUrl)
 
-      if (photoPathForUrl) {
-        console.log('[useDayCard] Stage 3b: Fetching signed URL for:', photoPathForUrl)
-
-        try {
-          const newSignedUrl = await fetchSignedUrl(photoPathForUrl)
-          if (newSignedUrl) {
-            setPhotoSignedUrl(newSignedUrl)
-            console.log('[useDayCard] ✅ Stage 3b: Signed URL fetched')
-          } else {
-            console.warn('[useDayCard] ⚠️ Stage 3b WARNING: fetchSignedUrl returned null')
-            console.warn('[useDayCard] photo_path used:', photoPathForUrl)
-            if (!refreshError) {
-              refreshError = 'Photo may not display. Please refresh.'
-            }
-          }
-        } catch (signedUrlError) {
-          console.warn('[useDayCard] ⚠️ Stage 3b WARNING: Signed URL fetch error')
-          console.warn('[useDayCard] Error:', signedUrlError)
-          if (signedUrlError instanceof Error) {
-            console.warn('[useDayCard] Signed URL error message:', signedUrlError.message)
-            console.warn('[useDayCard] Stack:', signedUrlError.stack)
-          }
+      try {
+        const newSignedUrl = await fetchSignedUrl(photoPathForUrl)
+        if (newSignedUrl) {
+          setPhotoSignedUrl(newSignedUrl)
+          console.log('[useDayCard] ✅ Stage 3b: Signed URL fetched')
+        } else {
+          console.warn('[useDayCard] ⚠️ Stage 3b WARNING: fetchSignedUrl returned null')
+          console.warn('[useDayCard] photo_path used:', photoPathForUrl)
           if (!refreshError) {
             refreshError = 'Photo may not display. Please refresh.'
           }
         }
-      } else {
-        // No photo - clear the signed URL
-        console.log('[useDayCard] Stage 3b: No photo, clearing signed URL')
-        setPhotoSignedUrl(null)
+      } catch (signedUrlError) {
+        console.warn('[useDayCard] ⚠️ Stage 3b WARNING: Signed URL fetch error')
+        console.warn('[useDayCard] Error:', signedUrlError)
+        if (signedUrlError instanceof Error) {
+          console.warn('[useDayCard] Signed URL error message:', signedUrlError.message)
+          console.warn('[useDayCard] Stack:', signedUrlError.stack)
+        }
+        if (!refreshError) {
+          refreshError = 'Photo may not display. Please refresh.'
+        }
       }
     }
 

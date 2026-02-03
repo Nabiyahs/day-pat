@@ -7,9 +7,6 @@ import { useMonthData } from '@/hooks/use-month-data'
 import { formatDateString } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 
-// Cache-busting version for seal image (must match stamp-overlay.tsx)
-const SEAL_IMAGE_VERSION = '20260108'
-
 interface MonthViewProps {
   onSelectDate: (date: string) => void
   currentMonth?: Date // Controlled mode: month from parent
@@ -139,10 +136,6 @@ export function MonthView({ onSelectDate, currentMonth: controlledMonth, onMonth
             const dayData = monthData.get(dateStr)
             const isCurrentDay = isToday(date)
             const hasPhoto = dayData?.thumbUrl && isCurrentMonth
-            // Entry exists if we have data for this date (photo or text-only)
-            const hasEntry = Boolean(dayData) && isCurrentMonth
-            // Text-only entry: has entry but no photo
-            const isTextOnly = hasEntry && !dayData?.thumbUrl
 
             // Cell height class based on number of weeks
             const cellHeight = numWeeks <= 4 ? 'h-16' : numWeeks <= 5 ? 'h-14' : 'h-12'
@@ -165,7 +158,7 @@ export function MonthView({ onSelectDate, currentMonth: controlledMonth, onMonth
                 className={cn(
                   'min-w-0 p-0.5 relative overflow-hidden transition-all box-border',
                   cellHeight,
-                  hasPhoto ? 'bg-white' : isTextOnly ? 'bg-amber-50' : 'bg-gray-50',
+                  hasPhoto ? 'bg-white' : 'bg-gray-50',
                   !isCurrentDay && 'hover:ring-1 hover:ring-amber-200 hover:ring-inset'
                 )}
                 aria-label={format(date, 'MMMM d')}
@@ -183,7 +176,7 @@ export function MonthView({ onSelectDate, currentMonth: controlledMonth, onMonth
                       ? 'text-white font-bold drop-shadow'
                       : isCurrentDay
                       ? 'text-orange-600 font-bold'
-                      : date < new Date()
+                      : date < new Date() && !hasPhoto
                       ? 'text-gray-700 font-semibold'
                       : 'text-gray-400 font-semibold'
                   )}
@@ -199,18 +192,6 @@ export function MonthView({ onSelectDate, currentMonth: controlledMonth, onMonth
                     className="w-full h-full object-cover"
                     loading="lazy"
                   />
-                )}
-
-                {/* Centered stamp for text-only entries (no photo) */}
-                {isTextOnly && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-amber-50">
-                    <img
-                      src={`/image/seal-image.jpg?v=${SEAL_IMAGE_VERSION}`}
-                      alt=""
-                      className="w-8 h-8 object-contain rounded-full opacity-90"
-                      loading="lazy"
-                    />
-                  </div>
                 )}
 
                 {/* Note: Stickers do NOT render in month view - only in Day View */}
